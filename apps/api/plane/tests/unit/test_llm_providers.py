@@ -18,6 +18,9 @@ def test_supported_providers_registration():
     assert "deepseek" in SUPPORTED_PROVIDERS
     assert "gemini" in SUPPORTED_PROVIDERS
     assert "openai" in SUPPORTED_PROVIDERS
+    assert "fpt" in SUPPORTED_PROVIDERS
+    assert "groq" in SUPPORTED_PROVIDERS
+    assert "openrouter" in SUPPORTED_PROVIDERS
     assert "custom" in SUPPORTED_PROVIDERS
     assert "ollama" in SUPPORTED_PROVIDERS
 

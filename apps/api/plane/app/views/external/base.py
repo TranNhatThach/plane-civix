@@ -83,6 +83,27 @@ class DeepSeekProvider(LLMProvider):
     default_base_url = "https://api.deepseek.com/v1"
 
 
+class FPTProvider(LLMProvider):
+    name = "FPT AI Factory"
+    models = []
+    default_model = "glm-5.2"
+    default_base_url = "https://api.fpt.ai/v1"
+
+
+class GroqProvider(LLMProvider):
+    name = "Groq"
+    models = []
+    default_model = "deepseek-r1-distill-llama-70b"
+    default_base_url = "https://api.groq.com/openai/v1"
+
+
+class OpenRouterProvider(LLMProvider):
+    name = "OpenRouter"
+    models = []
+    default_model = "deepseek/deepseek-r1"
+    default_base_url = "https://openrouter.ai/api/v1"
+
+
 class CustomProvider(LLMProvider):
     name = "Custom / Local"
     models = []
@@ -95,6 +116,9 @@ SUPPORTED_PROVIDERS = {
     "anthropic": AnthropicProvider,
     "gemini": GeminiProvider,
     "deepseek": DeepSeekProvider,
+    "fpt": FPTProvider,
+    "groq": GroqProvider,
+    "openrouter": OpenRouterProvider,
     "custom": CustomProvider,
     "ollama": CustomProvider,
 }

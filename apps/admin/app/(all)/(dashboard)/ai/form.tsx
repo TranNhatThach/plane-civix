@@ -19,39 +19,81 @@ export const LLM_PROVIDERS = [
   {
     key: "openai",
     label: "OpenAI",
-    defaultModel: "gpt-4o-mini",
+    defaultModel: "o3-mini",
     defaultBaseUrl: "https://api.openai.com/v1",
-    models: ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo", "o1-mini", "o3-mini"],
+    models: ["o3-mini", "o1", "gpt-4o", "gpt-4o-mini", "gpt-4.5-preview"],
   },
   {
     key: "anthropic",
     label: "Anthropic",
-    defaultModel: "claude-3-5-sonnet-20240620",
-    models: ["claude-3-5-sonnet-20240620", "claude-3-5-haiku-20241022", "claude-3-haiku-20240307"],
+    defaultModel: "claude-3-7-sonnet",
+    models: ["claude-3-7-sonnet", "claude-3-5-sonnet-latest", "claude-3-5-haiku-latest", "claude-3-opus-latest"],
   },
   {
     key: "gemini",
     label: "Google Gemini",
     defaultModel: "gemini-2.0-flash",
-    models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro"],
+    models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-pro-exp-02-05"],
   },
   {
     key: "deepseek",
     label: "DeepSeek",
-    defaultModel: "deepseek-chat",
+    defaultModel: "deepseek-reasoner",
     defaultBaseUrl: "https://api.deepseek.com/v1",
-    models: ["deepseek-chat", "deepseek-reasoner"],
+    models: ["deepseek-reasoner", "deepseek-chat", "deepseek-r1", "deepseek-v3"],
+  },
+  {
+    key: "fpt",
+    label: "FPT AI Factory",
+    defaultModel: "glm-5.2",
+    defaultBaseUrl: "https://api.fpt.ai/v1",
+    models: [
+      "GLM-5.1",
+      "GLM-4.7",
+      "DeepSeek-V4-Flash",
+      "Kimi-K2.5",
+      "Llama-3.3-70B-Instruct",
+      "Qwen2.5-Coder-32B-Instruct",
+      "gemma-3-27b-it",
+    ],
+  },
+  {
+    key: "groq",
+    label: "Groq (High-Speed Inference)",
+    defaultModel: "deepseek-r1-distill-llama-70b",
+    defaultBaseUrl: "https://api.groq.com/openai/v1",
+    models: ["deepseek-r1-distill-llama-70b", "llama-3.3-70b-versatile", "qwen-2.5-coder-32b", "llama-3.1-8b-instant"],
+  },
+  {
+    key: "openrouter",
+    label: "OpenRouter",
+    defaultModel: "deepseek/deepseek-r1",
+    defaultBaseUrl: "https://openrouter.ai/api/v1",
+    models: [
+      "deepseek/deepseek-r1",
+      "anthropic/claude-3.7-sonnet",
+      "openai/gpt-4o",
+      "google/gemini-2.0-flash-001",
+      "meta-llama/llama-3.3-70b-instruct",
+    ],
+  },
+  {
+    key: "ollama",
+    label: "Ollama / Local Server",
+    defaultModel: "deepseek-r1:70b",
+    defaultBaseUrl: "http://localhost:11434/v1",
+    models: ["deepseek-r1:70b", "deepseek-r1:14b", "llama3.3:70b", "qwen2.5-coder:32b", "phi4"],
   },
   {
     key: "custom",
-    label: "Custom / Local (Ollama/vLLM/OpenRouter)",
-    defaultModel: "llama3",
-    defaultBaseUrl: "http://localhost:11434/v1",
-    models: ["llama3", "mistral", "qwen2.5", "deepseek-r1"],
+    label: "Custom Base URL",
+    defaultModel: "deepseek-r1",
+    defaultBaseUrl: "http://localhost:8000/v1",
+    models: ["deepseek-r1", "deepseek-v3", "llama3.3:70b", "qwen2.5-coder:32b"],
   },
 ];
 
-export function InstanceAIForm({ config }: { config: IFormattedInstanceConfiguration }) {
+export function InstanceAIForm({ config }: { config: Partial<IFormattedInstanceConfiguration> }) {
   const { updateInstanceConfigurations } = useInstance();
 
   const {
@@ -175,8 +217,9 @@ export function InstanceAIForm({ config }: { config: IFormattedInstanceConfigura
         <div className="inline-flex items-center gap-1.5 rounded-sm border border-accent-subtle bg-accent-subtle px-4 py-2 text-caption-sm-regular text-accent-secondary">
           <Lightbulb className="size-4" />
           <span>
-            Support for <strong>DeepSeek</strong>, <strong>Gemini 2.0</strong>, <strong>OpenAI</strong>,{" "}
-            <strong>Anthropic</strong>, and <strong>Custom Base URLs</strong> enabled.
+            Support for <strong>FPT AI Factory</strong>, <strong>DeepSeek</strong>, <strong>Google Gemini</strong>,{" "}
+            <strong>OpenAI</strong>, <strong>Anthropic</strong>, <strong>Groq</strong>, <strong>OpenRouter</strong>, and{" "}
+            <strong>Custom Base URLs</strong> enabled.
           </span>
         </div>
       </div>
