@@ -92,13 +92,15 @@ export class WorkspaceStore implements IWorkspaceStore {
       }
       const paginatedWorkspaceData = await this.instanceWorkspaceService.list();
       runInAction(() => {
-        const { results, ...paginationInfo } = paginatedWorkspaceData;
-        results.forEach((workspace: IWorkspace) => {
-          set(this.workspaces, [workspace.id], workspace);
-        });
-        set(this, "paginationInfo", paginationInfo);
+        if (paginatedWorkspaceData && Array.isArray(paginatedWorkspaceData.results)) {
+          const { results, ...paginationInfo } = paginatedWorkspaceData;
+          results.forEach((workspace: IWorkspace) => {
+            set(this.workspaces, [workspace.id], workspace);
+          });
+          set(this, "paginationInfo", paginationInfo);
+        }
       });
-      return paginatedWorkspaceData.results;
+      return paginatedWorkspaceData?.results ?? [];
     } catch (error) {
       console.error("Error fetching workspaces", error);
       throw error;
