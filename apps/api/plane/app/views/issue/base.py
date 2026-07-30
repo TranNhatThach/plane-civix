@@ -44,6 +44,7 @@ from plane.bgtasks.issue_activities_task import issue_activity
 from plane.bgtasks.issue_description_version_task import issue_description_version_task
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.webhook_task import model_activity
+from plane.bgtasks.telegram_publisher import dispatch_telegram_event
 from plane.db.models import (
     CycleIssue,
     FileAsset,
@@ -428,6 +429,11 @@ class IssueViewSet(BaseViewSet):
                 epoch=int(timezone.now().timestamp()),
                 notification=True,
                 origin=base_host(request=request, is_app=True),
+            )
+            dispatch_telegram_event.delay(
+                event_type="issue_created",
+                project_id=str(project_id),
+                data=serializer.data,
             )
             queryset = self.get_queryset()
             queryset = self.apply_annotations(queryset)

@@ -21,6 +21,8 @@ import { useUserPermissions } from "@/hooks/store/user";
 // services
 import { IntegrationService } from "@/services/integrations";
 
+import { TelegramIntegrationForm } from "@/components/integration/telegram/telegram-form";
+
 const integrationService = new IntegrationService();
 
 function WorkspaceIntegrationsPage() {
@@ -31,6 +33,7 @@ function WorkspaceIntegrationsPage() {
   // derived values
   const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
   const pageTitle = currentWorkspace?.name ? `${currentWorkspace.name} - Integrations` : undefined;
+  const workspaceSlug = (currentWorkspace?.slug || "") as string;
   const { data: appIntegrations } = useSWR(isAdmin ? APP_INTEGRATIONS : null, () =>
     isAdmin ? integrationService.getAppIntegrationsList() : null
   );
@@ -40,8 +43,13 @@ function WorkspaceIntegrationsPage() {
   return (
     <>
       <PageHead title={pageTitle} />
-      <section className="w-full overflow-y-auto">
+      <section className="w-full space-y-6 overflow-y-auto">
         <IntegrationAndImportExportBanner bannerName="Integrations" />
+        {workspaceSlug && (
+          <div className="px-6">
+            <TelegramIntegrationForm workspaceSlug={workspaceSlug} projectId="global" />
+          </div>
+        )}
         <div>
           {appIntegrations ? (
             appIntegrations.map((integration) => (
