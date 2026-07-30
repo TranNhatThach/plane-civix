@@ -26,6 +26,7 @@ from .integration import (
     GithubRepositorySync,
     Integration,
     SlackProjectSync,
+    TelegramAutomation,
     WorkspaceIntegration,
 )
 from .issue import (
