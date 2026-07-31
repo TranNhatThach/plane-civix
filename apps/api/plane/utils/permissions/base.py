@@ -30,7 +30,7 @@ def allow_permission(allowed_roles, level="PROJECT", creator=False, model=None):
             allowed_role_values = [role.value if isinstance(role, ROLE) else role for role in allowed_roles]
 
             # Check role permissions
-            if level == "WORKSPACE":
+            if level == "WORKSPACE" or str(kwargs.get("project_id", "")).lower() == "global":
                 if WorkspaceMember.objects.filter(
                     member=request.user,
                     workspace__slug=kwargs["slug"],

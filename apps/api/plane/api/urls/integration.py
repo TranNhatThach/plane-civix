@@ -10,17 +10,17 @@ from plane.api.views.integration.telegram import (
 
 urlpatterns = [
     path(
-        "workspaces/<str:slug>/projects/<uuid:project_id>/telegram-automations/",
+        "workspaces/<str:slug>/projects/<str:project_id>/telegram-automations/",
         TelegramAutomationEndpoint.as_view(),
         name="telegram-automation",
     ),
     path(
-        "workspaces/<str:slug>/projects/<uuid:project_id>/telegram-automations/<uuid:pk>/",
+        "workspaces/<str:slug>/projects/<str:project_id>/telegram-automations/<uuid:pk>/",
         TelegramAutomationEndpoint.as_view(),
         name="telegram-automation-detail",
     ),
     path(
-        "workspaces/<str:slug>/projects/<uuid:project_id>/telegram-automations/test-message/",
+        "workspaces/<str:slug>/projects/<str:project_id>/telegram-automations/test-message/",
         TelegramTestMessageEndpoint.as_view(),
         name="telegram-test-message",
     ),

@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-from plane.db.models import WorkspaceMember, ProjectMember
 from functools import wraps
+from enum import Enum
 from rest_framework.response import Response
 from rest_framework import status
 
-from enum import Enum
+from plane.db.models import WorkspaceMember, ProjectMember
 
 
 class ROLE(Enum):
@@ -41,7 +41,7 @@ def allow_permission(allowed_roles, level="PROJECT", creator=False, model=None):
             allowed_role_values = [role.value if isinstance(role, ROLE) else role for role in allowed_roles]
 
             # Check role permissions
-            if level == "WORKSPACE":
+            if level == "WORKSPACE" or str(kwargs.get("project_id", "")).lower() == "global":
                 if WorkspaceMember.objects.filter(
                     member=request.user,
                     workspace__slug=kwargs["slug"],
@@ -58,7 +58,7 @@ def allow_permission(allowed_roles, level="PROJECT", creator=False, model=None):
                     is_active=True,
                 ).exists()
 
-                # Return if the user has the allowed role else if they are workspace admin and part of the project regardless of the role # noqa: E501
+                # Return if the user has the allowed role else if they are workspace admin and part of the project regardless of the role
                 if is_user_has_allowed_role:
                     return view_func(instance, request, *args, **kwargs)
                 elif (

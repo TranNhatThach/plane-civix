@@ -4,7 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import useSWR from "swr";
 import { Send } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -21,19 +22,47 @@ type Props = {
 const telegramService = new TelegramIntegrationService();
 
 export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData, onSuccess }: Props) {
-  const [botToken, setBotToken] = useState(initialData?.bot_token || "");
-  const [chatId, setChatId] = useState(initialData?.chat_id || "");
-  const [isActive, setIsActive] = useState(initialData?.is_active ?? true);
+  const { data: automations, mutate } = useSWR(
+    workspaceSlug ? `TELEGRAM_AUTOMATION_${workspaceSlug}_${projectId}` : null,
+    () => telegramService.getTelegramAutomations(workspaceSlug, projectId),
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false,
+    }
+  );
+
+  const existingConfig = automations && automations.length > 0 ? automations[0] : initialData;
+
+  const [botToken, setBotToken] = useState(existingConfig?.bot_token || "");
+  const [chatId, setChatId] = useState(existingConfig?.chat_id || "");
+  const [isActive, setIsActive] = useState(existingConfig?.is_active ?? true);
   const [events, setEvents] = useState({
-    issue_created: initialData?.events?.issue_created ?? true,
-    issue_updated: initialData?.events?.issue_updated ?? true,
-    comment_added: initialData?.events?.comment_added ?? true,
+    issue_created: existingConfig?.events?.issue_created ?? true,
+    issue_updated: existingConfig?.events?.issue_updated ?? true,
+    comment_added: existingConfig?.events?.comment_added ?? true,
   });
+
+  useEffect(() => {
+    if (automations && automations.length > 0) {
+      const config = automations[0];
+      if (config.bot_token) setBotToken(config.bot_token);
+      if (config.chat_id) setChatId(config.chat_id);
+      setIsActive(config.is_active ?? true);
+      if (config.events) {
+        setEvents({
+          issue_created: config.events.issue_created ?? true,
+          issue_updated: config.events.issue_updated ?? true,
+          comment_added: config.events.comment_added ?? true,
+        });
+      }
+    }
+  }, [automations]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
-  const handleTestConnection = async () => {
+  const handleTestConnection = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (!botToken || !chatId) {
       setToast({
         type: TOAST_TYPE.ERROR,
@@ -55,18 +84,22 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
         message: res.message || "Test message sent to Telegram group successfully.",
       });
     } catch (err: any) {
+      const errorMsg =
+        typeof err === "string"
+          ? err
+          : err?.error || err?.message || JSON.stringify(err) || "Could not send test message.";
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Test Failed",
-        message: err?.error || "Could not send test message. Check your Bot Token and Chat ID.",
+        message: errorMsg,
       });
     } finally {
       setIsTesting(false);
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (!botToken || !chatId) {
       setToast({
         type: TOAST_TYPE.ERROR,
@@ -85,6 +118,8 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
         events,
       });
 
+      mutate();
+
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Saved!",
@@ -93,10 +128,14 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
 
       if (onSuccess) onSuccess();
     } catch (err: any) {
+      const errorMsg =
+        typeof err === "string"
+          ? err
+          : err?.error || err?.message || JSON.stringify(err) || "Failed to save Telegram automation config.";
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Error",
-        message: err?.error || "Failed to save Telegram automation config.",
+        message: errorMsg,
       });
     } finally {
       setIsSaving(false);
@@ -104,7 +143,7 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
   };
 
   return (
-    <form onSubmit={handleSave} className="space-y-6 rounded-lg border border-subtle bg-layer-1 p-6">
+    <div className="space-y-6 rounded-lg border border-subtle bg-layer-1 p-6">
       <div className="flex items-center justify-between border-b border-subtle pb-4">
         <div>
           <h3 className="text-16 font-semibold text-primary">Telegram Bot Notifications</h3>
@@ -154,11 +193,11 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
             type="text"
             value={chatId}
             onChange={(e) => setChatId(e.target.value)}
-            placeholder="-5333292648"
+            placeholder="-533329****"
             className="w-full rounded-md"
           />
           <p className="text-11 text-tertiary">
-            Enter Group/Channel Chat ID (e.g. <code>-5333292648</code>). Add <strong>@getidsbot</strong> to your group
+            Enter Group/Channel Chat ID (e.g. <code>-533329****</code>). Add <strong>@getidsbot</strong> to your group
             to find it.
           </p>
         </div>
@@ -214,10 +253,10 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
           <span>Send Test Message</span>
         </Button>
 
-        <Button type="submit" variant="primary" size="sm" loading={isSaving}>
+        <Button type="button" variant="primary" size="sm" onClick={handleSave} loading={isSaving}>
           {isSaving ? "Saving..." : "Save Automation"}
         </Button>
       </div>
-    </form>
+    </div>
   );
 }

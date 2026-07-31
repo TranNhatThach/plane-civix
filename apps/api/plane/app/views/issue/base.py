@@ -680,6 +680,7 @@ class IssueViewSet(BaseViewSet):
         if not issue:
             return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        old_state_name = issue.state.name if hasattr(issue, "state") and issue.state else None
         current_instance = json.dumps(IssueDetailSerializer(issue).data, cls=DjangoJSONEncoder)
 
         requested_data = json.dumps(self.request.data, cls=DjangoJSONEncoder)
@@ -716,6 +717,26 @@ class IssueViewSet(BaseViewSet):
                     issue_id=str(serializer.data.get("id", None)),
                     user_id=request.user.id,
                 )
+                # Dispatch Telegram notification for status change
+                try:
+                    updated_issue = Issue.objects.filter(pk=pk).select_related("state", "project").first()
+                    if updated_issue and updated_issue.state:
+                        new_state_name = updated_issue.state.name
+                        if old_state_name and old_state_name != new_state_name:
+                            actor_display_name = getattr(request.user, "display_name", "") or getattr(request.user, "first_name", "") or getattr(request.user, "email", "Member")
+                            dispatch_telegram_event.delay(
+                                event_type="issue_updated",
+                                project_id=str(project_id),
+                                data=IssueDetailSerializer(updated_issue).data,
+                                extra_context={
+                                    "old_state": old_state_name,
+                                    "new_state": new_state_name,
+                                    "actor_name": actor_display_name,
+                                },
+                            )
+                except Exception as e:
+                    print(f"Error dispatching Telegram status update event: {e}")
+
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

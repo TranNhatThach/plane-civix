@@ -21,6 +21,7 @@ from plane.app.serializers import IssueCommentSerializer, CommentReactionSeriali
 from plane.app.permissions import allow_permission, ROLE
 from plane.db.models import IssueComment, ProjectMember, CommentReaction, Project, Issue
 from plane.bgtasks.issue_activities_task import issue_activity
+from plane.bgtasks.webhook_task import model_activity
 from plane.utils.host import base_host
 from plane.bgtasks.telegram_publisher import dispatch_telegram_event
 
@@ -107,7 +108,10 @@ class IssueCommentViewSet(BaseViewSet):
                 event_type="comment_added",
                 project_id=str(project_id),
                 data=serializer.data,
-                extra_context={"issue_identifier": f"{issue.project_identifier}-{issue.sequence_id}"},
+                extra_context={
+                    "issue_id": str(issue_id),
+                    "issue_identifier": f"{project.identifier}-{issue.sequence_id}",
+                },
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

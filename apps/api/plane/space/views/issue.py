@@ -290,6 +290,19 @@ class IssueCommentPublicViewSet(BaseViewSet):
                     project_id=project_deploy_board.project_id, member=request.user
                 )
 
+            try:
+                from plane.bgtasks.telegram_publisher import dispatch_telegram_event
+                issue = Issue.objects.filter(pk=issue_id).first()
+                issue_identifier = f"{issue.project_identifier}-{issue.sequence_id}" if issue else "Task"
+                dispatch_telegram_event.delay(
+                    event_type="comment_added",
+                    project_id=str(project_deploy_board.project_id),
+                    data=serializer.data,
+                    extra_context={"issue_identifier": issue_identifier},
+                )
+            except Exception as e:
+                print(f"Error dispatching Telegram comment event from public board: {e}")
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

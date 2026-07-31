@@ -77,44 +77,53 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
 
     setDeletingIntegration(true);
 
-    await integrationService
-      .deleteWorkspaceIntegration(workspaceSlug, workspaceIntegrationId ?? "")
-      .then(() => {
-        mutate<IWorkspaceIntegration[]>(
-          WORKSPACE_INTEGRATIONS(workspaceSlug),
-          (prevData) => prevData?.filter((i) => i.id !== workspaceIntegrationId),
-          false
-        );
-        setDeletingIntegration(false);
+    try {
+      await integrationService.deleteWorkspaceIntegration(workspaceSlug, workspaceIntegrationId ?? "");
+      mutate<IWorkspaceIntegration[]>(
+        WORKSPACE_INTEGRATIONS(workspaceSlug),
+        (prevData) => prevData?.filter((i) => i.id !== workspaceIntegrationId),
+        false
+      );
+      setDeletingIntegration(false);
 
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Deleted successfully!",
-          message: `${integration.title} integration deleted successfully.`,
-        });
-      })
-      .catch(() => {
-        setDeletingIntegration(false);
-
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: `${integration.title} integration could not be deleted. Please try again.`,
-        });
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Deleted successfully!",
+        message: `${integration.title} integration deleted successfully.`,
       });
+    } catch {
+      setDeletingIntegration(false);
+
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: `${integration.title} integration could not be deleted. Please try again.`,
+      });
+    }
   };
 
-  const isInstalled = workspaceIntegrations?.find((i: any) => i.integration_detail.id === integration.id);
+  const isInstalled = workspaceIntegrations?.find((i: any) => i.integration_detail?.id === integration.id);
+  const details = integrationDetails[integration.provider] || {
+    logo: "",
+    installed: `${integration.title} integration active.`,
+    notInstalled: `Connect ${integration.title} with your Plane workspace.`,
+  };
 
   return (
     <div className="flex items-center justify-between gap-2 border-b border-subtle bg-surface-1 px-4 py-6">
       <div className="flex items-start gap-4">
         <div className="h-10 w-10 flex-shrink-0">
-          <img
-            src={integrationDetails[integration.provider].logo}
-            className="h-full w-full object-cover"
-            alt={`${integration.title} Logo`}
-          />
+          {details.logo ? (
+            <img
+              src={details.logo}
+              className="h-full w-full object-cover"
+              alt={`${integration.title} Logo`}
+            />
+          ) : (
+            <div className="grid h-full w-full place-items-center rounded bg-layer-2 text-12 font-semibold text-secondary">
+              {integration.title?.charAt(0)}
+            </div>
+          )}
         </div>
         <div>
           <h3 className="flex items-center gap-2 text-body-xs-medium">
@@ -126,8 +135,8 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
           <p className="text-body-xs-regular text-secondary">
             {workspaceIntegrations
               ? isInstalled
-                ? integrationDetails[integration.provider].installed
-                : integrationDetails[integration.provider].notInstalled
+                ? details.installed
+                : details.notInstalled
               : "Loading..."}
           </p>
         </div>

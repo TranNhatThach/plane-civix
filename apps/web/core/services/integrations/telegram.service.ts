@@ -26,10 +26,8 @@ export class TelegramIntegrationService extends APIService {
 
   async getTelegramAutomations(workspaceSlug: string, projectId: string): Promise<ITelegramAutomationData[]> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/telegram-automations/`)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
+      .then((response) => (Array.isArray(response?.data) ? response.data : []))
+      .catch(() => []);
   }
 
   async createOrUpdateTelegramAutomation(

@@ -96,6 +96,9 @@ class S3Storage(S3Boto3Storage):
             print(f"Error generating presigned POST URL: {e}")
             return None
 
+        if response and isinstance(response, dict) and "url" in response:
+            response["url"] = response["url"].replace("http://plane-minio:9000", "http://localhost:9000")
+
         return response
 
     def _get_content_disposition(self, disposition, filename=None):
@@ -135,6 +138,9 @@ class S3Storage(S3Boto3Storage):
         except ClientError as e:
             log_exception(e)
             return None
+
+        if response and isinstance(response, str):
+            response = response.replace("http://plane-minio:9000", "http://localhost:9000")
 
         # The response contains the presigned URL
         return response

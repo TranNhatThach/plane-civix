@@ -51,8 +51,8 @@ export const WorkspaceSettingsSidebarItemCategories = observer(function Workspac
               {accessibleItems.map((item) => {
                 const isItemActive =
                   item.href === "/settings"
-                    ? pathname === `/${workspaceSlug}${item.href}/`
-                    : new RegExp(`^/${workspaceSlug}${item.href}/`).test(pathname);
+                    ? pathname === `/${workspaceSlug}${item.href}` || pathname === `/${workspaceSlug}${item.href}/`
+                    : new RegExp(`^/${workspaceSlug}${item.href}(/|$)`).test(pathname);
 
                 return (
                   <SettingsSidebarItem

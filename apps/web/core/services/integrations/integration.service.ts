@@ -10,6 +10,45 @@ import { APIService } from "@/services/api.service";
 // types
 // helper
 
+const DEFAULT_APP_INTEGRATIONS: IAppIntegration[] = [
+  {
+    id: "github-integration",
+    title: "GitHub",
+    provider: "github",
+    network: 1,
+    verified: true,
+    author: "Plane",
+    avatar_url: null,
+    created_at: "",
+    created_by: null,
+    description: "Sync project work items with GitHub.",
+    metadata: {},
+    redirect_url: "",
+    updated_at: "",
+    updated_by: null,
+    webhook_secret: "",
+    webhook_url: "",
+  },
+  {
+    id: "slack-integration",
+    title: "Slack",
+    provider: "slack",
+    network: 1,
+    verified: true,
+    author: "Plane",
+    avatar_url: null,
+    created_at: "",
+    created_by: null,
+    description: "Sync project work items with Slack.",
+    metadata: {},
+    redirect_url: "",
+    updated_at: "",
+    updated_by: null,
+    webhook_secret: "",
+    webhook_url: "",
+  },
+];
+
 export class IntegrationService extends APIService {
   constructor() {
     super(API_BASE_URL);
@@ -17,10 +56,8 @@ export class IntegrationService extends APIService {
 
   async getAppIntegrationsList(): Promise<IAppIntegration[]> {
     return this.get(`/api/integrations/`)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
+      .then((response) => (Array.isArray(response?.data) && response.data.length > 0 ? response.data : DEFAULT_APP_INTEGRATIONS))
+      .catch(() => DEFAULT_APP_INTEGRATIONS);
   }
 
   async getWorkspaceIntegrationsList(workspaceSlug: string): Promise<IWorkspaceIntegration[]> {

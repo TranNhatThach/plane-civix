@@ -23,25 +23,40 @@ import { IntegrationService } from "@/services/integrations";
 
 import { TelegramIntegrationForm } from "@/components/integration/telegram/telegram-form";
 
+import type { Route } from "./+types/page";
+import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
+
 const integrationService = new IntegrationService();
 
-function WorkspaceIntegrationsPage() {
+function WorkspaceIntegrationsPage({ params }: Route.ComponentProps) {
+  const { workspaceSlug } = params;
   // store hooks
   const { currentWorkspace } = useWorkspace();
-  const { allowPermissions } = useUserPermissions();
+  const { workspaceUserInfo, allowPermissions } = useUserPermissions();
 
   // derived values
-  const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
+  const canPerformWorkspaceAdminActions = allowPermissions(
+    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+    EUserPermissionsLevel.WORKSPACE,
+    workspaceSlug
+  );
   const pageTitle = currentWorkspace?.name ? `${currentWorkspace.name} - Integrations` : undefined;
-  const workspaceSlug = (currentWorkspace?.slug || "") as string;
-  const { data: appIntegrations } = useSWR(isAdmin ? APP_INTEGRATIONS : null, () =>
-    isAdmin ? integrationService.getAppIntegrationsList() : null
+
+  const { data: appIntegrations } = useSWR(
+    canPerformWorkspaceAdminActions ? APP_INTEGRATIONS : null,
+    () => (canPerformWorkspaceAdminActions ? integrationService.getAppIntegrationsList() : null),
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false,
+    }
   );
 
-  if (!isAdmin) return <NotAuthorizedView section="settings" className="h-auto" />;
+  if (workspaceUserInfo && !canPerformWorkspaceAdminActions) {
+    return <NotAuthorizedView section="settings" className="h-auto" />;
+  }
 
   return (
-    <>
+    <SettingsContentWrapper>
       <PageHead title={pageTitle} />
       <section className="w-full space-y-6 overflow-y-auto">
         <IntegrationAndImportExportBanner bannerName="Integrations" />
@@ -60,7 +75,7 @@ function WorkspaceIntegrationsPage() {
           )}
         </div>
       </section>
-    </>
+    </SettingsContentWrapper>
   );
 }
 

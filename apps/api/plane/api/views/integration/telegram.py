@@ -5,7 +5,9 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from plane.api.views.base import BaseAPIView
+from plane.app.views.base import BaseAPIView
+from plane.authentication.session import BaseSessionAuthentication
+from plane.api.middleware.api_authentication import APIKeyAuthentication
 from plane.app.permissions import ROLE, allow_permission
 from plane.db.models import Project, TelegramAutomation
 from plane.api.serializers import TelegramAutomationSerializer
@@ -14,12 +16,17 @@ from plane.bgtasks.telegram_publisher import send_telegram_message
 
 class TelegramAutomationEndpoint(BaseAPIView):
     """
-    API View for managing Telegram Bot Notification configurations per Project.
+    API View for managing Telegram Bot Notification configurations per Project or Workspace.
     """
+
+    authentication_classes = [BaseSessionAuthentication, APIKeyAuthentication]
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER])
     def get(self, request, slug, project_id):
-        automations = TelegramAutomation.objects.filter(project_id=project_id)
+        if str(project_id).lower() == "global":
+            automations = TelegramAutomation.objects.filter(project__workspace__slug=slug)
+        else:
+            automations = TelegramAutomation.objects.filter(project_id=project_id)
         serializer = TelegramAutomationSerializer(automations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -34,7 +41,35 @@ class TelegramAutomationEndpoint(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        project = Project.objects.get(pk=project_id)
+        if str(project_id).lower() == "global":
+            projects = Project.objects.filter(workspace__slug=slug)
+            if not projects.exists():
+                return Response(
+                    {"error": "No projects found in this workspace. Please create a project first before configuring Telegram automation."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            last_automation = None
+            for proj in projects:
+                auto, _ = TelegramAutomation.objects.update_or_create(
+                    project=proj,
+                    defaults={
+                        "workspace": proj.workspace,
+                        "bot_token": bot_token,
+                        "chat_id": chat_id,
+                        "is_active": request.data.get("is_active", True),
+                        "events": request.data.get("events", {"issue_created": True, "issue_updated": True, "comment_added": True}),
+                    },
+                )
+                last_automation = auto
+            serializer = TelegramAutomationSerializer(last_automation)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        try:
+            project = Project.objects.get(pk=project_id, workspace__slug=slug)
+        except (Project.DoesNotExist, ValueError):
+            project = Project.objects.filter(workspace__slug=slug).first()
+            if not project:
+                return Response({"error": "Project not found."}, status=status.HTTP_404_NOT_FOUND)
 
         automation, created = TelegramAutomation.objects.update_or_create(
             project=project,
@@ -52,7 +87,7 @@ class TelegramAutomationEndpoint(BaseAPIView):
     @allow_permission(allowed_roles=[ROLE.ADMIN])
     def delete(self, request, slug, project_id, pk):
         try:
-            automation = TelegramAutomation.objects.get(pk=pk, project_id=project_id)
+            automation = TelegramAutomation.objects.get(pk=pk)
             automation.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except TelegramAutomation.DoesNotExist:
@@ -63,6 +98,8 @@ class TelegramTestMessageEndpoint(BaseAPIView):
     """
     Endpoint for testing Telegram Bot Token and Chat ID connection.
     """
+
+    authentication_classes = [BaseSessionAuthentication, APIKeyAuthentication]
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER])
     def post(self, request, slug, project_id):
@@ -80,12 +117,12 @@ class TelegramTestMessageEndpoint(BaseAPIView):
             "Your Plane workspace is now connected to this Telegram chat. You will receive real-time notifications for issue updates!"
         )
 
-        success = send_telegram_message(bot_token, chat_id, test_message)
+        success, err_msg = send_telegram_message(bot_token, chat_id, test_message)
 
         if success:
             return Response({"message": "Test notification sent successfully!"}, status=status.HTTP_200_OK)
         else:
             return Response(
-                {"error": "Failed to send test message. Please verify your Bot Token and Chat ID."},
+                {"error": f"Telegram Error: {err_msg}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )

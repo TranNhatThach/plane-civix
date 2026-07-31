@@ -259,7 +259,7 @@ class GPTIntegrationEndpoint(BaseAPIView):
         if not text and error:
             return Response(
                 {"error": error or "An internal error has occurred."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         workspace = Workspace.objects.get(slug=slug)
@@ -301,7 +301,7 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
         if not text and error:
             return Response(
                 {"error": error or "An internal error has occurred."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         return Response(
