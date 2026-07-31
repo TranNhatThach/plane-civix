@@ -96,8 +96,14 @@ class S3Storage(S3Boto3Storage):
             print(f"Error generating presigned POST URL: {e}")
             return None
 
+        public_minio_url = (
+            os.environ.get("MEDIA_URL")
+            or os.environ.get("PUBLIC_MINIO_URL")
+            or "http://localhost:9000"
+        ).rstrip("/")
+
         if response and isinstance(response, dict) and "url" in response:
-            response["url"] = response["url"].replace("http://plane-minio:9000", "http://localhost:9000")
+            response["url"] = response["url"].replace("http://plane-minio:9000", public_minio_url)
 
         return response
 
@@ -139,8 +145,14 @@ class S3Storage(S3Boto3Storage):
             log_exception(e)
             return None
 
+        public_minio_url = (
+            os.environ.get("MEDIA_URL")
+            or os.environ.get("PUBLIC_MINIO_URL")
+            or "http://localhost:9000"
+        ).rstrip("/")
+
         if response and isinstance(response, str):
-            response = response.replace("http://plane-minio:9000", "http://localhost:9000")
+            response = response.replace("http://plane-minio:9000", public_minio_url)
 
         # The response contains the presigned URL
         return response

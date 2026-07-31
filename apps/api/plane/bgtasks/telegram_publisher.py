@@ -5,7 +5,7 @@
 import logging
 import re
 import requests
-from html import escape
+from html import escape, unescape
 from typing import Dict, Any, Optional
 from celery import shared_task
 
@@ -53,7 +53,8 @@ def strip_html_tags(text: str) -> str:
     # Remove HTML tags
     clean = re.sub(r'<[^>]+>', '', text)
     # Trim multiple empty newlines
-    clean = re.sub(r'\n\s*\n', '\n', clean).strip()
+    clean = unescape(clean.strip())
+    clean = re.sub(r'\n\s*\n', '\n', clean)
     return clean
 
 
@@ -172,7 +173,7 @@ def dispatch_telegram_event(event_type: str, project_id: str, data: Dict[str, An
     if not automations.exists():
         return
 
-    app_url = getattr(settings, "WEB_URL", "http://localhost:3000")
+    app_url = (getattr(settings, "WEB_URL", None) or os.environ.get("WEB_URL") or "http://localhost:3000").rstrip("/")
 
     # Retrieve issue object from DB for complete data
     issue_id = data.get("id") or (extra_context.get("issue_id") if extra_context else None)
