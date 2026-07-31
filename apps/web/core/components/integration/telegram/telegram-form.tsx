@@ -204,8 +204,8 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
       <div className="flex items-center justify-between border-t border-subtle pt-4">
         <Button
           type="button"
-          variant="outline-neutral"
-          size="md"
+          variant="secondary"
+          size="sm"
           onClick={handleTestConnection}
           loading={isTesting}
           className="flex items-center gap-1.5"
@@ -214,7 +214,7 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
           <span>Send Test Message</span>
         </Button>
 
-        <Button type="submit" variant="primary" size="md" loading={isSaving}>
+        <Button type="submit" variant="primary" size="sm" loading={isSaving}>
           {isSaving ? "Saving..." : "Save Automation"}
         </Button>
       </div>
