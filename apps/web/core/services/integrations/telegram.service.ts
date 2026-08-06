@@ -16,6 +16,8 @@ export interface ITelegramAutomationData {
     issue_created?: boolean;
     issue_updated?: boolean;
     comment_added?: boolean;
+    restrict_create?: boolean;
+    allowed_creators?: string[];
   };
 }
 
