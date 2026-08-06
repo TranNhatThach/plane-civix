@@ -6,9 +6,15 @@ from django.urls import path
 from plane.api.views.integration.telegram import (
     TelegramAutomationEndpoint,
     TelegramTestMessageEndpoint,
+    TelegramWebhookEndpoint,
 )
 
 urlpatterns = [
+    path(
+        "integrations/telegram/webhook/",
+        TelegramWebhookEndpoint.as_view(),
+        name="telegram-webhook",
+    ),
     path(
         "workspaces/<str:slug>/projects/<str:project_id>/telegram-automations/",
         TelegramAutomationEndpoint.as_view(),

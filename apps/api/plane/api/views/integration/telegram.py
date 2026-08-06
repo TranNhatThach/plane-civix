@@ -1,9 +1,9 @@
-# Copyright (c) 2023-present Plane Software, Inc. and contributors
-# SPDX-License-Identifier: AGPL-3.0-only
-# See the LICENSE file for details.
-
+import os
+import requests
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from django.conf import settings
 
 from plane.app.views.base import BaseAPIView
 from plane.authentication.session import BaseSessionAuthentication
@@ -12,6 +12,26 @@ from plane.app.permissions import ROLE, allow_permission
 from plane.db.models import Project, TelegramAutomation
 from plane.api.serializers import TelegramAutomationSerializer
 from plane.bgtasks.telegram_publisher import send_telegram_message
+from plane.bgtasks.telegram_bot_service import process_telegram_update
+
+
+def setup_telegram_webhook(bot_token: str, request=None):
+    """Register Webhook URL with Telegram API for interactive 2-way bot chat."""
+    if not bot_token:
+        return
+    try:
+        app_url = (getattr(settings, "WEB_URL", None) or os.environ.get("WEB_URL") or "").rstrip("/")
+        if not app_url and request:
+            app_url = f"{request.scheme}://{request.get_host()}"
+        if app_url:
+            webhook_url = f"{app_url}/api/v1/integrations/telegram/webhook/"
+            requests.post(
+                f"https://api.telegram.org/bot{bot_token}/setWebhook",
+                json={"url": webhook_url},
+                timeout=5,
+            )
+    except Exception:
+        pass
 
 
 class TelegramAutomationEndpoint(BaseAPIView):
@@ -40,6 +60,8 @@ class TelegramAutomationEndpoint(BaseAPIView):
                 {"error": "bot_token and chat_id are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        setup_telegram_webhook(bot_token, request)
 
         if str(project_id).lower() == "global":
             projects = Project.objects.filter(workspace__slug=slug)
@@ -112,6 +134,8 @@ class TelegramTestMessageEndpoint(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        setup_telegram_webhook(bot_token, request)
+
         test_message = (
             "🎉 <b>Plane Telegram Bot Test Connection Successful!</b>\n\n"
             "Your Plane workspace is now connected to this Telegram chat. You will receive real-time notifications for issue updates!"
@@ -126,3 +150,20 @@ class TelegramTestMessageEndpoint(BaseAPIView):
                 {"error": f"Telegram Error: {err_msg}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class TelegramWebhookEndpoint(BaseAPIView):
+    """
+    Public Webhook endpoint receiving HTTP POST updates from Telegram Bot API.
+    """
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            process_telegram_update(request.data)
+        except Exception as e:
+            pass
+        return Response({"status": "ok"}, status=status.HTTP_200_OK)
+
