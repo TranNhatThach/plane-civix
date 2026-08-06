@@ -71,7 +71,7 @@ export const shouldFilterModule = (
     if (filterKey === "lead" && filters.lead && filters.lead.length > 0)
       fallsInFilters = fallsInFilters && filters.lead.includes(`${module.lead_id}`);
     if (filterKey === "members" && filters.members && filters.members.length > 0) {
-      const memberIds = module.member_ids;
+      const memberIds = module.member_ids ?? [];
       fallsInFilters = fallsInFilters && filters.members.some((memberId) => memberIds.includes(memberId));
     }
     if (filterKey === "start_date" && filters.start_date && filters.start_date.length > 0) {

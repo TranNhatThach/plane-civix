@@ -166,8 +166,8 @@ export class IssueSubIssuesStore implements IIssueSubIssuesStore {
       sub_issue_ids: issueIds,
     });
 
-    const subIssuesStateDistribution = response?.state_distribution;
-    const subIssues = response.sub_issues as TIssue[];
+    const subIssuesStateDistribution = response?.state_distribution ?? {};
+    const subIssues = Array.isArray(response?.sub_issues) ? response.sub_issues : [];
 
     // fetch other issues states and members when sub-issues are from different project
     if (subIssues && subIssues.length > 0) {
@@ -186,10 +186,10 @@ export class IssueSubIssuesStore implements IIssueSubIssuesStore {
         });
       });
 
-      const issueIds = subIssues.map((issue) => issue.id);
+      const createdSubIssueIds = subIssues.map((issue) => issue.id);
       update(this.subIssues, [parentIssueId], (issues) => {
-        if (!issues) return issueIds;
-        return concat(issues, issueIds);
+        if (!issues) return createdSubIssueIds;
+        return concat(issues, createdSubIssueIds);
       });
     });
 
