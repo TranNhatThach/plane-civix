@@ -42,6 +42,9 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
     comment_added: existingConfig?.events?.comment_added ?? true,
   });
 
+  const [restrictCreate, setRestrictCreate] = useState(existingConfig?.events?.restrict_create ?? false);
+  const [allowedCreators, setAllowedCreators] = useState((existingConfig?.events?.allowed_creators || []).join(", "));
+
   useEffect(() => {
     if (automations && automations.length > 0) {
       const config = automations[0];
@@ -54,6 +57,8 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
           issue_updated: config.events.issue_updated ?? true,
           comment_added: config.events.comment_added ?? true,
         });
+        setRestrictCreate(config.events.restrict_create ?? false);
+        setAllowedCreators((config.events.allowed_creators || []).join(", "));
       }
     }
   }, [automations]);
@@ -111,11 +116,20 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
 
     setIsSaving(true);
     try {
+      const parsedCreators = allowedCreators
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
       await telegramService.createOrUpdateTelegramAutomation(workspaceSlug, projectId, {
         bot_token: botToken,
         chat_id: chatId,
         is_active: isActive,
-        events,
+        events: {
+          ...events,
+          restrict_create: restrictCreate,
+          allowed_creators: parsedCreators,
+        },
       });
 
       mutate();
@@ -123,7 +137,7 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Saved!",
-        message: "Telegram Bot notifications configured successfully.",
+        message: "Telegram Bot notifications and permission controls configured successfully.",
       });
 
       if (onSuccess) onSuccess();
@@ -146,9 +160,9 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
     <div className="space-y-6 rounded-lg border border-subtle bg-layer-1 p-6">
       <div className="flex items-center justify-between border-b border-subtle pb-4">
         <div>
-          <h3 className="text-16 font-semibold text-primary">Telegram Bot Notifications</h3>
+          <h3 className="text-16 font-semibold text-primary">Telegram Bot Notifications & Permissions</h3>
           <p className="text-13 text-tertiary">
-            Receive real-time updates for issue creation, status changes, and comments in your Telegram group or chat.
+            Receive real-time updates and configure user permission controls for Telegram AI task creation.
           </p>
         </div>
         <label className="flex cursor-pointer items-center gap-2 text-13 font-medium text-secondary">
@@ -204,7 +218,7 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
       </div>
 
       {/* Events Checkboxes */}
-      <div className="space-y-3 pt-2">
+      <div className="space-y-3 border-t border-subtle pt-4">
         <h4 className="text-13 font-medium text-primary">Notification Triggers</h4>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="flex cursor-pointer items-center gap-2 text-13 text-secondary">
@@ -237,6 +251,48 @@ export function TelegramIntegrationForm({ workspaceSlug, projectId, initialData,
             <span>💬 New Comment</span>
           </label>
         </div>
+      </div>
+
+      {/* Permission Controls Section */}
+      <div className="space-y-3 border-t border-subtle pt-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-13 font-medium text-primary">Task Creation Permissions (/create)</h4>
+            <p className="text-12 text-tertiary">
+              Restrict automated AI task creation to specific Telegram User IDs or @usernames.
+            </p>
+          </div>
+          <label className="flex cursor-pointer items-center gap-2 text-13 font-medium text-secondary">
+            <input
+              type="checkbox"
+              checked={restrictCreate}
+              onChange={(e) => setRestrictCreate(e.target.checked)}
+              className="h-4 w-4 rounded border-subtle text-accent-primary"
+            />
+            <span>Restrict Creation</span>
+          </label>
+        </div>
+
+        {restrictCreate && (
+          <div className="flex flex-col gap-1.5 pt-1">
+            <label htmlFor="telegram-allowed-creators" className="text-13 font-medium text-tertiary">
+              Allowed Telegram User IDs / Usernames
+            </label>
+            <Input
+              id="telegram-allowed-creators"
+              name="telegram-allowed-creators"
+              type="text"
+              value={allowedCreators}
+              onChange={(e) => setAllowedCreators(e.target.value)}
+              placeholder="123456789, @username1, @username2"
+              className="w-full rounded-md"
+            />
+            <p className="text-11 text-tertiary">
+              Enter User IDs or @usernames separated by commas. Users can get their ID by sending <code>/myid</code> to
+              the bot.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Form Action Buttons */}

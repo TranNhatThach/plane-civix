@@ -46,6 +46,10 @@ services:
     env_file:
       - .env
       - ./apps/api/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/api/plane:/code/plane
     depends_on:
       - plane-db
       - plane-redis
@@ -61,6 +65,27 @@ services:
     command: ./bin/docker-entrypoint-worker.sh
     env_file:
       - ./apps/api/.env
+    volumes:
+      - ./apps/api/plane:/code/plane
+    depends_on:
+      - api
+      - plane-db
+      - plane-redis
+
+  telegram-bot:
+    container_name: plane-telegram-bot
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.api
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: always
+    command: python manage.py run_telegram_bot
+    env_file:
+      - .env
+      - ./apps/api/.env
+    volumes:
+      - ./apps/api/plane:/code/plane
     depends_on:
       - api
       - plane-db

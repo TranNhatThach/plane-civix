@@ -15,9 +15,12 @@ from plane.db.models import TelegramAutomation, Project, Issue, IssueComment
 logger = logging.getLogger("plane.worker")
 
 
-def send_telegram_message(bot_token: str, chat_id: str, text: str, parse_mode: str = "HTML") -> tuple[bool, str]:
+import threading
+
+def send_telegram_message(bot_token: str, chat_id: str, text: str, parse_mode: str = "HTML") -> tuple[bool, Any]:
     """
     Sends a formatted message to a Telegram Chat ID via Telegram Bot API.
+    Returns (success, response_dict_or_error_string).
     """
     if not bot_token or not chat_id:
         logger.warning("Telegram bot_token or chat_id missing. Notification skipped.")
@@ -38,10 +41,36 @@ def send_telegram_message(bot_token: str, chat_id: str, text: str, parse_mode: s
             err_desc = response_data.get("description", "Unknown Telegram API error")
             logger.error(f"Telegram API Error: {err_desc}")
             return False, err_desc
-        return True, "Success"
+        return True, response_data
     except Exception as e:
         logger.error(f"Failed to dispatch Telegram message: {str(e)}")
         return False, str(e)
+
+
+def delete_telegram_message(bot_token: str, chat_id: str, message_id: int) -> bool:
+    """Deletes a message in a Telegram chat by message_id."""
+    if not bot_token or not chat_id or not message_id:
+        return False
+    try:
+        url = f"https://api.telegram.org/bot{bot_token}/deleteMessage"
+        payload = {"chat_id": chat_id, "message_id": message_id}
+        resp = requests.post(url, json=payload, timeout=5)
+        return resp.status_code == 200
+    except Exception as e:
+        logger.warning(f"Failed to delete Telegram message {message_id}: {e}")
+        return False
+
+
+def schedule_auto_delete(bot_token: str, chat_id: str, message_ids: list, delay_seconds: float = 15.0):
+    """Schedules auto-deletion of telegram messages after delay_seconds."""
+    def _delete_job():
+        for msg_id in message_ids:
+            if msg_id:
+                delete_telegram_message(bot_token, chat_id, msg_id)
+
+    timer = threading.Timer(delay_seconds, _delete_job)
+    timer.daemon = True
+    timer.start()
 
 
 def strip_html_tags(text: str) -> str:
