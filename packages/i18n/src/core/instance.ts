@@ -11,9 +11,9 @@ import resourcesToBackend from "i18next-resources-to-backend";
 import { SUPPORTED_LANGUAGES, FALLBACK_LANGUAGE, LANGUAGE_STORAGE_KEY } from "../constants/language";
 import { NAMESPACES, DEFAULT_NAMESPACE } from "../constants/namespaces";
 
-import type { i18n as I18nInstance } from "i18next";
+import { localeMap } from "./locale-map.generated";
 
-const localeModules = (import.meta as any).glob("../locales/*/*.json");
+import type { i18n as I18nInstance } from "i18next";
 
 export const i18nInstance: I18nInstance = createInstance();
 
@@ -22,12 +22,11 @@ i18nInstance
   .use(initReactI18next)
   .use(
     resourcesToBackend((language: string, namespace: string) => {
-      const path = `../locales/${language}/${namespace}.json`;
-      const loader = localeModules[path];
+      const loader = localeMap[language]?.[namespace] || localeMap[FALLBACK_LANGUAGE]?.[namespace];
       if (loader) {
         return loader();
       }
-      return import(`../locales/${language}/${namespace}.json`);
+      return Promise.reject(new Error(`Translation file not found for ${language}/${namespace}`));
     })
   );
 

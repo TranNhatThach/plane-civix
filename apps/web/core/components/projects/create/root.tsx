@@ -78,13 +78,9 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
             isUserAsset: false,
           });
         } catch (error) {
-          console.error("Error uploading cover image:", error);
-          setToast({
-            type: TOAST_TYPE.ERROR,
-            title: t("toast.error"),
-            message: error instanceof Error ? error.message : "Failed to upload cover image",
-          });
-          return Promise.reject(error);
+          console.warn("Cover image asset upload skipped/failed, using direct image URL:", error);
+          formData.cover_image = coverImage;
+          formData.cover_image_asset = null;
         }
       } else {
         formData.cover_image = coverImage;

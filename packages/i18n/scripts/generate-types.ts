@@ -83,7 +83,7 @@ function main(): void {
   const jsonFiles = fs
     .readdirSync(localesDir)
     .filter((file) => file.endsWith(".json"))
-    .sort();
+    .toSorted();
 
   if (jsonFiles.length === 0) {
     console.error(`Error: No JSON files found in ${localesDir}`);
@@ -133,7 +133,7 @@ function main(): void {
   }
 
   // Detect path conflicts
-  const sortedKeys = [...allKeys].sort();
+  const sortedKeys = [...allKeys].toSorted();
   const pathConflicts = detectPathConflicts(sortedKeys);
 
   if (pathConflicts.length > 0) {
@@ -165,6 +165,50 @@ ${keyLines}
   fs.writeFileSync(outputFile, output, "utf-8");
 
   console.log(`Generated ${sortedKeys.length} keys from ${jsonFiles.length} namespace files`);
+
+  // Generate locale-map.generated.ts for static bundler resolution
+  const allLocalesRootDir = path.resolve(rootDir, "..", "src", "locales");
+  const coreDir = path.resolve(rootDir, "..", "src", "core");
+  const mapOutputFile = path.join(coreDir, "locale-map.generated.ts");
+
+  if (fs.existsSync(allLocalesRootDir)) {
+    const langDirs = fs
+      .readdirSync(allLocalesRootDir, { withFileTypes: true })
+      .filter((dirent) => dirent.isDirectory())
+      .map((dirent) => dirent.name)
+      .toSorted();
+
+    const mapEntries: string[] = [];
+
+    for (const lang of langDirs) {
+      const langDirPath = path.join(allLocalesRootDir, lang);
+      const nsFiles = fs
+        .readdirSync(langDirPath)
+        .filter((file) => file.endsWith(".json"))
+        .toSorted();
+
+      const nsEntries: string[] = [];
+      for (const file of nsFiles) {
+        const nsName = path.basename(file, ".json");
+        nsEntries.push(`    "${nsName}": () => import("../locales/${lang}/${file}")`);
+      }
+
+      mapEntries.push(`  "${lang}": {\n${nsEntries.join(",\n")}\n  }`);
+    }
+
+    const mapContent = `${COPYRIGHT_HEADER}
+
+// AUTO-GENERATED — DO NOT EDIT
+// Run: pnpm run generate:types
+
+export const localeMap: Record<string, Record<string, () => Promise<any>>> = {
+${mapEntries.join(",\n")}
+};
+`;
+
+    fs.writeFileSync(mapOutputFile, mapContent, "utf-8");
+    console.log(`Generated localeMap for ${langDirs.length} languages in ${mapOutputFile}`);
+  }
 }
 
 main();
