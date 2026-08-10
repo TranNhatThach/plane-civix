@@ -216,7 +216,7 @@ def handle_tasks_list(project_or_workspace, app_url: str = "", query_arg: str = 
         ) if workspace else Issue.objects.none()
         header_title = "🌟 <b>Tất cả các Dự án (Toàn Workspace)</b>"
 
-    if not issues.exists():
+    if not issues:
         if target_project:
             msg = f"🎉 Dự án <b>{escape(target_project.name)}</b> hiện không có Task nào đang mở."
         else:

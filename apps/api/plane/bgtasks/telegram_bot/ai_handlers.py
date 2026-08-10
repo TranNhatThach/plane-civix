@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 from typing import Optional
+from html import escape
 from plane.db.models import Project, Workspace, Issue
 from plane.app.views.external.base import get_llm_config, get_llm_response
 
