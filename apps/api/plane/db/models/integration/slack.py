@@ -37,11 +37,22 @@ class SlackProjectSync(ProjectBaseModel):
 
 class SlackAutomation(ProjectBaseModel):
     """
-    Model storing Slack Webhook notification settings for a Project.
+    Model storing Slack Webhook notification settings and
+    Socket Mode Bot/App tokens for a Project.
     """
     webhook_url = models.URLField(max_length=1000)
     channel_name = models.CharField(max_length=200, blank=True, null=True)
     is_active = models.BooleanField(default=True)
+
+    # Socket Mode tokens for /agent slash command
+    bot_token = models.CharField(
+        max_length=500, blank=True, null=True,
+        help_text="Slack Bot User OAuth Token (xoxb-...). Get from OAuth & Permissions page."
+    )
+    app_token = models.CharField(
+        max_length=500, blank=True, null=True,
+        help_text="Slack App-Level Token (xapp-...). Get from Basic Information > App-Level Tokens."
+    )
 
     # Event subscription flags: issue_created, issue_updated, comment_added, etc.
     events = models.JSONField(

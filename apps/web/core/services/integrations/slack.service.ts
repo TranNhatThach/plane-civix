@@ -12,6 +12,8 @@ export interface ISlackAutomationData {
   webhook_url: string;
   channel_name?: string;
   is_active: boolean;
+  bot_token?: string;
+  app_token?: string;
   events?: {
     issue_created?: boolean;
     issue_updated?: boolean;

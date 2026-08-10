@@ -36,6 +36,8 @@ export function SlackIntegrationForm({ workspaceSlug, projectId, initialData, on
   const [webhookUrl, setWebhookUrl] = useState(existingConfig?.webhook_url || "");
   const [channelName, setChannelName] = useState(existingConfig?.channel_name || "");
   const [isActive, setIsActive] = useState(existingConfig?.is_active ?? true);
+  const [botToken, setBotToken] = useState(existingConfig?.bot_token || "");
+  const [appToken, setAppToken] = useState(existingConfig?.app_token || "");
   const [events, setEvents] = useState({
     issue_created: existingConfig?.events?.issue_created ?? true,
     issue_updated: existingConfig?.events?.issue_updated ?? true,
@@ -48,6 +50,8 @@ export function SlackIntegrationForm({ workspaceSlug, projectId, initialData, on
       if (config.webhook_url) setWebhookUrl(config.webhook_url);
       if (config.channel_name) setChannelName(config.channel_name);
       setIsActive(config.is_active ?? true);
+      if (config.bot_token) setBotToken(config.bot_token);
+      if (config.app_token) setAppToken(config.app_token);
       if (config.events) {
         setEvents({
           issue_created: config.events.issue_created ?? true,
@@ -114,6 +118,8 @@ export function SlackIntegrationForm({ workspaceSlug, projectId, initialData, on
         webhook_url: webhookUrl,
         channel_name: channelName,
         is_active: isActive,
+        bot_token: botToken,
+        app_token: appToken,
         events,
       });
 
@@ -251,20 +257,62 @@ export function SlackIntegrationForm({ workspaceSlug, projectId, initialData, on
         </div>
       </form>
 
-      <div className="pt-4 border-t border-border-subtle space-y-2">
-        <h4 className="text-14 font-semibold text-primary">🤖 Autonomous Slack AI Agent Command (`/agent`)</h4>
-        <p className="text-12 text-tertiary">
-          Configure a single Slash Command <strong>`/agent`</strong> in your Slack App settings under <strong>Slash Commands</strong> using Request URL:
-        </p>
-        <div className="rounded bg-bg-surface-1 p-2 font-mono text-12 text-primary border border-border-subtle break-all">
-          {typeof window !== "undefined" ? window.location.origin : ""}/api/workspaces/{workspaceSlug}/projects/{projectId}/slack-commands/
+      <div className="pt-4 border-t border-border-subtle space-y-4">
+        <div className="flex items-center space-x-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+            🤖
+          </div>
+          <div>
+            <h4 className="text-14 font-semibold text-primary">Slack AI Agent — Socket Mode</h4>
+            <p className="text-12 text-tertiary">
+              Cấu hình Bot Token & App Token để kích hoạt lệnh <code>/agent</code> trên Slack.
+              Không cần ngrok hay domain public.
+            </p>
+          </div>
         </div>
+
+        <div>
+          <label htmlFor="slack-bot-token" className="text-13 font-medium text-tertiary block mb-1">
+            Bot User OAuth Token (xoxb-...)
+          </label>
+          <Input
+            id="slack-bot-token"
+            name="slack-bot-token"
+            type="password"
+            value={botToken}
+            onChange={(e) => setBotToken(e.target.value)}
+            placeholder="xoxb-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx"
+            className="w-full"
+          />
+          <p className="mt-1 text-12 text-tertiary">
+            Lấy từ trang Slack API → <strong>OAuth & Permissions</strong> → Bot User OAuth Token.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="slack-app-token" className="text-13 font-medium text-tertiary block mb-1">
+            App-Level Token (xapp-...)
+          </label>
+          <Input
+            id="slack-app-token"
+            name="slack-app-token"
+            type="password"
+            value={appToken}
+            onChange={(e) => setAppToken(e.target.value)}
+            placeholder="xapp-x-xxxxxxxxxxxxxxx-xxxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx"
+            className="w-full"
+          />
+          <p className="mt-1 text-12 text-tertiary">
+            Lấy từ trang Slack API → <strong>Basic Information</strong> → App-Level Tokens → Generate Token (scope: <code>connections:write</code>).
+          </p>
+        </div>
+
         <div className="rounded border border-border-subtle p-3 text-12 space-y-1 bg-bg-surface-1">
-          <span className="font-semibold text-primary block text-13">💬 Single Command Examples:</span>
-          <p className="text-secondary">• <code className="text-primary font-mono">/agent Báo cáo tiến độ Civix</code> — AI tự động phân tích & xuất % progress bar trực quan.</p>
+          <span className="font-semibold text-primary block text-13">💬 Ví dụ sử dụng lệnh /agent:</span>
+          <p className="text-secondary">• <code className="text-primary font-mono">/agent Báo cáo tiến độ Civix</code> — AI tự động phân tích & xuất % progress bar.</p>
           <p className="text-secondary">• <code className="text-primary font-mono">/agent Danh sách task của Nam</code> — Tra cứu công việc đang gán cho Nam.</p>
-          <p className="text-secondary">• <code className="text-primary font-mono">/agent Có những task nào quá hạn không?</code> — Tự động lọc các công việc quá hạn.</p>
-          <p className="text-secondary">• <code className="text-primary font-mono">/agent Tạo task fix bug API gán cho @Nam hạn thứ 6</code> — AI tự tạo task + sub-tasks.</p>
+          <p className="text-secondary">• <code className="text-primary font-mono">/agent Có những task nào quá hạn không?</code> — Tự động lọc các task trễ hạn.</p>
+          <p className="text-secondary">• <code className="text-primary font-mono">/agent Tạo task fix bug API gán cho @Nam hạn thứ 6</code> — AI tự tạo task.</p>
         </div>
       </div>
     </div>
