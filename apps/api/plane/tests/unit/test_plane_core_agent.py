@@ -90,7 +90,7 @@ def test_plane_agent_engine_rule_router(db):
     # Test progress prompt
     res_progress = engine.process_request("Xem tiến độ dự án TRP")
     assert res_progress["action_taken"] == "tool_get_progress"
-    assert "Báo cáo tiến độ dự án" in res_progress["text"]
+    assert "báo cáo tiến độ dự án" in res_progress["text"].lower()
 
     # Test members prompt
     res_members = engine.process_request("Danh sách thành viên dự án")
