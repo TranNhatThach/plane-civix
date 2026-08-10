@@ -171,16 +171,11 @@ class SlackCommandsEndpoint(BaseAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        from plane.bgtasks.slack_bot.fast_commands import (
-            handle_slack_progress_command,
-            handle_slack_tasks_command,
-            handle_slack_members_command,
-        )
-
-        text_lower = text.lower()
+        from plane.app.agent.engine import PlaneAgentEngine
+        from plane.bgtasks.slack_bot.slack_adapter import render_slack_block_kit
 
         # Single /agent entrypoint routing logic
-        if command_name == "agent" or command_name == "plane":
+        if command_name in ["agent", "plane", "bot"]:
             if not text:
                 return Response(
                     {
@@ -191,11 +186,12 @@ class SlackCommandsEndpoint(BaseAPIView):
                                 "text": {
                                     "type": "mrkdwn",
                                     "text": (
-                                        "🤖 *Plane Slack AI Agent*\n"
+                                        "🤖 *Plane Core AI Agent*\n"
                                         "Hãy nhập câu lệnh tự nhiên bằng Tiếng Việt hoặc Tiếng Anh sau lệnh `/agent`:\n\n"
                                         "• `/agent Báo cáo tiến độ Civix` ➔ Xem % tiến độ & thanh progress bar\n"
                                         "• `/agent Danh sách task của tôi` ➔ Xem các công việc đang được gán\n"
                                         "• `/agent Thành viên dự án` ➔ Xem danh sách member & khối lượng công việc\n"
+                                        "• `/agent Có công việc nào quá hạn không?` ➔ Lọc các task trễ hạn\n"
                                         "• `/agent Tạo task fix bug API gán cho @Nam hạn thứ 6` ➔ AI tự phân tích & tạo task"
                                     ),
                                 },
@@ -205,36 +201,22 @@ class SlackCommandsEndpoint(BaseAPIView):
                     status=status.HTTP_200_OK,
                 )
 
-            if any(k in text_lower for k in ["tiến độ", "progress", "tóm tắt", "báo cáo"]):
-                payload = handle_slack_progress_command(project, slug)
-            elif any(k in text_lower for k in ["task", "công việc", "việc", "danh sách"]):
-                payload = handle_slack_tasks_command(project)
-            elif any(k in text_lower for k in ["thành viên", "member", "thanh vien", "team"]):
-                payload = handle_slack_members_command(project)
-            else:
-                # Default AI Agent response fallback
-                payload = {
-                    "response_type": "in_channel",
-                    "blocks": [
-                        {
-                            "type": "header",
-                            "text": {"type": "plain_text", "text": "🤖 Plane AI Agent", "emoji": True},
-                        },
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": f"Đã tiếp nhận yêu cầu từ *@{user_name}*: _{text}_\nAgent đang phân tích và chuẩn bị thực thi công cụ...",
-                            },
-                        },
-                    ],
-                }
+            # Invoke Decoupled Core Agent Engine
+            user_obj = request.user if request.user and request.user.is_authenticated else None
+            agent_engine = PlaneAgentEngine(project=project, user=user_obj)
+            agent_result = agent_engine.process_request(text)
+
+            # Adapt Core Result ➔ Slack Block Kit Card
+            payload = render_slack_block_kit(agent_result, user_name=user_name)
         # Backward compatibility for direct commands
         elif command_name == "progress":
+            from plane.bgtasks.slack_bot.fast_commands import handle_slack_progress_command
             payload = handle_slack_progress_command(project, slug)
         elif command_name == "tasks":
+            from plane.bgtasks.slack_bot.fast_commands import handle_slack_tasks_command
             payload = handle_slack_tasks_command(project)
         elif command_name == "members":
+            from plane.bgtasks.slack_bot.fast_commands import handle_slack_members_command
             payload = handle_slack_members_command(project)
         else:
             payload = {
@@ -243,5 +225,6 @@ class SlackCommandsEndpoint(BaseAPIView):
             }
 
         return Response(payload, status=status.HTTP_200_OK)
+
 
 
