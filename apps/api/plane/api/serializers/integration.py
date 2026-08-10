@@ -34,6 +34,8 @@ class SlackAutomationSerializer(serializers.ModelSerializer):
             "webhook_url",
             "channel_name",
             "is_active",
+            "bot_token",
+            "app_token",
             "events",
             "created_at",
             "updated_at",

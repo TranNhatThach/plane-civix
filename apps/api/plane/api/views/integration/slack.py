@@ -35,6 +35,8 @@ class SlackAutomationEndpoint(BaseAPIView):
         channel_name = request.data.get("channel_name", "")
         events = request.data.get("events", {"issue_created": True, "issue_updated": True, "comment_created": True})
         is_active = request.data.get("is_active", True)
+        bot_token = request.data.get("bot_token", None)
+        app_token = request.data.get("app_token", None)
 
         if not webhook_url:
             return Response(
@@ -42,18 +44,24 @@ class SlackAutomationEndpoint(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        defaults = {
+            "webhook_url": webhook_url,
+            "channel_name": channel_name,
+            "events": events,
+            "is_active": is_active,
+        }
+        if bot_token is not None:
+            defaults["bot_token"] = bot_token
+        if app_token is not None:
+            defaults["app_token"] = app_token
+
         if str(project_id).lower() == "global":
             projects = Project.objects.filter(workspace__slug=slug)
             created_list = []
             for proj in projects:
                 automation, _ = SlackAutomation.objects.update_or_create(
                     project=proj,
-                    defaults={
-                        "webhook_url": webhook_url,
-                        "channel_name": channel_name,
-                        "events": events,
-                        "is_active": is_active,
-                    },
+                    defaults=defaults,
                 )
                 created_list.append(automation)
             serializer = SlackAutomationSerializer(created_list, many=True)
@@ -65,12 +73,7 @@ class SlackAutomationEndpoint(BaseAPIView):
 
         automation, _ = SlackAutomation.objects.update_or_create(
             project=project,
-            defaults={
-                "webhook_url": webhook_url,
-                "channel_name": channel_name,
-                "events": events,
-                "is_active": is_active,
-            },
+            defaults=defaults,
         )
 
         serializer = SlackAutomationSerializer(automation)
