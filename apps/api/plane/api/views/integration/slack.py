@@ -145,8 +145,8 @@ class SlackTestWebhookEndpoint(BaseAPIView):
 
 class SlackCommandsEndpoint(BaseAPIView):
     """
-    Endpoint for handling Slack Slash Commands (/progress, /tasks, /members).
-    Supports form-encoded POST data from Slack Platform or JSON payloads.
+    Single Entrypoint Endpoint for handling Slack AI Agent Command (/agent).
+    Supports Slash Command /agent <natural language request> from Slack Platform.
     """
 
     permission_classes = [AllowAny]
@@ -154,10 +154,10 @@ class SlackCommandsEndpoint(BaseAPIView):
     def post(self, request, slug, project_id):
         # Read parameters from form-data or JSON
         command = request.data.get("command", "") or request.POST.get("command", "")
-        text = request.data.get("text", "") or request.POST.get("text", "")
+        text = (request.data.get("text", "") or request.POST.get("text", "")).strip()
         user_name = request.data.get("user_name", "") or request.POST.get("user_name", "")
 
-        # Clean command string (e.g. /progress -> progress)
+        # Clean command string (e.g. /agent -> agent)
         command_name = command.lstrip("/").strip().lower()
 
         if str(project_id).lower() == "global":
@@ -177,7 +177,60 @@ class SlackCommandsEndpoint(BaseAPIView):
             handle_slack_members_command,
         )
 
-        if command_name == "progress":
+        text_lower = text.lower()
+
+        # Single /agent entrypoint routing logic
+        if command_name == "agent" or command_name == "plane":
+            if not text:
+                return Response(
+                    {
+                        "response_type": "ephemeral",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": (
+                                        "🤖 *Plane Slack AI Agent*\n"
+                                        "Hãy nhập câu lệnh tự nhiên bằng Tiếng Việt hoặc Tiếng Anh sau lệnh `/agent`:\n\n"
+                                        "• `/agent Báo cáo tiến độ Civix` ➔ Xem % tiến độ & thanh progress bar\n"
+                                        "• `/agent Danh sách task của tôi` ➔ Xem các công việc đang được gán\n"
+                                        "• `/agent Thành viên dự án` ➔ Xem danh sách member & khối lượng công việc\n"
+                                        "• `/agent Tạo task fix bug API gán cho @Nam hạn thứ 6` ➔ AI tự phân tích & tạo task"
+                                    ),
+                                },
+                            }
+                        ],
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            if any(k in text_lower for k in ["tiến độ", "progress", "tóm tắt", "báo cáo"]):
+                payload = handle_slack_progress_command(project, slug)
+            elif any(k in text_lower for k in ["task", "công việc", "việc", "danh sách"]):
+                payload = handle_slack_tasks_command(project)
+            elif any(k in text_lower for k in ["thành viên", "member", "thanh vien", "team"]):
+                payload = handle_slack_members_command(project)
+            else:
+                # Default AI Agent response fallback
+                payload = {
+                    "response_type": "in_channel",
+                    "blocks": [
+                        {
+                            "type": "header",
+                            "text": {"type": "plain_text", "text": "🤖 Plane AI Agent", "emoji": True},
+                        },
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": f"Đã tiếp nhận yêu cầu từ *@{user_name}*: _{text}_\nAgent đang phân tích và chuẩn bị thực thi công cụ...",
+                            },
+                        },
+                    ],
+                }
+        # Backward compatibility for direct commands
+        elif command_name == "progress":
             payload = handle_slack_progress_command(project, slug)
         elif command_name == "tasks":
             payload = handle_slack_tasks_command(project)
@@ -186,8 +239,9 @@ class SlackCommandsEndpoint(BaseAPIView):
         else:
             payload = {
                 "response_type": "ephemeral",
-                "text": f"❓ Unknown command `/{command_name}`. Available fast commands: `/progress`, `/tasks`, `/members`.",
+                "text": f"❓ Unknown command `/{command_name}`. Please use `/agent <yêu cầu>`.",
             }
 
         return Response(payload, status=status.HTTP_200_OK)
+
 

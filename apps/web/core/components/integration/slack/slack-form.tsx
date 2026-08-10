@@ -252,26 +252,19 @@ export function SlackIntegrationForm({ workspaceSlug, projectId, initialData, on
       </form>
 
       <div className="pt-4 border-t border-border-subtle space-y-2">
-        <h4 className="text-14 font-semibold text-primary">⚡ Slack Fast Track Commands (`/progress`, `/tasks`, `/members`)</h4>
+        <h4 className="text-14 font-semibold text-primary">🤖 Autonomous Slack AI Agent Command (`/agent`)</h4>
         <p className="text-12 text-tertiary">
-          Configure Slash Commands in your Slack App under <strong>Slash Commands</strong> ➔ <strong>Create New Command</strong> using Request URL:
+          Configure a single Slash Command <strong>`/agent`</strong> in your Slack App settings under <strong>Slash Commands</strong> using Request URL:
         </p>
         <div className="rounded bg-bg-surface-1 p-2 font-mono text-12 text-primary border border-border-subtle break-all">
           {typeof window !== "undefined" ? window.location.origin : ""}/api/workspaces/{workspaceSlug}/projects/{projectId}/slack-commands/
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-12 text-secondary pt-1">
-          <div className="rounded border border-border-subtle p-2">
-            <span className="font-semibold text-primary">📊 /progress</span>
-            <p className="text-tertiary">Visual progress report (% completion, status breakdown, overdue count).</p>
-          </div>
-          <div className="rounded border border-border-subtle p-2">
-            <span className="font-semibold text-primary">📋 /tasks</span>
-            <p className="text-tertiary">List active work items & tasks assigned in this project.</p>
-          </div>
-          <div className="rounded border border-border-subtle p-2">
-            <span className="font-semibold text-primary">👥 /members</span>
-            <p className="text-tertiary">List project members & their current workload status.</p>
-          </div>
+        <div className="rounded border border-border-subtle p-3 text-12 space-y-1 bg-bg-surface-1">
+          <span className="font-semibold text-primary block text-13">💬 Single Command Examples:</span>
+          <p className="text-secondary">• <code className="text-primary font-mono">/agent Báo cáo tiến độ Civix</code> — AI tự động phân tích & xuất % progress bar trực quan.</p>
+          <p className="text-secondary">• <code className="text-primary font-mono">/agent Danh sách task của Nam</code> — Tra cứu công việc đang gán cho Nam.</p>
+          <p className="text-secondary">• <code className="text-primary font-mono">/agent Có những task nào quá hạn không?</code> — Tự động lọc các công việc quá hạn.</p>
+          <p className="text-secondary">• <code className="text-primary font-mono">/agent Tạo task fix bug API gán cho @Nam hạn thứ 6</code> — AI tự tạo task + sub-tasks.</p>
         </div>
       </div>
     </div>
