@@ -92,8 +92,23 @@ def create_app(bot_token):
             )
             return
 
-        # Find the first project in any workspace (auto-detect)
-        project = Project.objects.filter(deleted_at__isnull=True).first()
+        # Smart project selection: check if project name is mentioned in user prompt
+        text_lower = text.lower()
+        project = None
+
+        # 1. Search for project matching name or identifier in prompt
+        for p in Project.objects.filter(deleted_at__isnull=True):
+            if p.name and (p.name.lower() in text_lower or (p.identifier and p.identifier.lower() in text_lower)):
+                project = p
+                break
+
+        # 2. If not explicitly mentioned, check project linked to SlackAutomation or latest project
+        if not project:
+            automation = SlackAutomation.objects.filter(is_active=True).first()
+            if automation and automation.project:
+                project = automation.project
+            else:
+                project = Project.objects.filter(deleted_at__isnull=True).order_by("-created_at").first()
 
         if not project:
             respond(text="❌ Không tìm thấy project nào trong hệ thống Plane.")
