@@ -1,114 +1,32 @@
 import logging
+from typing import Optional, List, Dict, Any
 from django.utils import timezone
 from django.db.models import Q
-from plane.db.models import Issue, State, IssueAssignee, ProjectMember, User, WorkspaceMember
+from plane.db.models import Issue, State, IssueAssignee, ProjectMember, User
 
 logger = logging.getLogger(__name__)
 
-# JSON Schemas for Tool Calling (OpenAPI Function Schemas)
-AGENT_TOOLS_SCHEMA = [
-    {
-        "name": "tool_query_tasks",
-        "description": "Tra cứu danh sách công việc (tasks) trong dự án theo tên người làm, trạng thái, quá hạn hoặc mức độ ưu tiên.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "assignee_name": {
-                    "type": "string",
-                    "description": "Tên hoặc email của thành viên cần lọc task (ví dụ: Nam, Lan, admin)",
-                },
-                "status_group": {
-                    "type": "string",
-                    "description": "Nhóm trạng thái: backlog, started, completed, cancelled, all",
-                },
-                "is_overdue": {
-                    "type": "boolean",
-                    "description": "Chỉ lấy các task đã quá hạn (True/False)",
-                },
-                "priority": {
-                    "type": "string",
-                    "description": "Mức ưu tiên: urgent, high, medium, low, none",
-                },
-            },
-        },
-    },
-    {
-        "name": "tool_get_progress",
-        "description": "Lấy báo cáo tổng quan về % tiến độ dự án, tổng số task hoàn thành, đang làm và ách tắc.",
-        "parameters": {
-            "type": "object",
-            "properties": {},
-        },
-    },
-    {
-        "name": "tool_get_members_workload",
-        "description": "Thống kê danh sách thành viên dự án và số lượng công việc họ đang đảm nhận.",
-        "parameters": {
-            "type": "object",
-            "properties": {},
-        },
-    },
-    {
-        "name": "tool_create_task_with_subtasks",
-        "description": "Tạo một task công việc mới trong dự án kèm danh sách các task con (sub-tasks) nếu có.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "title": {
-                    "type": "string",
-                    "description": "Tiêu đề của công việc chính",
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Mô tả chi tiết công việc",
-                },
-                "assignee_name": {
-                    "type": "string",
-                    "description": "Tên thành viên được gán làm việc chính",
-                },
-                "priority": {
-                    "type": "string",
-                    "description": "Mức ưu tiên: urgent, high, medium, low",
-                },
-                "due_date": {
-                    "type": "string",
-                    "description": "Hạn chót công việc (định dạng YYYY-MM-DD)",
-                },
-                "subtasks": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Danh sách các tiêu đề task con (sub-tasks)",
-                },
-            },
-            "required": ["title"],
-        },
-    },
-    {
-        "name": "tool_update_task_status",
-        "description": "Cập nhật trạng thái của một công việc (ví dụ: chuyển sang Done, Started, Backlog).",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "sequence_id": {
-                    "type": "integer",
-                    "description": "Mã số task trong dự án (ví dụ 12 cho task CIV-12)",
-                },
-                "new_status": {
-                    "type": "string",
-                    "description": "Trạng thái mới: done, in_progress, backlog, todo",
-                },
-            },
-            "required": ["sequence_id", "new_status"],
-        },
-    },
-]
 
+def tool_query_tasks(
+    project_id: str,
+    assignee_name: Optional[str] = None,
+    status_group: Optional[str] = None,
+    is_overdue: bool = False,
+    priority: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Tra cứu danh sách công việc (tasks) trong dự án theo tên người làm, trạng thái, quá hạn hoặc mức độ ưu tiên.
 
-def execute_query_tasks(project, assignee_name=None, status_group=None, is_overdue=False, priority=None):
+    Args:
+        project_id: ID UUID của dự án Plane.
+        assignee_name: Tên hoặc email của thành viên cần lọc task (ví dụ: Nam, Lan, admin).
+        status_group: Nhóm trạng thái (backlog, started, completed, all).
+        is_overdue: True nếu chỉ tìm các task đã quá hạn.
+        priority: Mức ưu tiên (urgent, high, medium, low).
+
+    Returns:
+        Dict chứa số lượng task và danh sách chi tiết các công việc.
     """
-    Tra cứu tasks từ Postgres DB thông qua Django ORM.
-    """
-    queryset = Issue.objects.filter(project=project, deleted_at__isnull=True).select_related("state", "project")
+    queryset = Issue.objects.filter(project_id=project_id, deleted_at__isnull=True).select_related("state", "project")
 
     if assignee_name:
         assignee_query = Q(assignees__first_name__icontains=assignee_name) | Q(assignees__email__icontains=assignee_name) | Q(assignees__display_name__icontains=assignee_name)
@@ -137,8 +55,8 @@ def execute_query_tasks(project, assignee_name=None, status_group=None, is_overd
         assignees = [a.display_name or a.first_name or a.email for a in t.assignees.all()]
         items.append({
             "sequence_id": t.sequence_id,
-            "project_identifier": project.identifier,
-            "key": f"{project.identifier}-{t.sequence_id}",
+            "project_identifier": t.project.identifier if t.project else "",
+            "key": f"{t.project.identifier if t.project else 'TASK'}-{t.sequence_id}",
             "name": t.name,
             "status": t.state.name if t.state else "N/A",
             "status_group": t.state.group if t.state else "backlog",
@@ -154,11 +72,19 @@ def execute_query_tasks(project, assignee_name=None, status_group=None, is_overd
     }
 
 
-def execute_get_progress(project, workspace_slug=""):
+def tool_get_progress(project_id: str) -> Dict[str, Any]:
+    """Lấy báo cáo tổng quan về phần trăm tiến độ dự án, tổng số task hoàn thành, đang làm và ách tắc.
+
+    Args:
+        project_id: ID UUID của dự án Plane.
+
+    Returns:
+        Dict chứa thống kê phần trăm tiến độ và chi tiết số lượng task.
     """
-    Tính % tiến độ & tổng quan dự án.
-    """
-    all_issues = Issue.objects.filter(project=project, deleted_at__isnull=True).select_related("state")
+    all_issues = Issue.objects.filter(project_id=project_id, deleted_at__isnull=True).select_related("state", "project")
+    project = all_issues.first().project if all_issues.exists() else None
+    project_name = project.name if project else "Dự án"
+
     total_count = all_issues.count()
     completed_count = all_issues.filter(state__group="completed").count()
     started_count = all_issues.filter(state__group="started").count()
@@ -170,8 +96,7 @@ def execute_get_progress(project, workspace_slug=""):
     percent = round((completed_count / total_count * 100)) if total_count > 0 else 0
 
     return {
-        "project_name": project.name,
-        "project_identifier": project.identifier,
+        "project_name": project_name,
         "total_tasks": total_count,
         "completed_tasks": completed_count,
         "started_tasks": started_count,
@@ -181,16 +106,23 @@ def execute_get_progress(project, workspace_slug=""):
     }
 
 
-def execute_get_members_workload(project):
+def tool_get_members_workload(project_id: str) -> Dict[str, Any]:
+    """Thống kê danh sách thành viên dự án và số lượng công việc họ đang đảm nhận.
+
+    Args:
+        project_id: ID UUID của dự án Plane.
+
+    Returns:
+        Dict chứa danh sách thành viên và khối lượng công việc tương ứng.
     """
-    Thống kê danh sách thành viên và công việc đang nắm giữ.
-    """
-    memberships = ProjectMember.objects.filter(project=project, deleted_at__isnull=True).select_related("member")
-    
+    memberships = ProjectMember.objects.filter(project_id=project_id, deleted_at__isnull=True).select_related("member", "project")
+    project = memberships.first().project if memberships.exists() else None
+    project_name = project.name if project else "Dự án"
+
     result = []
     for pm in memberships:
         u = pm.member
-        assigned_issues = Issue.objects.filter(project=project, assignees=u, deleted_at__isnull=True).select_related("state")
+        assigned_issues = Issue.objects.filter(project_id=project_id, assignees=u, deleted_at__isnull=True).select_related("state")
         total_assigned = assigned_issues.count()
         in_progress = assigned_issues.filter(state__group="started").count()
         completed = assigned_issues.filter(state__group="completed").count()
@@ -206,16 +138,41 @@ def execute_get_members_workload(project):
         })
 
     return {
-        "project_name": project.name,
+        "project_name": project_name,
         "total_members": len(result),
         "members": result,
     }
 
 
-def execute_create_task_with_subtasks(project, created_by_user, title, description="", assignee_name=None, priority="medium", due_date=None, subtasks=None):
+def tool_create_task_with_subtasks(
+    project_id: str,
+    title: str,
+    description: str = "",
+    assignee_name: Optional[str] = None,
+    priority: str = "medium",
+    due_date: Optional[str] = None,
+    subtasks: Optional[List[str]] = None,
+    created_by_user_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Tạo một task công việc mới trong dự án kèm danh sách các task con (sub-tasks) nếu có.
+
+    Args:
+        project_id: ID UUID của dự án Plane.
+        title: Tiêu đề công việc chính.
+        description: Mô tả chi tiết công việc.
+        assignee_name: Tên hoặc email người được gán việc.
+        priority: Mức ưu tiên (urgent, high, medium, low).
+        due_date: Hạn chót định dạng YYYY-MM-DD.
+        subtasks: Danh sách các tiêu đề task con.
+        created_by_user_id: ID của người dùng khởi tạo.
+
+    Returns:
+        Dict thông báo kết quả tạo task.
     """
-    Tạo Task chính + Các Sub-tasks con qua Django ORM.
-    """
+    from plane.db.models import Project
+    project = Project.objects.get(pk=project_id)
+    created_by_user = User.objects.filter(pk=created_by_user_id).first() if created_by_user_id else project.workspace.owner
+
     default_state = State.objects.filter(project=project, group="backlog", deleted_at__isnull=True).first()
     if not default_state:
         default_state = State.objects.filter(project=project, deleted_at__isnull=True).first()
@@ -289,13 +246,24 @@ def execute_create_task_with_subtasks(project, created_by_user, title, descripti
     }
 
 
-def execute_update_task_status(project, sequence_id, new_status):
+def tool_update_task_status(
+    project_id: str,
+    sequence_id: int,
+    new_status: str,
+) -> Dict[str, Any]:
+    """Cập nhật trạng thái của một công việc (ví dụ chuyển sang Done, In Progress, Backlog).
+
+    Args:
+        project_id: ID UUID của dự án Plane.
+        sequence_id: Mã số thứ tự của task (ví dụ 12 trong CIV-12).
+        new_status: Trạng thái mới (done, in_progress, backlog, todo).
+
+    Returns:
+        Dict thông báo kết quả cập nhật trạng thái.
     """
-    Cập nhật trạng thái task.
-    """
-    issue = Issue.objects.filter(project=project, sequence_id=sequence_id, deleted_at__isnull=True).first()
+    issue = Issue.objects.filter(project_id=project_id, sequence_id=sequence_id, deleted_at__isnull=True).first()
     if not issue:
-        return {"success": False, "error": f"Task {project.identifier}-{sequence_id} not found."}
+        return {"success": False, "error": f"Task {sequence_id} not found."}
 
     ns = new_status.lower()
     target_group = "backlog"
@@ -304,16 +272,16 @@ def execute_update_task_status(project, sequence_id, new_status):
     elif ns in ["in_progress", "started", "in progress"]:
         target_group = "started"
 
-    target_state = State.objects.filter(project=project, group=target_group, deleted_at__isnull=True).first()
+    target_state = State.objects.filter(project_id=project_id, group=target_group, deleted_at__isnull=True).first()
     if not target_state:
-        target_state = State.objects.filter(project=project, deleted_at__isnull=True).first()
+        target_state = State.objects.filter(project_id=project_id, deleted_at__isnull=True).first()
 
     issue.state = target_state
     issue.save(update_fields=["state"])
 
     return {
         "success": True,
-        "task_key": f"{project.identifier}-{issue.sequence_id}",
+        "task_key": f"{issue.project.identifier}-{issue.sequence_id}",
         "title": issue.name,
         "new_status": target_state.name,
         "group": target_state.group,

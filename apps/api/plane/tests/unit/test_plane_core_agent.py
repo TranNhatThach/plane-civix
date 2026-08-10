@@ -1,11 +1,11 @@
 import pytest
 from plane.app.agent.engine import PlaneAgentEngine
 from plane.app.agent.tools import (
-    execute_query_tasks,
-    execute_get_progress,
-    execute_get_members_workload,
-    execute_create_task_with_subtasks,
-    execute_update_task_status,
+    tool_query_tasks,
+    tool_get_progress,
+    tool_get_members_workload,
+    tool_create_task_with_subtasks,
+    tool_update_task_status,
 )
 from plane.db.models import Issue, State, IssueAssignee, Project, Workspace, User, ProjectMember
 
@@ -27,19 +27,21 @@ def test_agent_tools_query_and_progress(db):
 
     IssueAssignee.objects.create(issue=issue1, assignee=user, project=project, workspace=workspace)
 
+    project_id_str = str(project.id)
+
     # Test tool_get_progress
-    progress = execute_get_progress(project)
+    progress = tool_get_progress(project_id_str)
     assert progress["total_tasks"] == 2
     assert progress["completed_tasks"] == 1
     assert progress["completion_percentage"] == 50
 
     # Test tool_query_tasks
-    query_res = execute_query_tasks(project, assignee_name="Agent")
+    query_res = tool_query_tasks(project_id_str, assignee_name="Agent")
     assert query_res["count"] == 1
     assert query_res["tasks"][0]["key"] == f"TAP-{issue1.sequence_id}"
 
     # Test tool_get_members_workload
-    members_res = execute_get_members_workload(project)
+    members_res = tool_get_members_workload(project_id_str)
     assert members_res["total_members"] == 1
     assert members_res["members"][0]["display_name"] == "Agent User"
 
@@ -52,15 +54,16 @@ def test_agent_create_and_update_task(db):
     project = Project.objects.create(name="Test Agent Project 2", identifier="TAP2", workspace=workspace)
 
     State.objects.create(name="Backlog", group="backlog", project=project, workspace=workspace)
+    project_id_str = str(project.id)
 
     # Test tool_create_task_with_subtasks
-    create_res = execute_create_task_with_subtasks(
-        project=project,
-        created_by_user=user,
+    create_res = tool_create_task_with_subtasks(
+        project_id=project_id_str,
         title="Refactor Agent Core",
         description="Split Slack and Core Engine",
         priority="high",
         subtasks=["Task 1: Tools", "Task 2: Engine"],
+        created_by_user_id=str(user.id),
     )
 
     assert create_res["success"] is True
@@ -69,7 +72,7 @@ def test_agent_create_and_update_task(db):
 
     # Test tool_update_task_status
     state_done = State.objects.create(name="Done", group="completed", project=project, workspace=workspace)
-    update_res = execute_update_task_status(project, sequence_id=1, new_status="done")
+    update_res = tool_update_task_status(project_id=project_id_str, sequence_id=1, new_status="done")
 
     assert update_res["success"] is True
     assert update_res["new_status"] == state_done.name

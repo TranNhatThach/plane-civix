@@ -37,6 +37,7 @@ channels==4.3.2
 # ai
 openai==1.63.2
 google-genai>=1.0.0
+google-adk
 # slack
 slack-sdk==3.27.1
 # apm
