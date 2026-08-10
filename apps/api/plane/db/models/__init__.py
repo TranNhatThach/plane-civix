@@ -26,6 +26,7 @@ from .integration import (
     GithubRepositorySync,
     Integration,
     SlackProjectSync,
+    SlackAutomation,
     TelegramAutomation,
     WorkspaceIntegration,
 )

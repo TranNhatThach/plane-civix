@@ -51,7 +51,7 @@ export function listLocales(): string[] {
   return entries
     .filter((e) => e.isDirectory())
     .map((e) => e.name)
-    .toSorted();
+    .sort();
 }
 
 export function loadLocale(locale: string): LocaleData {

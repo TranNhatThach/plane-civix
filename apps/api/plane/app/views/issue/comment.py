@@ -24,6 +24,7 @@ from plane.bgtasks.issue_activities_task import issue_activity
 from plane.bgtasks.webhook_task import model_activity
 from plane.utils.host import base_host
 from plane.bgtasks.telegram_publisher import dispatch_telegram_event
+from plane.bgtasks.slack_publisher import dispatch_slack_event
 
 
 class IssueCommentViewSet(BaseViewSet):
@@ -111,6 +112,18 @@ class IssueCommentViewSet(BaseViewSet):
                 extra_context={
                     "issue_id": str(issue_id),
                     "issue_identifier": f"{project.identifier}-{issue.sequence_id}",
+                },
+            )
+            actor_name = getattr(request.user, "display_name", "") or getattr(request.user, "first_name", "") or getattr(request.user, "email", "Member")
+            dispatch_slack_event.delay(
+                event_type="comment_created",
+                project_id=str(project_id),
+                data={
+                    "issue_id": str(issue_id),
+                    "comment_id": str(serializer.data.get("id")),
+                },
+                extra_context={
+                    "actor_name": actor_name,
                 },
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)

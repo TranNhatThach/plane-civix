@@ -45,6 +45,7 @@ from plane.bgtasks.issue_description_version_task import issue_description_versi
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.webhook_task import model_activity
 from plane.bgtasks.telegram_publisher import dispatch_telegram_event
+from plane.bgtasks.slack_publisher import dispatch_slack_event
 from plane.db.models import (
     CycleIssue,
     FileAsset,
@@ -435,6 +436,11 @@ class IssueViewSet(BaseViewSet):
                 project_id=str(project_id),
                 data=serializer.data,
             )
+            dispatch_slack_event.delay(
+                event_type="issue_created",
+                project_id=str(project_id),
+                data=serializer.data,
+            )
             queryset = self.get_queryset()
             queryset = self.apply_annotations(queryset)
             issue = (
@@ -731,6 +737,16 @@ class IssueViewSet(BaseViewSet):
                                 extra_context={
                                     "old_state": old_state_name,
                                     "new_state": new_state_name,
+                                    "actor_name": actor_display_name,
+                                },
+                            )
+                            dispatch_slack_event.delay(
+                                event_type="issue_updated",
+                                project_id=str(project_id),
+                                data=IssueDetailSerializer(updated_issue).data,
+                                extra_context={
+                                    "old_state_name": old_state_name,
+                                    "new_state_name": new_state_name,
                                     "actor_name": actor_display_name,
                                 },
                             )

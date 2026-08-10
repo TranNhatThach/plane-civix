@@ -3,7 +3,7 @@
 # See the LICENSE file for details.
 
 from rest_framework import serializers
-from plane.db.models import TelegramAutomation, Project
+from plane.db.models import TelegramAutomation, SlackAutomation, Project
 
 
 class TelegramAutomationSerializer(serializers.ModelSerializer):
@@ -23,3 +23,23 @@ class TelegramAutomationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return TelegramAutomation.objects.create(**validated_data)
+
+
+class SlackAutomationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SlackAutomation
+        fields = [
+            "id",
+            "project",
+            "webhook_url",
+            "channel_name",
+            "is_active",
+            "events",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        return SlackAutomation.objects.create(**validated_data)
+

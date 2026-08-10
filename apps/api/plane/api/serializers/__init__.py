@@ -68,5 +68,5 @@ from .member import (
     ProjectMemberLiteAPISerializer,
 )
 from .sticky import StickySerializer
-from .integration import TelegramAutomationSerializer
+from .integration import TelegramAutomationSerializer, SlackAutomationSerializer
 

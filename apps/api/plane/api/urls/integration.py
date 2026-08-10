@@ -8,6 +8,11 @@ from plane.api.views.integration.telegram import (
     TelegramTestMessageEndpoint,
     TelegramWebhookEndpoint,
 )
+from plane.api.views.integration.slack import (
+    SlackAutomationEndpoint,
+    SlackTestWebhookEndpoint,
+    SlackCommandsEndpoint,
+)
 
 urlpatterns = [
     path(
@@ -30,4 +35,25 @@ urlpatterns = [
         TelegramTestMessageEndpoint.as_view(),
         name="telegram-test-message",
     ),
+    path(
+        "workspaces/<str:slug>/projects/<str:project_id>/slack-automations/",
+        SlackAutomationEndpoint.as_view(),
+        name="slack-automation",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<str:project_id>/slack-automations/<uuid:pk>/",
+        SlackAutomationEndpoint.as_view(),
+        name="slack-automation-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<str:project_id>/slack-automations/test-message/",
+        SlackTestWebhookEndpoint.as_view(),
+        name="slack-test-message",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<str:project_id>/slack-commands/",
+        SlackCommandsEndpoint.as_view(),
+        name="slack-commands",
+    ),
 ]
+

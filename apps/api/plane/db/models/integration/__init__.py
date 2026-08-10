@@ -9,6 +9,6 @@ from .github import (
     GithubIssueSync,
     GithubCommentSync,
 )
-from .slack import SlackProjectSync
+from .slack import SlackProjectSync, SlackAutomation
 from .telegram import TelegramAutomation
 

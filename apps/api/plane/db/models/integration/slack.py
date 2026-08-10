@@ -33,3 +33,37 @@ class SlackProjectSync(ProjectBaseModel):
         verbose_name_plural = "Slack Project Syncs"
         db_table = "slack_project_syncs"
         ordering = ("-created_at",)
+
+
+class SlackAutomation(ProjectBaseModel):
+    """
+    Model storing Slack Webhook notification settings for a Project.
+    """
+    webhook_url = models.URLField(max_length=1000)
+    channel_name = models.CharField(max_length=200, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    # Event subscription flags: issue_created, issue_updated, comment_added, etc.
+    events = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Event subscriptions config, e.g. {'issue_created': True, 'issue_updated': True, 'comment_added': True}"
+    )
+
+    workspace_integration = models.ForeignKey(
+        "db.WorkspaceIntegration",
+        related_name="slack_automations",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    def __str__(self):
+        return f"Slack Automation for Project <{self.project.name}> ({self.webhook_url})"
+
+    class Meta:
+        verbose_name = "Slack Automation"
+        verbose_name_plural = "Slack Automations"
+        db_table = "slack_automations"
+        ordering = ("-created_at",)
+

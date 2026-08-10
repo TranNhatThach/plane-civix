@@ -62,10 +62,8 @@ export class IntegrationService extends APIService {
 
   async getWorkspaceIntegrationsList(workspaceSlug: string): Promise<IWorkspaceIntegration[]> {
     return this.get(`/api/workspaces/${workspaceSlug}/workspace-integrations/`)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
+      .then((response) => (Array.isArray(response?.data) ? response.data : []))
+      .catch(() => []);
   }
 
   async deleteWorkspaceIntegration(workspaceSlug: string, integrationId: string): Promise<any> {
