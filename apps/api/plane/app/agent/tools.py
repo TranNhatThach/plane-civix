@@ -2,9 +2,42 @@ import logging
 from typing import Optional, List, Dict, Any
 from django.utils import timezone
 from django.db.models import Q
-from plane.db.models import Issue, State, IssueAssignee, ProjectMember, User
+from plane.db.models import Issue, State, IssueAssignee, ProjectMember, User, Project
 
 logger = logging.getLogger(__name__)
+
+
+def tool_list_projects(workspace_slug: Optional[str] = None) -> Dict[str, Any]:
+    """Tra cứu danh sách tất cả các dự án (Projects) đang có trong hệ thống Plane.
+
+    Args:
+        workspace_slug: Mã slug của Workspace (nếu có).
+
+    Returns:
+        Dict chứa số lượng và danh sách chi tiết các dự án.
+    """
+    queryset = Project.objects.filter(deleted_at__isnull=True).select_related("workspace")
+    if workspace_slug:
+        queryset = queryset.filter(workspace__slug=workspace_slug)
+
+    projects = list(queryset)
+    items = []
+    for p in projects:
+        total_issues = Issue.objects.filter(project=p, deleted_at__isnull=True).count()
+        members_count = ProjectMember.objects.filter(project=p, deleted_at__isnull=True).count()
+        items.append({
+            "id": str(p.id),
+            "name": p.name,
+            "identifier": p.identifier,
+            "workspace_slug": p.workspace.slug if p.workspace else "",
+            "total_issues": total_issues,
+            "members_count": members_count,
+        })
+
+    return {
+        "count": len(items),
+        "projects": items,
+    }
 
 
 def tool_query_tasks(

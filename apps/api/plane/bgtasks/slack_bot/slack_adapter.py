@@ -96,6 +96,35 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
             },
         ]
 
+    # Render Projects List Card
+    elif action == "tool_list_projects" and data:
+        projects = data.get("projects", [])
+        fields = []
+        for p in projects:
+            fields.append({
+                "type": "mrkdwn",
+                "text": f"📁 *{p['name']}* (`{p['identifier']}`)\n`{p['total_issues']} tasks` | `{p['members_count']} thành viên`",
+            })
+
+        blocks = [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": f"📁 Danh Sách Dự Án ({len(projects)} Projects)", "emoji": True},
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "fields": fields[:10] if fields else [{"type": "mrkdwn", "text": "Không có dự án nào."}],
+            },
+            {"type": "divider"},
+            {
+                "type": "context",
+                "elements": [
+                    {"type": "mrkdwn", "text": f"🤖 *Plane Core AI Agent* • Danh sách dự án trên hệ thống Plane"}
+                ],
+            },
+        ]
+
     # Render Tasks List Card
     elif action == "tool_query_tasks" and data:
         tasks = data.get("tasks", [])

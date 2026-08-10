@@ -9,6 +9,7 @@ from plane.app.agent.tools import (
     tool_get_members_workload,
     tool_create_task_with_subtasks,
     tool_update_task_status,
+    tool_list_projects,
 )
 from plane.db.models import Project
 
@@ -103,6 +104,16 @@ class PlaneAgentEngine:
                 f"Anh/chị cần em hỗ trợ điều gì hôm nay ạ? 😊"
             )
             return {"action_taken": "greeting_response", "text": text, "data": {}}
+
+        # Case 0: List Projects query
+        if any(k in prompt_lower for k in ["dự án nào", "danh sách dự án", "dự án", "project"]):
+            data = tool_list_projects()
+            lines = [f"📁 *Dạ em xin gửi danh sách {data['count']} dự án đang có trong hệ thống:*"]
+            for p in data["projects"]:
+                lines.append(f"• *{p['name']}* (`{p['identifier']}`) — {p['total_issues']} tasks | {p['members_count']} thành viên")
+            lines.append("\nAnh/chị muốn xem chi tiết tiến độ hoặc công việc của dự án nào ạ?")
+            text = "\n".join(lines)
+            return {"action_taken": "tool_list_projects", "text": text, "data": data}
 
         # Case 1: Progress query
         if any(k in prompt_lower for k in ["tiến độ", "progress", "báo cáo", "tóm tắt"]):
