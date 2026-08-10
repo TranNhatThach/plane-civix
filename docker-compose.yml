@@ -130,6 +130,10 @@ services:
       args:
         DOCKER_BUILDKIT: 1
     restart: always
+    env_file:
+      - .env
+      - ./apps/api/.env
+
 
   plane-db:
     container_name: plane-db

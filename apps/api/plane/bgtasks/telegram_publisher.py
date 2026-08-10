@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import os
 import logging
 import re
 import requests
@@ -61,7 +62,7 @@ def delete_telegram_message(bot_token: str, chat_id: str, message_id: int) -> bo
         return False
 
 
-def schedule_auto_delete(bot_token: str, chat_id: str, message_ids: list, delay_seconds: float = 15.0):
+def schedule_auto_delete(bot_token: str, chat_id: str, message_ids: list, delay_seconds: float = 45.0):
     """Schedules auto-deletion of telegram messages after delay_seconds."""
     def _delete_job():
         for msg_id in message_ids:
@@ -184,6 +185,9 @@ def dispatch_telegram_event(event_type: str, project_id: str, data: Dict[str, An
     Celery task to dispatch Telegram notifications for project events.
     """
     from django.db.models import Q
+
+    if extra_context and extra_context.get("skip_telegram_notify"):
+        return
 
     try:
         project = Project.objects.select_related("workspace").get(pk=project_id)

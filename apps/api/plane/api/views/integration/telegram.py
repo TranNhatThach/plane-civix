@@ -16,20 +16,14 @@ from plane.bgtasks.telegram_bot_service import process_telegram_update
 
 
 def setup_telegram_webhook(bot_token: str, request=None):
-    """Register Webhook URL with Telegram API for interactive 2-way bot chat."""
+    """Ensures Webhook is cleared so the dedicated Telegram Bot Polling service handles updates exclusively."""
     if not bot_token:
         return
     try:
-        app_url = (getattr(settings, "WEB_URL", None) or os.environ.get("WEB_URL") or "").rstrip("/")
-        if not app_url and request:
-            app_url = f"{request.scheme}://{request.get_host()}"
-        if app_url:
-            webhook_url = f"{app_url}/api/v1/integrations/telegram/webhook/"
-            requests.post(
-                f"https://api.telegram.org/bot{bot_token}/setWebhook",
-                json={"url": webhook_url},
-                timeout=5,
-            )
+        requests.post(
+            f"https://api.telegram.org/bot{bot_token}/deleteWebhook",
+            timeout=5,
+        )
     except Exception:
         pass
 
@@ -154,16 +148,12 @@ class TelegramTestMessageEndpoint(BaseAPIView):
 
 class TelegramWebhookEndpoint(BaseAPIView):
     """
-    Public Webhook endpoint receiving HTTP POST updates from Telegram Bot API.
+    Public Webhook endpoint - delegates exclusively to Polling container to avoid double processing.
     """
 
     authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
-        try:
-            process_telegram_update(request.data)
-        except Exception as e:
-            pass
         return Response({"status": "ok"}, status=status.HTTP_200_OK)
 

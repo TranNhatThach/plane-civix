@@ -13,21 +13,30 @@ from plane.bgtasks.telegram_publisher import (
 
 @pytest.mark.unit
 def test_format_issue_created_message():
-    issue_data = {
-        "id": "123-uuid",
-        "project": "proj-uuid",
-        "project_identifier": "CIVIX",
-        "sequence_id": 42,
-        "name": "Add Telegram Notification Bot",
-        "priority": "high",
-        "state_detail": {"name": "In Progress"},
-        "assignee_details": [{"display_name": "John Dev"}],
-    }
+    mock_project = MagicMock()
+    mock_project.name = "Civix Project"
+    mock_project.identifier = "CIVIX"
+    mock_project.id = "proj-1"
+    mock_project.workspace.slug = "civix"
 
-    message = format_issue_created_message(issue_data, "Civix Project", "http://localhost:3000")
+    mock_assignee = MagicMock()
+    mock_assignee.display_name = "John Dev"
 
-    assert "📌 <b>New Issue in Civix Project</b>" in message
-    assert "[CIVIX-42] Add Telegram Notification Bot" in message
+    mock_issue = MagicMock()
+    mock_issue.sequence_id = 42
+    mock_issue.name = "Add Telegram Notification Bot"
+    mock_issue.priority = "high"
+    mock_issue.state.name = "In Progress"
+    mock_issue.assignees.all.return_value = [mock_assignee]
+    mock_issue.created_by.display_name = "Creator"
+    mock_issue.description_html = "<p>Desc</p>"
+    mock_issue.id = "123-uuid"
+
+    message = format_issue_created_message(mock_issue, mock_project, "http://localhost:3000")
+
+    assert "📌 <b>[CIVIX-42] New Task Created</b>" in message
+    assert "Civix Project" in message
+    assert "Add Telegram Notification Bot" in message
     assert "High" in message
     assert "In Progress" in message
     assert "John Dev" in message
@@ -35,16 +44,21 @@ def test_format_issue_created_message():
 
 @pytest.mark.unit
 def test_format_issue_updated_message():
-    issue_data = {
-        "project_identifier": "CIVIX",
-        "sequence_id": 42,
-        "name": "Add Telegram Notification Bot",
-    }
+    mock_project = MagicMock()
+    mock_project.name = "Civix Project"
+    mock_project.identifier = "CIVIX"
+    mock_project.id = "proj-1"
+    mock_project.workspace.slug = "civix"
 
-    message = format_issue_updated_message(issue_data, "Backlog", "Done", "Civix Project")
+    mock_issue = MagicMock()
+    mock_issue.sequence_id = 42
+    mock_issue.name = "Add Telegram Notification Bot"
+    mock_issue.id = "123-uuid"
 
-    assert "🔄 <b>Status Update in Civix Project</b>" in message
-    assert "CIVIX-42" in message
+    message = format_issue_updated_message(mock_issue, mock_project, "Backlog", "Done", "Actor", "http://localhost:3000")
+
+    assert "🔄 <b>[CIVIX-42] Status Changed</b>" in message
+    assert "Civix Project" in message
     assert "Backlog" in message
     assert "Done" in message
 
@@ -56,7 +70,7 @@ def test_send_telegram_message_success(mock_post):
     mock_response.json.return_value = {"ok": True, "result": {"message_id": 100}}
     mock_post.return_value = mock_response
 
-    success = send_telegram_message("123456:bot_token", "-100123456", "<b>Test Message</b>")
+    success, _ = send_telegram_message("123456:bot_token", "-100123456", "<b>Test Message</b>")
 
     assert success is True
     mock_post.assert_called_once_with(
