@@ -16,6 +16,7 @@ from plane.app.agent.tools import (
     tool_tag_labels,
 )
 from plane.db.models import Project, ProjectMember
+from plane.app.views.external.base import get_llm_config, get_llm_response
 
 logger = logging.getLogger(__name__)
 
@@ -62,26 +63,29 @@ class PlaneAgentEngine:
                     self.project_id_str = str(p.id)
                     break
 
-        gemini_key = getattr(settings, "GEMINI_API_KEY", "") or getattr(settings, "GOOGLE_API_KEY", "")
-        openai_key = getattr(settings, "OPENAI_API_KEY", "")
+        # Fetch System Configured LLM Provider & Model from Plane Instance Settings
+        sys_api_key, sys_model, sys_provider, sys_base_url = get_llm_config()
 
-        # Try Google ADK Python SDK
+        gemini_key = sys_api_key if sys_provider == "gemini" else (getattr(settings, "GEMINI_API_KEY", "") or getattr(settings, "GOOGLE_API_KEY", ""))
+        openai_key = sys_api_key if sys_provider in ["openai", "deepseek", "groq", "openrouter", "custom", "ollama"] else getattr(settings, "OPENAI_API_KEY", "")
+
+        # Try System LLM / Google ADK Python SDK
         try:
-            return self._run_google_adk(user_prompt, gemini_key)
+            return self._run_google_adk(user_prompt, gemini_key, model_override=sys_model)
         except Exception as e:
             logger.debug(f"Google ADK execution fallback: {e}")
 
-        # Try OpenAI SDK fallback
-        if openai_key:
+        # Try System OpenAI/Custom Provider fallback
+        if openai_key or sys_api_key:
             try:
-                return self._run_openai(user_prompt, openai_key)
+                return self._run_system_llm(user_prompt, sys_api_key or openai_key, sys_model, sys_provider, sys_base_url)
             except Exception as e:
-                logger.debug(f"OpenAI SDK execution fallback: {e}")
+                logger.debug(f"System LLM execution fallback: {e}")
 
         # Natural Conversational Router (Soft, Polite, Human-like responses)
         return self._run_rule_router(user_prompt)
 
-    def _run_google_adk(self, user_prompt: str, api_key: str) -> dict:
+    def _run_google_adk(self, user_prompt: str, api_key: str, model_override: Optional[str] = None) -> dict:
         """
         Executes Real LLM Reasoning & Function Calling using Google GenAI SDK.
         """
@@ -114,7 +118,8 @@ class PlaneAgentEngine:
             )
 
             model_name = (
-                getattr(settings, "GEMINI_MODEL", "")
+                model_override
+                or getattr(settings, "GEMINI_MODEL", "")
                 or getattr(settings, "LLM_MODEL", "")
                 or os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
             )
@@ -326,6 +331,36 @@ class PlaneAgentEngine:
             f"• `/agent Các việc quá hạn`"
         )
         return {"action_taken": "fallback_response", "text": text, "data": {}}
+
+    def _run_system_llm(
+        self,
+        user_prompt: str,
+        api_key: Optional[str],
+        model: Optional[str],
+        provider: Optional[str],
+        base_url: Optional[str] = None,
+    ) -> dict:
+        """
+        Executes query using Plane System LLM Provider Manager (get_llm_response).
+        Supports OpenAI, Anthropic, Gemini, DeepSeek, Groq, FPT, OpenRouter, Custom & Ollama.
+        """
+        eff_model = model or "gpt-4o-mini"
+        eff_provider = provider or "openai"
+
+        res_text, error = get_llm_response(
+            task=PLANE_AGENT_SYSTEM_PROMPT,
+            prompt=user_prompt,
+            api_key=api_key,
+            model=eff_model,
+            provider=eff_provider,
+            base_url=base_url,
+        )
+
+        if error:
+            logger.warning(f"System LLM Error: {error}")
+            return self._run_rule_router(user_prompt)
+
+        return {"action_taken": "system_llm_chat", "text": res_text or "", "data": {}}
 
     def _run_openai(self, user_prompt: str, api_key: str) -> dict:
         """
