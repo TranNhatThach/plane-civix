@@ -118,13 +118,19 @@ def create_app(bot_token):
                 project = p
                 break
 
-        # 2. If not explicitly mentioned, check project linked to SlackAutomation or latest project
+        # 2. If not explicitly mentioned, check project linked to SlackAutomation or project with active tasks
         if not project:
             automation = SlackAutomation.objects.filter(is_active=True).first()
             if automation and automation.project:
                 project = automation.project
             else:
-                project = Project.objects.filter(deleted_at__isnull=True).order_by("-created_at").first()
+                from plane.db.models import Issue
+                for p in Project.objects.filter(deleted_at__isnull=True).order_by("-created_at"):
+                    if Issue.objects.filter(project=p, deleted_at__isnull=True).exists():
+                        project = p
+                        break
+                if not project:
+                    project = Project.objects.filter(deleted_at__isnull=True).order_by("-created_at").first()
 
         if not project:
             respond(text="❌ Không tìm thấy project nào trong hệ thống Plane.")

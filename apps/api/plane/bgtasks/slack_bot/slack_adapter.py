@@ -131,6 +131,7 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
         proj_name = tasks[0]["key"].split("-")[0] if tasks else "Plane"
 
         if not tasks:
+            msg_text = text if text else "🎉 *Hiện tại không có công việc nào thỏa mãn điều kiện tìm kiếm!*"
             blocks = [
                 {
                     "type": "header",
@@ -139,7 +140,7 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
                 {"type": "divider"},
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "🎉 *Hiện tại không có công việc nào thỏa mãn điều kiện tìm kiếm!*"},
+                    "text": {"type": "mrkdwn", "text": msg_text},
                 },
             ]
         else:

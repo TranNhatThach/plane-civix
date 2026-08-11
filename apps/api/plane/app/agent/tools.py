@@ -93,6 +93,12 @@ def tool_query_tasks(
         queryset = queryset.filter(priority__iexact=priority)
 
     tasks = list(queryset[:15])
+    if not tasks and not (assignee_name or status_group or is_overdue or priority):
+        # Fallback to any active project that has tasks in system
+        active_project = Project.objects.filter(deleted_at__isnull=True, issues__deleted_at__isnull=True).distinct().first()
+        if active_project:
+            queryset = Issue.objects.filter(project=active_project, deleted_at__isnull=True).select_related("state", "project")
+            tasks = list(queryset[:15])
 
     items = []
     for t in tasks:
