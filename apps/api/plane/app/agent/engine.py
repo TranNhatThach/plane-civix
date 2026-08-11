@@ -357,8 +357,16 @@ class PlaneAgentEngine:
         )
 
         if error:
-            logger.warning(f"System LLM Error: {error}")
-            return self._run_rule_router(user_prompt)
+            logger.warning(f"System LLM Error ({eff_provider}/{eff_model}): {error}")
+            return {
+                "action_taken": "system_llm_error",
+                "text": (
+                    f"⚠️ *Lỗi kết nối từ Mô hình AI Hệ thống (`{eff_provider}` / `{eff_model}`):*\n"
+                    f"_{error}_\n\n"
+                    f"👉 *Hướng xử lý*: Vui lòng kiểm tra lại API Key hoặc đổi Model tương thích trong **Plane Settings → AI Configuration**."
+                ),
+                "data": {"error": error},
+            }
 
         return {"action_taken": "system_llm_chat", "text": res_text or "", "data": {}}
 
