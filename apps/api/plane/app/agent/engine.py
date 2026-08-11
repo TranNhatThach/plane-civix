@@ -83,26 +83,91 @@ class PlaneAgentEngine:
 
     def _run_google_adk(self, user_prompt: str, api_key: str) -> dict:
         """
-        Runs the Google Agent Development Kit (ADK) Agent.
+        Executes Real LLM Reasoning & Function Calling using Google GenAI SDK.
         """
+        if not api_key:
+            return self._run_rule_router(user_prompt)
+
         try:
-            from google.adk.agents import Agent
-            
-            adk_agent = Agent(
-                name="plane_core_agent",
-                model="gemini-flash-latest",
-                instruction=PLANE_AGENT_SYSTEM_PROMPT,
-                tools=[
-                    tool_query_tasks,
-                    tool_get_progress,
-                    tool_get_members_workload,
-                    tool_create_task_with_subtasks,
-                    tool_update_task_status,
-                ],
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=api_key)
+
+            tools_map = {
+                "tool_query_tasks": tool_query_tasks,
+                "tool_get_progress": tool_get_progress,
+                "tool_get_members_workload": tool_get_members_workload,
+                "tool_create_task_with_subtasks": tool_create_task_with_subtasks,
+                "tool_update_task_status": tool_update_task_status,
+                "tool_list_projects": tool_list_projects,
+                "tool_manage_cycles": tool_manage_cycles,
+                "tool_rebalance_workload": tool_rebalance_workload,
+                "tool_export_report": tool_export_report,
+                "tool_tag_labels": tool_tag_labels,
+            }
+            tools_list = list(tools_map.values())
+
+            context_prompt = (
+                f"Context hiện tại: Dự án mặc định là '{self.project.name}' (ID: {self.project_id_str}, Identifier: {self.project.identifier}).\n"
+                f"Yêu cầu từ người dùng: {user_prompt}"
             )
-            logger.info(f"Initialized Google ADK Agent: {adk_agent.name}")
-        except ImportError:
-            pass
+
+            # Invoke Gemini with tools for LLM Reasoning & Function Calling
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=context_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=PLANE_AGENT_SYSTEM_PROMPT,
+                    tools=tools_list,
+                    temperature=0.2,
+                ),
+            )
+
+            # Check if LLM performed Function Calling
+            if getattr(response, "function_calls", None):
+                call = response.function_calls[0]
+                func_name = call.name
+                func_args = dict(call.args or {})
+
+                if func_name in tools_map:
+                    if "project_id" in tools_map[func_name].__code__.co_varnames and "project_id" not in func_args:
+                        func_args["project_id"] = self.project_id_str
+
+                    tool_result = tools_map[func_name](**func_args)
+
+                    if func_name == "tool_get_progress":
+                        text = (
+                            f"📊 *Dạ em xin gửi báo cáo tiến độ dự án {tool_result.get('project_name', self.project.name)}:*\n\n"
+                            f"• Mức độ hoàn thành: *{tool_result.get('completion_percentage', 0)}%*\n"
+                            f"• Công việc đã xong: *{tool_result.get('completed_tasks', 0)}* / {tool_result.get('total_tasks', 0)} tasks\n"
+                            f"• Công việc đang làm: *{tool_result.get('started_tasks', 0)}* tasks\n"
+                            f"• Công việc trễ hạn: *{tool_result.get('overdue_tasks', 0)}* tasks\n\n"
+                            f"Anh/chị có cần em kiểm tra chi tiết các task đang dở dang không ạ?"
+                        )
+                    elif func_name == "tool_query_tasks":
+                        tasks = tool_result.get("tasks", [])
+                        if not tasks:
+                            text = f"ℹ️ Dạ em kiểm tra trong dự án *{self.project.name}* không tìm thấy công việc nào thỏa mãn."
+                        else:
+                            lines = [f"📋 *Dạ em xin gửi danh sách {tool_result['count']} công việc trong dự án {self.project.name}:*"]
+                            for t in tasks:
+                                assignee_str = f" ➔ @{t['assignees'][0]}" if t.get("assignees") else ""
+                                lines.append(f"• *[{t['key']}] {t['name']}* ({t['status']}){assignee_str}")
+                            text = "\n".join(lines)
+                    else:
+                        text = f"Dạ em đã thực hiện xong tác vụ *{func_name}* cho dự án {self.project.name} rồi ạ! 😊"
+
+                    return {
+                        "action_taken": func_name,
+                        "text": text,
+                        "data": tool_result,
+                    }
+
+            if getattr(response, "text", None):
+                return {"action_taken": "llm_text", "text": response.text, "data": {}}
+        except Exception as e:
+            logger.warning(f"Google GenAI LLM execution fallback to router: {e}")
 
         return self._run_rule_router(user_prompt)
 
