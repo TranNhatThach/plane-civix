@@ -69,20 +69,23 @@ class PlaneAgentEngine:
         gemini_key = sys_api_key if sys_provider == "gemini" else (getattr(settings, "GEMINI_API_KEY", "") or getattr(settings, "GOOGLE_API_KEY", ""))
         openai_key = sys_api_key if sys_provider in ["openai", "deepseek", "groq", "openrouter", "custom", "ollama"] else getattr(settings, "OPENAI_API_KEY", "")
 
-        # Try System LLM / Google ADK Python SDK
-        try:
-            return self._run_google_adk(user_prompt, gemini_key, model_override=sys_model)
-        except Exception as e:
-            logger.debug(f"Google ADK execution fallback: {e}")
+        # 1. Try Google ADK Python SDK (if Gemini API key is active)
+        if gemini_key:
+            try:
+                adk_res = self._run_google_adk(user_prompt, gemini_key, model_override=sys_model)
+                if adk_res and adk_res.get("action_taken") not in ["adk_fallback", "fallback_response"]:
+                    return adk_res
+            except Exception as e:
+                logger.debug(f"Google ADK execution fallback: {e}")
 
-        # Try System OpenAI/Custom Provider fallback
-        if openai_key or sys_api_key:
+        # 2. Try System LLM Provider (OpenRouter, OpenAI, DeepSeek, Groq, Custom, Ollama)
+        if sys_api_key or openai_key:
             try:
                 return self._run_system_llm(user_prompt, sys_api_key or openai_key, sys_model, sys_provider, sys_base_url)
             except Exception as e:
                 logger.debug(f"System LLM execution fallback: {e}")
 
-        # Natural Conversational Router (Soft, Polite, Human-like responses)
+        # 3. Fallback to Natural Conversational Router
         return self._run_rule_router(user_prompt)
 
     def _run_google_adk(self, user_prompt: str, api_key: str, model_override: Optional[str] = None) -> dict:
