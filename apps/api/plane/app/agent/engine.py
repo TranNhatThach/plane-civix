@@ -347,13 +347,22 @@ class PlaneAgentEngine:
         eff_model = model or "gpt-4o-mini"
         eff_provider = provider or "openai"
 
+        # Sanitize base_url: If base_url points to internal web domain rather than LLM provider API, resolve to standard provider API endpoint
+        eff_base_url = base_url
+        if eff_provider == "openrouter" and (not eff_base_url or "civix" in eff_base_url or "localhost" in eff_base_url or not eff_base_url.endswith("/v1")):
+            eff_base_url = "https://openrouter.ai/api/v1"
+        elif eff_provider == "deepseek" and (not eff_base_url or "civix" in eff_base_url or "localhost" in eff_base_url):
+            eff_base_url = "https://api.deepseek.com/v1"
+        elif eff_provider == "groq" and (not eff_base_url or "civix" in eff_base_url or "localhost" in eff_base_url):
+            eff_base_url = "https://api.groq.com/openai/v1"
+
         res_text, error = get_llm_response(
             task=PLANE_AGENT_SYSTEM_PROMPT,
             prompt=user_prompt,
             api_key=api_key,
             model=eff_model,
             provider=eff_provider,
-            base_url=base_url,
+            base_url=eff_base_url,
         )
 
         if error:
