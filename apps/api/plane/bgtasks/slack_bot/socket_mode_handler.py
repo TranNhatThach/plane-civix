@@ -14,8 +14,24 @@ import sys
 import logging
 import django
 
-# Setup Django before importing any Django modules
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "plane.settings.production")
+os.environ.setdefault("POSTGRES_HOST", "localhost")
+os.environ.setdefault("REDIS_HOST", "localhost")
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
+os.environ.setdefault("DATABASE_URL", "postgresql://plane:plane@localhost:5432/plane")
+os.environ.setdefault("SECRET_KEY", "django-insecure-plane-agent-dev-key")
+
 django.setup()
 
 from slack_bolt import App

@@ -91,6 +91,26 @@ services:
       - plane-db
       - plane-redis
 
+  slack-bot:
+    container_name: plane-slack-bot
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.api
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: always
+    command: python plane/bgtasks/slack_bot/socket_mode_handler.py
+    environment:
+      PYTHONPATH: /code
+    env_file:
+      - ./apps/api/.env
+    volumes:
+      - ./apps/api/plane:/code/plane
+    depends_on:
+      - api
+      - plane-db
+      - plane-redis
+
   beat-worker:
     container_name: beatworker
     build:
