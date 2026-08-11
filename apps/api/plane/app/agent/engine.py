@@ -113,9 +113,15 @@ class PlaneAgentEngine:
                 f"Yêu cầu từ người dùng: {user_prompt}"
             )
 
+            model_name = (
+                getattr(settings, "GEMINI_MODEL", "")
+                or getattr(settings, "LLM_MODEL", "")
+                or os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+            )
+
             # Invoke Gemini with tools for LLM Reasoning & Function Calling
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=model_name,
                 contents=context_prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=PLANE_AGENT_SYSTEM_PROMPT,
