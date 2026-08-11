@@ -37,8 +37,54 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
         },
     ]
 
+    # Render System LLM Chat Card
+    if action in ["system_llm_chat", "llm_chat"]:
+        blocks = [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": "🤖 Plane Core AI Assistant", "emoji": True},
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": text,
+                },
+            },
+            {"type": "divider"},
+            {
+                "type": "context",
+                "elements": [
+                    {"type": "mrkdwn", "text": f"⚡ *Plane Core AI Agent* • Đã phục vụ {user_str}"}
+                ],
+            },
+        ]
+    elif action == "system_llm_error":
+        blocks = [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": "⚠️ System LLM Alert", "emoji": True},
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": text,
+                },
+            },
+            {"type": "divider"},
+            {
+                "type": "context",
+                "elements": [
+                    {"type": "mrkdwn", "text": f"🤖 *Plane Core AI Agent* • Vui lòng kiểm tra lại cấu hình AI Settings"}
+                ],
+            },
+        ]
+
     # Render Progress Bar Card
-    if action == "tool_get_progress" and data:
+    elif action == "tool_get_progress" and data:
         pct = data.get("completion_percentage", 0)
         filled = int(pct / 10)
         bar = "▓" * filled + "░" * (10 - filled)

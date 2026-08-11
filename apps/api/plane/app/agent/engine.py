@@ -1,7 +1,7 @@
 import logging
 import json
+import inspect
 from typing import Dict, Any, Optional
-from django.conf import settings
 from plane.app.agent.prompts import PLANE_AGENT_SYSTEM_PROMPT
 from plane.app.agent.tools import (
     tool_query_tasks,
@@ -16,7 +16,7 @@ from plane.app.agent.tools import (
     tool_tag_labels,
 )
 from plane.db.models import Project, ProjectMember
-from plane.app.views.external.base import get_llm_config, get_llm_response
+from plane.app.views.external.base import get_llm_config
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +38,188 @@ def check_user_project_permission(user, project, min_role=15, strict=False) -> b
     return pm.role >= min_role
 
 
+TOOLS_MAP = {
+    "tool_query_tasks": tool_query_tasks,
+    "tool_get_progress": tool_get_progress,
+    "tool_get_members_workload": tool_get_members_workload,
+    "tool_create_task_with_subtasks": tool_create_task_with_subtasks,
+    "tool_update_task_status": tool_update_task_status,
+    "tool_list_projects": tool_list_projects,
+    "tool_manage_cycles": tool_manage_cycles,
+    "tool_rebalance_workload": tool_rebalance_workload,
+    "tool_export_report": tool_export_report,
+    "tool_tag_labels": tool_tag_labels,
+}
+
+OPENAI_TOOLS_SCHEMA = [
+    {
+        "type": "function",
+        "function": {
+            "name": "tool_query_tasks",
+            "description": "Tra cứu danh sách công việc (tasks) trong dự án theo tên người làm, trạng thái, quá hạn hoặc mức độ ưu tiên.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "ID UUID của dự án Plane."},
+                    "assignee_name": {"type": "string", "description": "Tên hoặc email của thành viên cần lọc task."},
+                    "status_group": {"type": "string", "enum": ["backlog", "started", "completed", "all"], "description": "Nhóm trạng thái công việc."},
+                    "is_overdue": {"type": "boolean", "description": "True nếu chỉ tìm các công việc đã quá hạn."},
+                    "priority": {"type": "string", "enum": ["urgent", "high", "medium", "low"], "description": "Mức độ ưu tiên."}
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "tool_get_progress",
+            "description": "Lấy báo cáo tổng quan về phần trăm tiến độ dự án, tổng số task hoàn thành, đang làm và quá hạn.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "ID UUID của dự án Plane."}
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "tool_get_members_workload",
+            "description": "Thống kê danh sách thành viên dự án và số lượng khối lượng công việc họ đang đảm nhận.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "ID UUID của dự án Plane."}
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "tool_create_task_with_subtasks",
+            "description": "Tạo một công việc (task) mới trong dự án kèm danh sách các task con (sub-tasks) nếu có.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "ID UUID của dự án Plane."},
+                    "title": {"type": "string", "description": "Tiêu đề công việc chính."},
+                    "description": {"type": "string", "description": "Mô tả chi tiết công việc."},
+                    "assignee_name": {"type": "string", "description": "Tên hoặc email người được gán việc."},
+                    "priority": {"type": "string", "enum": ["urgent", "high", "medium", "low"], "description": "Mức ưu tiên."},
+                    "due_date": {"type": "string", "description": "Hạn chót định dạng YYYY-MM-DD."},
+                    "subtasks": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Danh sách tiêu đề các task con."
+                    }
+                },
+                "required": ["title"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "tool_update_task_status",
+            "description": "Cập nhật trạng thái hoặc thông tin của một task theo mã task key (ví dụ: CIVIX-10).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_key": {"type": "string", "description": "Mã công việc, ví dụ: CIVIX-10."},
+                    "status": {"type": "string", "description": "Tên hoặc nhóm trạng thái mới (backlog, started, completed, done, cancelled)."},
+                    "assignee_name": {"type": "string", "description": "Tên người được đổi gán việc."}
+                },
+                "required": ["task_key"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "tool_list_projects",
+            "description": "Tra cứu danh sách tất cả các dự án (Projects) đang có trong hệ thống Plane.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "workspace_slug": {"type": "string", "description": "Mã slug workspace (nếu có)."}
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "tool_manage_cycles",
+            "description": "Xem hoặc quản lý danh sách các Sprint / Cycle của dự án.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "ID UUID của dự án Plane."},
+                    "action": {"type": "string", "enum": ["list", "create"], "description": "Hành động (list hoặc create)."},
+                    "name": {"type": "string", "description": "Tên Cycle khi tạo mới."}
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "tool_rebalance_workload",
+            "description": "Đề xuất hoặc thực hiện tái phân bổ khối lượng công việc trễ hạn giữa các thành viên bận và rảnh.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "ID UUID của dự án Plane."},
+                    "dry_run": {"type": "boolean", "description": "True nếu chỉ đề xuất (không đổi DB), False để áp dụng ngay."}
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "tool_export_report",
+            "description": "Xuất báo cáo chi tiết dự án dưới dạng Markdown.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "ID UUID của dự án Plane."}
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "tool_tag_labels",
+            "description": "Gán nhãn (Label) cho công việc.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_key": {"type": "string", "description": "Mã task, ví dụ CIVIX-5."},
+                    "label_name": {"type": "string", "description": "Tên nhãn cần gán."}
+                },
+                "required": ["task_key", "label_name"]
+            }
+        }
+    }
+]
+
+
 class PlaneAgentEngine:
     """
-    Decoupled Core Plane AI Agent Engine built on Google ADK (Agent Development Kit).
-    Executes natural language queries via Google ADK Agent / Function Calling.
-    Returns standardized structured output dictionary.
+    Decoupled Core Plane AI Agent Engine.
+    Executes natural language queries strictly using system-configured LLM provider/model
+    with Function / Tool Calling capabilities.
     """
 
     def __init__(self, project, user=None):
@@ -52,7 +229,7 @@ class PlaneAgentEngine:
 
     def process_request(self, user_prompt: str) -> dict:
         """
-        Main entrypoint to process user prompt and execute tools via Google ADK.
+        Main entrypoint to process user prompt and execute tools via system configured LLM.
         """
         # Dynamic Project Auto-matching if user mentions another project name in prompt
         prompt_lower = user_prompt.lower()
@@ -66,273 +243,19 @@ class PlaneAgentEngine:
         # Fetch System Configured LLM Provider & Model from Plane Instance Settings
         sys_api_key, sys_model, sys_provider, sys_base_url = get_llm_config()
 
-        gemini_key = sys_api_key if sys_provider == "gemini" else (getattr(settings, "GEMINI_API_KEY", "") or getattr(settings, "GOOGLE_API_KEY", ""))
-        openai_key = sys_api_key if sys_provider in ["openai", "deepseek", "groq", "openrouter", "custom", "ollama"] else getattr(settings, "OPENAI_API_KEY", "")
-
-        # 1. Try Google ADK Python SDK (if Gemini API key is active)
-        if gemini_key:
-            try:
-                adk_res = self._run_google_adk(user_prompt, gemini_key, model_override=sys_model)
-                if adk_res and adk_res.get("action_taken") not in ["adk_fallback", "fallback_response"]:
-                    return adk_res
-            except Exception as e:
-                logger.debug(f"Google ADK execution fallback: {e}")
-
-        # 2. Try System LLM Provider (No API Key required - supports local Ollama / Custom endpoints / System config)
         try:
-            return self._run_system_llm(user_prompt, sys_api_key or openai_key, sys_model, sys_provider, sys_base_url)
+            return self._run_system_llm(user_prompt, sys_api_key, sys_model, sys_provider, sys_base_url)
         except Exception as e:
-            logger.debug(f"System LLM execution fallback: {e}")
-
-        # 3. Fallback to Natural Conversational Router
-        return self._run_rule_router(user_prompt)
-
-    def _run_google_adk(self, user_prompt: str, api_key: str, model_override: Optional[str] = None) -> dict:
-        """
-        Executes Real LLM Reasoning & Function Calling using Google GenAI SDK.
-        """
-        if not api_key:
-            return self._run_rule_router(user_prompt)
-
-        try:
-            from google import genai
-            from google.genai import types
-
-            client = genai.Client(api_key=api_key)
-
-            tools_map = {
-                "tool_query_tasks": tool_query_tasks,
-                "tool_get_progress": tool_get_progress,
-                "tool_get_members_workload": tool_get_members_workload,
-                "tool_create_task_with_subtasks": tool_create_task_with_subtasks,
-                "tool_update_task_status": tool_update_task_status,
-                "tool_list_projects": tool_list_projects,
-                "tool_manage_cycles": tool_manage_cycles,
-                "tool_rebalance_workload": tool_rebalance_workload,
-                "tool_export_report": tool_export_report,
-                "tool_tag_labels": tool_tag_labels,
-            }
-            tools_list = list(tools_map.values())
-
-            context_prompt = (
-                f"Context hiện tại: Dự án mặc định là '{self.project.name}' (ID: {self.project_id_str}, Identifier: {self.project.identifier}).\n"
-                f"Yêu cầu từ người dùng: {user_prompt}"
-            )
-
-            model_name = (
-                model_override
-                or getattr(settings, "GEMINI_MODEL", "")
-                or getattr(settings, "LLM_MODEL", "")
-                or os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
-            )
-
-            # Invoke Gemini with tools for LLM Reasoning & Function Calling
-            response = client.models.generate_content(
-                model=model_name,
-                contents=context_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=PLANE_AGENT_SYSTEM_PROMPT,
-                    tools=tools_list,
-                    temperature=0.2,
-                ),
-            )
-
-            # Check if LLM performed Function Calling
-            if getattr(response, "function_calls", None):
-                call = response.function_calls[0]
-                func_name = call.name
-                func_args = dict(call.args or {})
-
-                if func_name in tools_map:
-                    if "project_id" in tools_map[func_name].__code__.co_varnames and "project_id" not in func_args:
-                        func_args["project_id"] = self.project_id_str
-
-                    tool_result = tools_map[func_name](**func_args)
-
-                    if func_name == "tool_get_progress":
-                        text = (
-                            f"📊 *Dạ em xin gửi báo cáo tiến độ dự án {tool_result.get('project_name', self.project.name)}:*\n\n"
-                            f"• Mức độ hoàn thành: *{tool_result.get('completion_percentage', 0)}%*\n"
-                            f"• Công việc đã xong: *{tool_result.get('completed_tasks', 0)}* / {tool_result.get('total_tasks', 0)} tasks\n"
-                            f"• Công việc đang làm: *{tool_result.get('started_tasks', 0)}* tasks\n"
-                            f"• Công việc trễ hạn: *{tool_result.get('overdue_tasks', 0)}* tasks\n\n"
-                            f"Anh/chị có cần em kiểm tra chi tiết các task đang dở dang không ạ?"
-                        )
-                    elif func_name == "tool_query_tasks":
-                        tasks = tool_result.get("tasks", [])
-                        if not tasks:
-                            text = f"ℹ️ Dạ em kiểm tra trong dự án *{self.project.name}* không tìm thấy công việc nào thỏa mãn."
-                        else:
-                            lines = [f"📋 *Dạ em xin gửi danh sách {tool_result['count']} công việc trong dự án {self.project.name}:*"]
-                            for t in tasks:
-                                assignee_str = f" ➔ @{t['assignees'][0]}" if t.get("assignees") else ""
-                                lines.append(f"• *[{t['key']}] {t['name']}* ({t['status']}){assignee_str}")
-                            text = "\n".join(lines)
-                    else:
-                        text = f"Dạ em đã thực hiện xong tác vụ *{func_name}* cho dự án {self.project.name} rồi ạ! 😊"
-
-                    return {
-                        "action_taken": func_name,
-                        "text": text,
-                        "data": tool_result,
-                    }
-
-            if getattr(response, "text", None):
-                return {"action_taken": "llm_text", "text": response.text, "data": {}}
-        except Exception as e:
-            logger.warning(f"Google GenAI LLM execution fallback to router: {e}")
-
-        return self._run_rule_router(user_prompt)
-
-    def _run_rule_router(self, user_prompt: str) -> dict:
-        """
-        Natural Conversational Intent Router for warm, polite Vietnamese responses.
-        """
-        prompt_lower = user_prompt.strip().lower()
-
-        # Greetings & General Chat
-        greetings = ["hello", "hi", "xin chào", "chào", "chào bạn", "ơi", "alo", "test", "giúp"]
-        if prompt_lower in greetings or prompt_lower.startswith("chào") or prompt_lower.startswith("hello"):
-            text = (
-                f"Dạ em chào anh/chị ạ! 👋 Em là Trợ lý AI Plane của dự án *{self.project.name}*.\n\n"
-                f"Em có thể giúp anh/chị quản lý công việc và báo cáo dự án rất nhanh chóng. Anh/chị có thể hỏi em một số câu như:\n"
-                f"• *Báo cáo tiến độ dự án {self.project.name}*\n"
-                f"• *Danh sách công việc của tôi*\n"
-                f"• *Kiểm tra các task bị quá hạn*\n"
-                f"• *Tạo task fix bug gán cho @Nam*\n\n"
-                f"Anh/chị cần em hỗ trợ điều gì hôm nay ạ? 😊"
-            )
-            return {"action_taken": "greeting_response", "text": text, "data": {}}
-
-        # Case 1: Progress query
-        if any(k in prompt_lower for k in ["tiến độ", "progress", "báo cáo", "tóm tắt"]):
-            data = tool_get_progress(self.project_id_str)
-            text = (
-                f"📊 *Dạ em xin gửi báo cáo tiến độ dự án {data['project_name']}:*\n\n"
-                f"• Mức độ hoàn thành: *{data['completion_percentage']}%*\n"
-                f"• Công việc đã xong: *{data['completed_tasks']}* / {data['total_tasks']} tasks\n"
-                f"• Công việc đang làm: *{data['started_tasks']}* tasks\n"
-                f"• Công việc trễ hạn: *{data['overdue_tasks']}* tasks\n\n"
-                f"Anh/chị có cần em kiểm tra chi tiết các task đang dở dang không ạ?"
-            )
-            return {"action_taken": "tool_get_progress", "text": text, "data": data}
-
-        # Case 0: Specific List Projects query
-        if any(k in prompt_lower for k in ["dự án nào", "danh sách dự án", "các dự án", "list project", "list projects", "tất cả dự án"]):
-            data = tool_list_projects()
-            lines = [f"📁 *Dạ em xin gửi danh sách {data['count']} dự án đang có trong hệ thống:*"]
-            for p in data["projects"]:
-                lines.append(f"• *{p['name']}* (`{p['identifier']}`) — {p['total_issues']} tasks | {p['members_count']} thành viên")
-            lines.append("\nAnh/chị muốn xem chi tiết tiến độ hoặc công việc của dự án nào ạ?")
-            text = "\n".join(lines)
-            return {"action_taken": "tool_list_projects", "text": text, "data": data}
-
-        # Case 2: Members Workload query
-        if any(k in prompt_lower for k in ["thành viên", "member", "tải công việc", "workload", "team", "người"]):
-            data = tool_get_members_workload(self.project_id_str)
-            lines = [f"👥 *Dạ em xin gửi tình hình khối lượng công việc của team dự án {data['project_name']} ({data['total_members']} thành viên):*\n"]
-            for m in data["members"]:
-                lines.append(f"• *{m['display_name']}*: đang phụ trách {m['in_progress']} task (đã xong {m['completed']} task)")
-            lines.append("\nAnh/chị muốn gán thêm công việc cho thành viên nào không ạ?")
-            text = "\n".join(lines)
-            return {"action_taken": "tool_get_members_workload", "text": text, "data": data}
-
-        # Case 3: Overdue query
-        if any(k in prompt_lower for k in ["quá hạn", "overdue", "trễ hạn", "trễ"]):
-            data = tool_query_tasks(self.project_id_str, is_overdue=True)
-            if data["count"] == 0:
-                text = f"🎉 Dạ tuyệt vời quá ạ! Hiện tại dự án *{self.project.name}* không có công việc nào bị quá hạn cả."
-            else:
-                lines = [f"⚠️ *Dạ em ghi nhận có {data['count']} công việc đang bị quá hạn cần chú ý:*\n"]
-                for t in data["tasks"]:
-                    lines.append(f"• *[{t['key']}] {t['name']}* (Hạn chót: {t['target_date']})")
-                lines.append("\nAnh/chị có muốn em nhắc nhở người phụ trách không ạ?")
-                text = "\n".join(lines)
-            return {"action_taken": "tool_query_tasks", "text": text, "data": data}
-
-        # Case 4: General Task query
-        if any(k in prompt_lower for k in ["task", "công việc", "việc", "danh sách"]):
-            assignee = None
-            for word in user_prompt.split():
-                if word.startswith("@"):
-                    assignee = word.lstrip("@")
-
-            data = tool_query_tasks(self.project_id_str, assignee_name=assignee)
-            if data["count"] == 0:
-                # Fallback check across all projects in system if current project has 0 tasks
-                all_projects_data = tool_list_projects()
-                project_summaries = []
-                for p in all_projects_data.get("projects", []):
-                    if p["total_issues"] > 0:
-                        project_summaries.append(f"• *{p['name']}* (`{p['identifier']}`): {p['total_issues']} tasks")
-
-                if project_summaries:
-                    text = (
-                        f"ℹ️ Dạ em kiểm tra trong dự án *{self.project.name}* hiện tại chưa có task nào (hoặc không khớp người lọc).\n\n"
-                        f"📁 *Tuy nhiên, em thấy các dự án khác đang có công việc:* \n" + "\n".join(project_summaries) + "\n\n"
-                        f"Anh/chị có thể gõ ví dụ: `/agent Xem danh sách task dự án {all_projects_data['projects'][0]['name']}` ạ! 😊"
-                    )
-                else:
-                    text = f"ℹ️ Dạ em kiểm tra thấy dự án *{self.project.name}* (và hệ thống) hiện tại chưa có công việc nào cả. Anh/chị có muốn em hỗ trợ tạo task mới không ạ? 😊"
-                return {"action_taken": "tool_query_tasks", "text": text, "data": data}
-
-            lines = [f"📋 *Dạ em xin gửi danh sách {data['count']} công việc trong dự án {self.project.name}:*"]
-            for t in data["tasks"]:
-                assignee_str = f" ➔ @{t['assignees'][0]}" if t["assignees"] else ""
-                lines.append(f"• *[{t['key']}] {t['name']}* ({t['status']}){assignee_str}")
-            text = "\n".join(lines)
-            return {"action_taken": "tool_query_tasks", "text": text, "data": data}
-
-        # Case 5: Rebalance Workload (with HITL Confirmation)
-        if any(k in prompt_lower for k in ["phân bổ", "rebalance", "điều chuyển", "gán bớt"]):
-            data = tool_rebalance_workload(self.project_id_str, dry_run=True)
-            if not data.get("reassigned_count"):
-                text = f"ℹ️ Dạ em kiểm tra thấy hiện tại không có công việc quá hạn nào cần phải tái phân bổ cho dự án *{self.project.name}* ạ."
-                return {"action_taken": "tool_rebalance_workload", "text": text, "data": data}
-
-            text = (
-                f"🤖 *ĐỀ XUẤT TÁI PHÂN BỔ CÔNG VIỆC DỰ ÁN {data['project_name'].upper()}*\n\n"
-                f"Em nhận thấy thành viên *{data['most_busy']}* đang có quá nhiều việc dở dang/quá hạn.\n"
-                f"Em đề xuất chuyển giao *{data['reassigned_count']} task* cho thành viên đang rảnh nhất là *{data['least_busy']}*:\n"
-            )
-            for t in data["reassigned_tasks"]:
-                text += f"• Task *{t['key']}*: _{t['title']}_\n"
-            text += "\n*Anh/chị có đồng ý để em thực hiện điều chuyển ngay không ạ?*"
+            logger.exception(f"Error executing System LLM: {e}")
             return {
-                "action_taken": "tool_rebalance_workload",
-                "text": text,
-                "data": data,
-                "requires_confirmation": True,
-                "pending_action": {
-                    "type": "rebalance_workload",
-                    "project_id": self.project_id_str,
-                },
+                "action_taken": "system_llm_error",
+                "text": (
+                    f"⚠️ *Lỗi kết nối hoặc xử lý từ AI Agent System:*\n"
+                    f"_{str(e)}_\n\n"
+                    f"👉 *Hướng xử lý*: Vui lòng kiểm tra lại API Key hoặc cấu hình Model trong **Plane Settings → AI Configuration**."
+                ),
+                "data": {"error": str(e)},
             }
-
-        # Case 6: Cycles / Sprint query
-        if any(k in prompt_lower for k in ["cycle", "sprint", "đợt"]):
-            data = tool_manage_cycles(self.project_id_str, action="list")
-            lines = [f"🚀 *Dạ em xin gửi danh sách {data['count']} Sprint/Cycle của dự án {data['project_name']}:*"]
-            for c in data["cycles"]:
-                lines.append(f"• *{c['name']}* ({c['issue_count']} tasks)")
-            text = "\n".join(lines)
-            return {"action_taken": "tool_manage_cycles", "text": text, "data": data}
-
-        # Case 7: Export Markdown Report
-        if any(k in prompt_lower for k in ["xuất báo cáo", "export report", "báo cáo chi tiết"]):
-            data = tool_export_report(self.project_id_str)
-            return {"action_taken": "tool_export_report", "text": data["report_markdown"], "data": data}
-
-        # Case 5: Default conversational fallback response
-        text = (
-            f"Dạ em đã nhận được yêu cầu từ anh/chị: _{user_prompt}_\n\n"
-            f"Em có thể giúp anh/chị tra cứu dự án *{self.project.name}* nhanh chóng. "
-            f"Anh/chị có thể thử các câu hỏi như:\n"
-            f"• `/agent Tiến độ dự án {self.project.name}`\n"
-            f"• `/agent Danh sách task`\n"
-            f"• `/agent Các việc quá hạn`"
-        )
-        return {"action_taken": "fallback_response", "text": text, "data": {}}
 
     def _run_system_llm(
         self,
@@ -343,13 +266,15 @@ class PlaneAgentEngine:
         base_url: Optional[str] = None,
     ) -> dict:
         """
-        Executes query using Plane System LLM Provider Manager (get_llm_response).
-        Supports OpenAI, Anthropic, Gemini, DeepSeek, Groq, FPT, OpenRouter, Custom & Ollama.
+        Executes query using system-configured LLM with OpenAI-compatible tool/function calling.
         """
-        eff_model = model or "gpt-4o-mini"
-        eff_provider = provider or "openai"
+        from openai import OpenAI
 
-        # Sanitize base_url: If base_url points to internal web domain rather than LLM provider API, resolve to standard provider API endpoint
+        eff_model = model or "gpt-4o-mini"
+        eff_provider = (provider or "openai").lower()
+        eff_api_key = api_key or "sk-dummy-key"
+
+        # Sanitize base_url
         eff_base_url = base_url
         if eff_provider == "openrouter" and (not eff_base_url or "civix" in eff_base_url or "localhost" in eff_base_url or not eff_base_url.endswith("/v1")):
             eff_base_url = "https://openrouter.ai/api/v1"
@@ -358,42 +283,144 @@ class PlaneAgentEngine:
         elif eff_provider == "groq" and (not eff_base_url or "civix" in eff_base_url or "localhost" in eff_base_url):
             eff_base_url = "https://api.groq.com/openai/v1"
 
-        res_text, error = get_llm_response(
-            task=PLANE_AGENT_SYSTEM_PROMPT,
-            prompt=user_prompt,
-            api_key=api_key,
-            model=eff_model,
-            provider=eff_provider,
-            base_url=eff_base_url,
+        client_kwargs = {"api_key": eff_api_key}
+        if eff_base_url:
+            client_kwargs["base_url"] = eff_base_url
+
+        client = OpenAI(**client_kwargs)
+
+        context_msg = (
+            f"Context hiện tại: Dự án mặc định là '{self.project.name}' (ID: {self.project_id_str}, Identifier: {self.project.identifier}).\n"
+            f"Yêu cầu từ người dùng: {user_prompt}"
         )
 
-        if error:
-            logger.warning(f"System LLM Error ({eff_provider}/{eff_model}): {error}")
-            return {
-                "action_taken": "system_llm_error",
-                "text": (
-                    f"⚠️ *Lỗi kết nối từ Mô hình AI Hệ thống (`{eff_provider}` / `{eff_model}`):*\n"
-                    f"_{error}_\n\n"
-                    f"👉 *Hướng xử lý*: Vui lòng kiểm tra lại API Key hoặc đổi Model tương thích trong **Plane Settings → AI Configuration**."
-                ),
-                "data": {"error": error},
-            }
+        messages = [
+            {"role": "system", "content": PLANE_AGENT_SYSTEM_PROMPT},
+            {"role": "user", "content": context_msg},
+        ]
 
-        return {"action_taken": "system_llm_chat", "text": res_text or "", "data": {}}
+        try:
+            response = client.chat.completions.create(
+                model=eff_model,
+                messages=messages,
+                tools=OPENAI_TOOLS_SCHEMA,
+                temperature=0.2,
+            )
+        except Exception as call_err:
+            logger.warning(f"LLM tool calling failed, falling back to plain chat: {call_err}")
+            response = client.chat.completions.create(
+                model=eff_model,
+                messages=messages,
+                temperature=0.2,
+            )
 
-    def _run_openai(self, user_prompt: str, api_key: str) -> dict:
-        """
-        Execute using OpenAI SDK fallback.
-        """
-        from openai import OpenAI
+        choice = response.choices[0]
+        message = choice.message
 
-        client = OpenAI(api_key=api_key)
+        if getattr(message, "tool_calls", None) and len(message.tool_calls) > 0:
+            tool_call = message.tool_calls[0]
+            func_name = tool_call.function.name
+            try:
+                func_args = json.loads(tool_call.function.arguments or "{}")
+            except Exception:
+                func_args = {}
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": PLANE_AGENT_SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-        )
-        return {"action_taken": "llm_chat", "text": response.choices[0].message.content, "data": {}}
+            if func_name in TOOLS_MAP:
+                target_func = TOOLS_MAP[func_name]
+                sig_params = inspect.signature(target_func).parameters
+                if "project_id" in sig_params and "project_id" not in func_args:
+                    func_args["project_id"] = self.project_id_str
+                if "created_by_user_id" in sig_params and self.user:
+                    func_args["created_by_user_id"] = str(self.user.id)
+
+                tool_result = target_func(**func_args)
+                return self._format_tool_response(func_name, tool_result)
+
+        return {
+            "action_taken": "system_llm_chat",
+            "text": message.content or "",
+            "data": {},
+        }
+
+    def _format_tool_response(self, func_name: str, tool_result: dict) -> dict:
+        res_data = {"action_taken": func_name, "text": "", "data": tool_result}
+
+        if func_name == "tool_get_progress":
+            res_data["text"] = (
+                f"📊 *Báo cáo tiến độ dự án {tool_result.get('project_name', self.project.name)}:*\n\n"
+                f"• Mức độ hoàn thành: *{tool_result.get('completion_percentage', 0)}%*\n"
+                f"• Công việc đã xong: *{tool_result.get('completed_tasks', 0)}* / {tool_result.get('total_tasks', 0)} tasks\n"
+                f"• Công việc đang làm: *{tool_result.get('started_tasks', 0)}* tasks\n"
+                f"• Công việc trễ hạn: *{tool_result.get('overdue_tasks', 0)}* tasks\n\n"
+                f"Anh/chị có cần em kiểm tra chi tiết các task nào không ạ?"
+            )
+        elif func_name == "tool_query_tasks":
+            tasks = tool_result.get("tasks", [])
+            if not tasks:
+                res_data["text"] = f"ℹ️ Dạ em kiểm tra trong dự án *{self.project.name}* không tìm thấy công việc nào thỏa mãn."
+            else:
+                lines = [f"📋 *Danh sách {tool_result.get('count', len(tasks))} công việc trong dự án {self.project.name}:*"]
+                for t in tasks:
+                    assignee_str = f" ➔ @{t['assignees'][0]}" if t.get("assignees") else ""
+                    lines.append(f"• *[{t['key']}] {t['name']}* ({t['status']}){assignee_str}")
+                res_data["text"] = "\n".join(lines)
+        elif func_name == "tool_create_task_with_subtasks":
+            if tool_result.get("success"):
+                subtasks = tool_result.get("subtasks", [])
+                sub_lines = [f"  ▫️ [{s['key']}] {s['title']}" for s in subtasks]
+                sub_str = "\n".join(sub_lines) if sub_lines else ""
+                text = (
+                    f"✨ *Khởi tạo công việc mới thành công!*\n\n"
+                    f"• *Mã Task*: `{tool_result.get('task_key')}`\n"
+                    f"• *Tiêu đề*: *{tool_result.get('title')}*\n"
+                    f"• *Người phụ trách*: @{tool_result.get('assignee', 'Chưa gán')}\n"
+                    f"• *Độ ưu tiên*: `{tool_result.get('priority', 'medium').upper()}`\n"
+                )
+                if sub_str:
+                    text += f"\n*Task con (Sub-tasks):*\n{sub_str}"
+                res_data["text"] = text
+            else:
+                res_data["text"] = f"❌ *Không thể tạo task*: {tool_result.get('error', 'Lỗi không xác định')}"
+        elif func_name == "tool_get_members_workload":
+            members = tool_result.get("members", [])
+            lines = [f"👥 *Phân bổ công việc thành viên dự án {tool_result.get('project_name', self.project.name)} ({tool_result.get('total_members', len(members))} thành viên):*\n"]
+            for m in members:
+                lines.append(f"• *{m['display_name']}*: Đang làm `{m['in_progress']}` task | Đã xong `{m['completed']}` task")
+            res_data["text"] = "\n".join(lines)
+        elif func_name == "tool_list_projects":
+            projects = tool_result.get("projects", [])
+            lines = [f"📁 *Danh sách {tool_result.get('count', len(projects))} dự án trên hệ thống:*"]
+            for p in projects:
+                lines.append(f"• *{p['name']}* (`{p['identifier']}`) — {p['total_issues']} tasks | {p['members_count']} thành viên")
+            res_data["text"] = "\n".join(lines)
+        elif func_name == "tool_rebalance_workload":
+            if tool_result.get("dry_run", True):
+                if not tool_result.get("reassigned_count"):
+                    res_data["text"] = f"ℹ️ Hiện tại dự án *{self.project.name}* không có công việc quá hạn nào cần điều chuyển."
+                else:
+                    text = (
+                        f"🤖 *ĐỀ XUẤT TÁI PHÂN BỔ CÔNG VIỆC DỰ ÁN {tool_result.get('project_name', self.project.name).upper()}*\n\n"
+                        f"Thành viên *{tool_result.get('most_busy')}* đang bận nhiều task trễ hạn.\n"
+                        f"Đề xuất chuyển *{tool_result.get('reassigned_count')} task* cho *{tool_result.get('least_busy')}*:\n"
+                    )
+                    for t in tool_result.get("reassigned_tasks", []):
+                        text += f"• Task *{t['key']}*: _{t['title']}_\n"
+                    text += "\n*Anh/chị có đồng ý thực hiện điều chuyển ngay không ạ?*"
+                    res_data["text"] = text
+                    res_data["requires_confirmation"] = True
+                    res_data["pending_action"] = {
+                        "type": "rebalance_workload",
+                        "project_id": self.project_id_str,
+                    }
+        elif func_name == "tool_manage_cycles":
+            cycles = tool_result.get("cycles", [])
+            lines = [f"🚀 *Danh sách {tool_result.get('count', len(cycles))} Sprint/Cycle của dự án {tool_result.get('project_name', self.project.name)}:*"]
+            for c in cycles:
+                lines.append(f"• *{c['name']}* ({c['issue_count']} tasks)")
+            res_data["text"] = "\n".join(lines)
+        elif func_name == "tool_export_report":
+            res_data["text"] = tool_result.get("report_markdown", "")
+        else:
+            res_data["text"] = f"Dạ em đã thực hiện xong tác vụ *{func_name}* cho dự án {self.project.name} rồi ạ! 😊"
+
+        return res_data
