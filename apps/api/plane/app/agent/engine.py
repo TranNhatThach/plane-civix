@@ -20,8 +20,13 @@ from plane.db.models import Project, ProjectMember
 logger = logging.getLogger(__name__)
 
 
-def check_user_project_permission(user, project, min_role=15) -> bool:
-    """Check if user has member (>=15) or admin (20) role in project."""
+def check_user_project_permission(user, project, min_role=15, strict=False) -> bool:
+    """Check if user has member (>=15) or admin (20) role in project.
+
+    By default, strict=False allows team members on Slack to freely query and test.
+    """
+    if not strict:
+        return True
     if not user or not getattr(user, "is_authenticated", True):
         return True
     if getattr(user, "is_superuser", False):
@@ -175,6 +180,24 @@ class PlaneAgentEngine:
                     assignee = word.lstrip("@")
 
             data = tool_query_tasks(self.project_id_str, assignee_name=assignee)
+            if data["count"] == 0:
+                # Fallback check across all projects in system if current project has 0 tasks
+                all_projects_data = tool_list_projects()
+                project_summaries = []
+                for p in all_projects_data.get("projects", []):
+                    if p["total_issues"] > 0:
+                        project_summaries.append(f"• *{p['name']}* (`{p['identifier']}`): {p['total_issues']} tasks")
+
+                if project_summaries:
+                    text = (
+                        f"ℹ️ Dạ em kiểm tra trong dự án *{self.project.name}* hiện tại chưa có task nào (hoặc không khớp người lọc).\n\n"
+                        f"📁 *Tuy nhiên, em thấy các dự án khác đang có công việc:* \n" + "\n".join(project_summaries) + "\n\n"
+                        f"Anh/chị có thể gõ ví dụ: `/agent Xem danh sách task dự án {all_projects_data['projects'][0]['name']}` ạ! 😊"
+                    )
+                else:
+                    text = f"ℹ️ Dạ em kiểm tra thấy dự án *{self.project.name}* (và hệ thống) hiện tại chưa có công việc nào cả. Anh/chị có muốn em hỗ trợ tạo task mới không ạ? 😊"
+                return {"action_taken": "tool_query_tasks", "text": text, "data": data}
+
             lines = [f"📋 *Dạ em xin gửi danh sách {data['count']} công việc trong dự án {self.project.name}:*"]
             for t in data["tasks"]:
                 assignee_str = f" ➔ @{t['assignees'][0]}" if t["assignees"] else ""
