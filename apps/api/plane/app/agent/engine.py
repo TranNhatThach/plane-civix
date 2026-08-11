@@ -78,12 +78,11 @@ class PlaneAgentEngine:
             except Exception as e:
                 logger.debug(f"Google ADK execution fallback: {e}")
 
-        # 2. Try System LLM Provider (OpenRouter, OpenAI, DeepSeek, Groq, Custom, Ollama)
-        if sys_api_key or openai_key:
-            try:
-                return self._run_system_llm(user_prompt, sys_api_key or openai_key, sys_model, sys_provider, sys_base_url)
-            except Exception as e:
-                logger.debug(f"System LLM execution fallback: {e}")
+        # 2. Try System LLM Provider (No API Key required - supports local Ollama / Custom endpoints / System config)
+        try:
+            return self._run_system_llm(user_prompt, sys_api_key or openai_key, sys_model, sys_provider, sys_base_url)
+        except Exception as e:
+            logger.debug(f"System LLM execution fallback: {e}")
 
         # 3. Fallback to Natural Conversational Router
         return self._run_rule_router(user_prompt)
