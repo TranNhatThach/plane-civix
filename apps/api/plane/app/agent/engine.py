@@ -126,16 +126,6 @@ class PlaneAgentEngine:
             )
             return {"action_taken": "greeting_response", "text": text, "data": {}}
 
-        # Case 0: List Projects query
-        if any(k in prompt_lower for k in ["dự án nào", "danh sách dự án", "dự án", "project"]):
-            data = tool_list_projects()
-            lines = [f"📁 *Dạ em xin gửi danh sách {data['count']} dự án đang có trong hệ thống:*"]
-            for p in data["projects"]:
-                lines.append(f"• *{p['name']}* (`{p['identifier']}`) — {p['total_issues']} tasks | {p['members_count']} thành viên")
-            lines.append("\nAnh/chị muốn xem chi tiết tiến độ hoặc công việc của dự án nào ạ?")
-            text = "\n".join(lines)
-            return {"action_taken": "tool_list_projects", "text": text, "data": data}
-
         # Case 1: Progress query
         if any(k in prompt_lower for k in ["tiến độ", "progress", "báo cáo", "tóm tắt"]):
             data = tool_get_progress(self.project_id_str)
@@ -148,6 +138,16 @@ class PlaneAgentEngine:
                 f"Anh/chị có cần em kiểm tra chi tiết các task đang dở dang không ạ?"
             )
             return {"action_taken": "tool_get_progress", "text": text, "data": data}
+
+        # Case 0: Specific List Projects query
+        if any(k in prompt_lower for k in ["dự án nào", "danh sách dự án", "các dự án", "list project", "list projects", "tất cả dự án"]):
+            data = tool_list_projects()
+            lines = [f"📁 *Dạ em xin gửi danh sách {data['count']} dự án đang có trong hệ thống:*"]
+            for p in data["projects"]:
+                lines.append(f"• *{p['name']}* (`{p['identifier']}`) — {p['total_issues']} tasks | {p['members_count']} thành viên")
+            lines.append("\nAnh/chị muốn xem chi tiết tiến độ hoặc công việc của dự án nào ạ?")
+            text = "\n".join(lines)
+            return {"action_taken": "tool_list_projects", "text": text, "data": data}
 
         # Case 2: Members Workload query
         if any(k in prompt_lower for k in ["thành viên", "member", "tải công việc", "workload", "team", "người"]):
