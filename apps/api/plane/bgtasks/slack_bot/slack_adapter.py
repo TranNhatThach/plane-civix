@@ -272,6 +272,32 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
             },
         ]
 
+    if agent_result.get("requires_confirmation"):
+        pending = agent_result.get("pending_action", {})
+        action_type = pending.get("type", "confirm")
+        project_id = pending.get("project_id", "")
+
+        blocks.append({"type": "divider"})
+        blocks.append({
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "✅ Xác nhận thực hiện", "emoji": True},
+                    "style": "primary",
+                    "value": f"{action_type}:{project_id}",
+                    "action_id": "agent_confirm_action",
+                },
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "❌ Hủy bỏ", "emoji": True},
+                    "style": "danger",
+                    "value": f"{action_type}:{project_id}",
+                    "action_id": "agent_cancel_action",
+                },
+            ],
+        })
+
     return {
         "response_type": "in_channel",
         "blocks": blocks,

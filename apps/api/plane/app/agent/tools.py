@@ -2,7 +2,18 @@ import logging
 from typing import Optional, List, Dict, Any
 from django.utils import timezone
 from django.db.models import Q
-from plane.db.models import Issue, State, IssueAssignee, ProjectMember, User, Project
+from plane.db.models import (
+    Issue,
+    State,
+    IssueAssignee,
+    ProjectMember,
+    User,
+    Project,
+    Cycle,
+    CycleIssue,
+    Label,
+    IssueLabel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -319,3 +330,227 @@ def tool_update_task_status(
         "new_status": target_state.name,
         "group": target_state.group,
     }
+
+
+def tool_manage_cycles(
+    project_id: str,
+    action: str = "list",
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Quản lý các đợt Sprint/Cycle của dự án (xem danh sách hoặc tạo Cycle mới).
+
+    Args:
+        project_id: ID UUID của dự án Plane.
+        action: Hành động ("list" hoặc "create").
+        name: Tên của Cycle (nếu action="create").
+        description: Mô tả Cycle (tùy chọn).
+
+    Returns:
+        Dict thông tin danh sách Cycle hoặc kết quả tạo Cycle mới.
+    """
+    project = Project.objects.filter(id=project_id, deleted_at__isnull=True).first()
+    if not project:
+        return {"success": False, "error": f"Project {project_id} not found."}
+
+    if action.lower() == "create" and name:
+        cycle = Cycle.objects.create(
+            name=name,
+            description=description or "",
+            project=project,
+            workspace=project.workspace,
+            owned_by=project.created_by,
+        )
+        return {
+            "success": True,
+            "action": "create",
+            "cycle_id": str(cycle.id),
+            "name": cycle.name,
+            "project_name": project.name,
+        }
+
+    # Default action: list
+    cycles = list(Cycle.objects.filter(project_id=project_id, deleted_at__isnull=True).order_by("-created_at")[:10])
+    items = []
+    for c in cycles:
+        issue_count = CycleIssue.objects.filter(cycle=c, deleted_at__isnull=True).count()
+        items.append({
+            "id": str(c.id),
+            "name": c.name,
+            "start_date": str(c.start_date) if c.start_date else None,
+            "end_date": str(c.end_date) if c.end_date else None,
+            "issue_count": issue_count,
+        })
+
+    return {
+        "success": True,
+        "action": "list",
+        "count": len(items),
+        "cycles": items,
+        "project_name": project.name,
+    }
+
+
+def tool_rebalance_workload(
+    project_id: str,
+    dry_run: bool = True,
+) -> Dict[str, Any]:
+    """Phân tích các task trễ hạn/dở dang của những người bận nhất để tái phân bổ cho thành viên rảnh nhất.
+
+    Args:
+        project_id: ID UUID của dự án Plane.
+        dry_run: True nếu chỉ phân tích & đề xuất (chưa thực hiện đổi assignee), False nếu thực hiện đổi trực tiếp.
+
+    Returns:
+        Dict chứa thông tin phân tích và các đề xuất/kết quả chuyển giao task.
+    """
+    project = Project.objects.filter(id=project_id, deleted_at__isnull=True).first()
+    if not project:
+        return {"success": False, "error": f"Project {project_id} not found."}
+
+    # Get project members
+    pm_list = list(ProjectMember.objects.filter(project_id=project_id, deleted_at__isnull=True).select_related("member"))
+    if not pm_list:
+        return {"success": False, "error": "No project members found."}
+
+    # Count active in-progress tasks per member
+    workload = {}
+    for pm in pm_list:
+        if pm.member:
+            active_cnt = IssueAssignee.objects.filter(
+                issue__project_id=project_id,
+                assignee=pm.member,
+                issue__deleted_at__isnull=True,
+                issue__state__group="started",
+            ).count()
+            workload[pm.member] = active_cnt
+
+    if not workload:
+        return {"success": True, "rebalanced": False, "message": "Không có thành viên nào để phân bổ lại."}
+
+    sorted_members = sorted(workload.items(), key=lambda x: x[1])
+    least_busy_member, min_tasks = sorted_members[0]
+    most_busy_member, max_tasks = sorted_members[-1]
+
+    # Find overdue or started tasks assigned to most busy member
+    today = timezone.now().date()
+    overdue_issues = list(
+        Issue.objects.filter(
+            project_id=project_id,
+            assignees=most_busy_member,
+            deleted_at__isnull=True,
+        ).filter(Q(target_date__lt=today) | Q(state__group="started")).exclude(state__group="completed")[:3]
+    )
+
+    reassigned_items = []
+    for issue in overdue_issues:
+        item_info = {
+            "key": f"{project.identifier}-{issue.sequence_id}",
+            "title": issue.name,
+            "from_user": most_busy_member.display_name or most_busy_member.email,
+            "to_user": least_busy_member.display_name or least_busy_member.email,
+        }
+        if not dry_run:
+            IssueAssignee.objects.filter(issue=issue).delete()
+            IssueAssignee.objects.create(
+                issue=issue,
+                assignee=least_busy_member,
+                project=project,
+                workspace=project.workspace,
+            )
+        reassigned_items.append(item_info)
+
+    return {
+        "success": True,
+        "dry_run": dry_run,
+        "project_name": project.name,
+        "most_busy": most_busy_member.display_name or most_busy_member.email,
+        "least_busy": least_busy_member.display_name or least_busy_member.email,
+        "reassigned_count": len(reassigned_items),
+        "reassigned_tasks": reassigned_items,
+    }
+
+
+def tool_export_report(project_id: str) -> Dict[str, Any]:
+    """Xuất báo cáo tình hình dự án tổng hợp dưới dạng văn bản Markdown định dạng đẹp.
+
+    Args:
+        project_id: ID UUID của dự án Plane.
+
+    Returns:
+        Dict chứa văn bản báo cáo Markdown và dữ liệu tóm tắt.
+    """
+    project = Project.objects.filter(id=project_id, deleted_at__isnull=True).first()
+    if not project:
+        return {"success": False, "error": f"Project {project_id} not found."}
+
+    total_issues = Issue.objects.filter(project=project, deleted_at__isnull=True).count()
+    completed_issues = Issue.objects.filter(project=project, state__group="completed", deleted_at__isnull=True).count()
+    started_issues = Issue.objects.filter(project=project, state__group="started", deleted_at__isnull=True).count()
+    today = timezone.now().date()
+    overdue_issues = Issue.objects.filter(project=project, target_date__lt=today, deleted_at__isnull=True).exclude(state__group="completed").count()
+
+    pct = round((completed_issues / total_issues * 100), 1) if total_issues > 0 else 0.0
+
+    report_md = (
+        f"# 📊 BÁO CÁO DỰ ÁN: {project.name.upper()} (`{project.identifier}`)\n\n"
+        f"**Ngày xuất báo cáo**: {today.strftime('%d/%m/%Y')}\n\n"
+        f"---\n\n"
+        f"### 📈 1. Báo Cáo Tiến Độ Chuyển Đổi\n"
+        f"- **Mức độ hoàn thành**: `{pct}%`\n"
+        f"- **Tổng số task**: {total_issues}\n"
+        f"- **Đã hoàn thành**: {completed_issues}\n"
+        f"- **Đang thực hiện**: {started_issues}\n"
+        f"- **Cần chú ý (Quá hạn)**: {overdue_issues}\n\n"
+        f"---\n\n"
+        f"*(Báo cáo được khởi tạo tự động bởi Plane Core AI Assistant)*"
+    )
+
+    return {
+        "success": True,
+        "project_name": project.name,
+        "report_markdown": report_md,
+        "completion_percentage": pct,
+        "total_issues": total_issues,
+        "overdue_issues": overdue_issues,
+    }
+
+
+def tool_tag_labels(
+    project_id: str,
+    sequence_id: int,
+    label_name: str,
+) -> Dict[str, Any]:
+    """Gán nhãn (Label) cho một task trong dự án.
+
+    Args:
+        project_id: ID UUID của dự án Plane.
+        sequence_id: Mã số thứ tự của task (ví dụ 12 trong CIV-12).
+        label_name: Tên nhãn (ví dụ: bug, frontend, urgent).
+
+    Returns:
+        Dict kết quả gán nhãn cho task.
+    """
+    issue = Issue.objects.filter(project_id=project_id, sequence_id=sequence_id, deleted_at__isnull=True).first()
+    if not issue:
+        return {"success": False, "error": f"Task {sequence_id} not found."}
+
+    label, _ = Label.objects.get_or_create(
+        name=label_name.strip(),
+        workspace=issue.workspace,
+        defaults={"project": issue.project},
+    )
+
+    IssueLabel.objects.get_or_create(
+        issue=issue,
+        label=label,
+        defaults={"project": issue.project, "workspace": issue.workspace},
+    )
+
+    return {
+        "success": True,
+        "task_key": f"{issue.project.identifier}-{issue.sequence_id}",
+        "task_title": issue.name,
+        "label_name": label.name,
+    }
+

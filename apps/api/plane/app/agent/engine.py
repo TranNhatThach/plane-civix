@@ -10,10 +10,26 @@ from plane.app.agent.tools import (
     tool_create_task_with_subtasks,
     tool_update_task_status,
     tool_list_projects,
+    tool_manage_cycles,
+    tool_rebalance_workload,
+    tool_export_report,
+    tool_tag_labels,
 )
-from plane.db.models import Project
+from plane.db.models import Project, ProjectMember
 
 logger = logging.getLogger(__name__)
+
+
+def check_user_project_permission(user, project, min_role=15) -> bool:
+    """Check if user has member (>=15) or admin (20) role in project."""
+    if not user or not getattr(user, "is_authenticated", True):
+        return True
+    if getattr(user, "is_superuser", False):
+        return True
+    pm = ProjectMember.objects.filter(project=project, member=user, is_active=True, deleted_at__isnull=True).first()
+    if not pm:
+        return False
+    return pm.role >= min_role
 
 
 class PlaneAgentEngine:
@@ -165,6 +181,46 @@ class PlaneAgentEngine:
                 lines.append(f"• *[{t['key']}] {t['name']}* ({t['status']}){assignee_str}")
             text = "\n".join(lines)
             return {"action_taken": "tool_query_tasks", "text": text, "data": data}
+
+        # Case 5: Rebalance Workload (with HITL Confirmation)
+        if any(k in prompt_lower for k in ["phân bổ", "rebalance", "điều chuyển", "gán bớt"]):
+            data = tool_rebalance_workload(self.project_id_str, dry_run=True)
+            if not data.get("reassigned_count"):
+                text = f"ℹ️ Dạ em kiểm tra thấy hiện tại không có công việc quá hạn nào cần phải tái phân bổ cho dự án *{self.project.name}* ạ."
+                return {"action_taken": "tool_rebalance_workload", "text": text, "data": data}
+
+            text = (
+                f"🤖 *ĐỀ XUẤT TÁI PHÂN BỔ CÔNG VIỆC DỰ ÁN {data['project_name'].upper()}*\n\n"
+                f"Em nhận thấy thành viên *{data['most_busy']}* đang có quá nhiều việc dở dang/quá hạn.\n"
+                f"Em đề xuất chuyển giao *{data['reassigned_count']} task* cho thành viên đang rảnh nhất là *{data['least_busy']}*:\n"
+            )
+            for t in data["reassigned_tasks"]:
+                text += f"• Task *{t['key']}*: _{t['title']}_\n"
+            text += "\n*Anh/chị có đồng ý để em thực hiện điều chuyển ngay không ạ?*"
+            return {
+                "action_taken": "tool_rebalance_workload",
+                "text": text,
+                "data": data,
+                "requires_confirmation": True,
+                "pending_action": {
+                    "type": "rebalance_workload",
+                    "project_id": self.project_id_str,
+                },
+            }
+
+        # Case 6: Cycles / Sprint query
+        if any(k in prompt_lower for k in ["cycle", "sprint", "đợt"]):
+            data = tool_manage_cycles(self.project_id_str, action="list")
+            lines = [f"🚀 *Dạ em xin gửi danh sách {data['count']} Sprint/Cycle của dự án {data['project_name']}:*"]
+            for c in data["cycles"]:
+                lines.append(f"• *{c['name']}* ({c['issue_count']} tasks)")
+            text = "\n".join(lines)
+            return {"action_taken": "tool_manage_cycles", "text": text, "data": data}
+
+        # Case 7: Export Markdown Report
+        if any(k in prompt_lower for k in ["xuất báo cáo", "export report", "báo cáo chi tiết"]):
+            data = tool_export_report(self.project_id_str)
+            return {"action_taken": "tool_export_report", "text": data["report_markdown"], "data": data}
 
         # Case 5: Default conversational fallback response
         text = (

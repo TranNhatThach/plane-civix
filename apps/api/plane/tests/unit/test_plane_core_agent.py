@@ -95,3 +95,52 @@ def test_plane_agent_engine_rule_router(db):
     # Test members prompt
     res_members = engine.process_request("Danh sách thành viên dự án")
     assert res_members["action_taken"] == "tool_get_members_workload"
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_agent_extended_tools_and_hitl(db):
+    from plane.app.agent.tools import tool_manage_cycles, tool_rebalance_workload, tool_export_report, tool_tag_labels
+    from plane.app.agent.engine import check_user_project_permission
+
+    user = User.objects.create(email="extended@example.com", first_name="Extended", display_name="Extended User")
+    workspace = Workspace.objects.create(name="Extended WS", slug="extended-ws", owner=user)
+    project = Project.objects.create(name="Extended Project", identifier="EXT", workspace=workspace)
+
+    pm = ProjectMember.objects.create(project=project, workspace=workspace, member=user, role=20)
+    project_id_str = str(project.id)
+
+    # 1. Test tool_manage_cycles
+    cycle_res = tool_manage_cycles(project_id=project_id_str, action="create", name="Sprint 1")
+    assert cycle_res["success"] is True
+    assert cycle_res["name"] == "Sprint 1"
+
+    list_cycles = tool_manage_cycles(project_id=project_id_str, action="list")
+    assert list_cycles["count"] == 1
+    assert list_cycles["cycles"][0]["name"] == "Sprint 1"
+
+    # 2. Test tool_export_report
+    report_res = tool_export_report(project_id=project_id_str)
+    assert report_res["success"] is True
+    assert "BÁO CÁO DỰ ÁN" in report_res["report_markdown"]
+
+    # 3. Test tool_tag_labels
+    state = State.objects.create(name="To Do", group="unstarted", project=project, workspace=workspace)
+    issue = Issue.objects.create(name="Task to tag", project=project, workspace=workspace, state=state, created_by=user)
+
+    tag_res = tool_tag_labels(project_id=project_id_str, sequence_id=issue.sequence_id, label_name="frontend")
+    assert tag_res["success"] is True
+    assert tag_res["label_name"] == "frontend"
+
+    # 4. Test RBAC Permission Check
+    assert check_user_project_permission(user, project, min_role=15) is True
+
+    guest_user = User.objects.create(email="guest@example.com", first_name="Guest")
+    ProjectMember.objects.create(project=project, workspace=workspace, member=guest_user, role=5)
+    assert check_user_project_permission(guest_user, project, min_role=15) is False
+
+    # 5. Test HITL Engine Router
+    engine = PlaneAgentEngine(project=project)
+    rebalance_req = engine.process_request("Hãy phân bổ lại task quá hạn")
+    assert rebalance_req["action_taken"] == "tool_rebalance_workload"
+

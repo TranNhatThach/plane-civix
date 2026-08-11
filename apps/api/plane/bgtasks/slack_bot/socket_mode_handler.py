@@ -127,6 +127,48 @@ def create_app(bot_token):
             logger.exception(f"Agent error processing request: {text}")
             respond(text=f"❌ Lỗi xử lý: {str(e)}")
 
+    @bolt_app.action("agent_confirm_action")
+    def handle_confirm_action(ack, respond, body):
+        """
+        Handle HITL [Approve] button click from Slack Block Kit Card.
+        """
+        ack()
+        user_info = body.get("user", {})
+        slack_username = user_info.get("username", "user")
+        action = body.get("actions", [{}])[0]
+        value = action.get("value", "")
+
+        parts = value.split(":", 1)
+        action_type = parts[0]
+        project_id = parts[1] if len(parts) > 1 else ""
+
+        from plane.app.agent.tools import tool_rebalance_workload
+
+        if action_type == "rebalance_workload":
+            res = tool_rebalance_workload(project_id=project_id, dry_run=False)
+            if res.get("success"):
+                respond(
+                    text=(
+                        f"✅ *ĐÃ THỰC THI THÀNH CÔNG bởi @{slack_username}!*\n\n"
+                        f"Đã tái phân bổ *{res.get('reassigned_count')} task* từ *{res.get('most_busy')}* "
+                        f"sang cho *{res.get('least_busy')}*."
+                    )
+                )
+            else:
+                respond(text=f"❌ Không thể phân bổ lại: {res.get('error', 'Lỗi không xác định')}")
+        else:
+            respond(text=f"✅ *Đã xác nhận thao tác bởi @{slack_username}!*")
+
+    @bolt_app.action("agent_cancel_action")
+    def handle_cancel_action(ack, respond, body):
+        """
+        Handle HITL [Cancel] button click from Slack Block Kit Card.
+        """
+        ack()
+        user_info = body.get("user", {})
+        slack_username = user_info.get("username", "user")
+        respond(text=f"❌ *Đã hủy thao tác* theo yêu cầu của @{slack_username}.")
+
     return bolt_app
 
 
