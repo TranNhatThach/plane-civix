@@ -50,6 +50,19 @@ def allow_permission(allowed_roles, level="PROJECT", creator=False, model=None):
                 ).exists():
                     return view_func(instance, request, *args, **kwargs)
             else:
+                proj_id = kwargs.get("project_id")
+                if proj_id and str(proj_id).lower() != "none":
+                    from plane.db.models import Project, ProjectNetwork
+                    proj = Project.objects.filter(id=proj_id, deleted_at__isnull=True).only("network").first()
+                    if proj and proj.network == ProjectNetwork.PUBLIC.value:
+                        if WorkspaceMember.objects.filter(
+                            member=request.user,
+                            workspace__slug=kwargs["slug"],
+                            role__in=[ROLE.ADMIN.value, ROLE.MEMBER.value],
+                            is_active=True,
+                        ).exists():
+                            return view_func(instance, request, *args, **kwargs)
+
                 is_user_has_allowed_role = ProjectMember.objects.filter(
                     member=request.user,
                     workspace__slug=kwargs["slug"],
@@ -57,6 +70,7 @@ def allow_permission(allowed_roles, level="PROJECT", creator=False, model=None):
                     role__in=allowed_role_values,
                     is_active=True,
                 ).exists()
+
 
                 # Return if the user has the allowed role else if they are workspace admin and part of the project regardless of the role
                 if is_user_has_allowed_role:
