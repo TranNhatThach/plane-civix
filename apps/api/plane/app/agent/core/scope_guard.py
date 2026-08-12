@@ -68,16 +68,28 @@ def scope_guard(
                 kwargs["workspace_id"] = str(context.workspace_id)
 
             # 2. Force Project Scope Validation if required
-            target_project_id = kwargs.get("project_id") or (context.project_id if context else None)
-            
+            raw_proj_id = kwargs.get("project_id") or (context.project_id if context else None)
+            target_project_id = None
+
+            if raw_proj_id and str(raw_proj_id).strip() not in ["None", "null", ""]:
+                try:
+                    import uuid
+                    uuid.UUID(str(raw_proj_id))
+                    target_project_id = str(raw_proj_id)
+                except ValueError:
+                    target_project_id = None
+
+            if target_project_id is None:
+                kwargs.pop("project_id", None)
+
             if requires_project and not target_project_id:
                 return {
                     "success": False,
                     "error_type": "AMBIGUOUS_PROJECT",
                     "message": "Vui lòng chỉ định rõ dự án bạn muốn thực hiện tác vụ này."
                 }
-            
-            if target_project_id and context:
+
+            if target_project_id and context and context.workspace_id:
                 from plane.db.models import Project, ProjectMember
                 
                 # Check project belongs to current workspace
@@ -86,6 +98,7 @@ def scope_guard(
                     workspace_id=context.workspace_id,
                     deleted_at__isnull=True
                 ).first()
+
                 
                 if not proj:
                     raise ScopeViolationError(

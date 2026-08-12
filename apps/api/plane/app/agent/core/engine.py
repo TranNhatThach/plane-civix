@@ -63,15 +63,22 @@ class PlaneAgentEngine:
 
         fast_path_args = {}
 
-        if any(kw in prompt_lower for kw in ["báo cáo workspace", "tổng quan workspace", "tất cả task workspace", "tiến độ workspace", "tất cả dự án"]):
+        if any(kw in prompt_lower for kw in ["báo cáo workspace", "tổng quan workspace", "tất cả task workspace", "tiến độ workspace"]):
             fast_path_tool = "tool_get_workspace_summary"
         elif any(kw in prompt_lower for kw in ["báo cáo tiến độ", "xem tiến độ", "tiến độ dự án"]):
             fast_path_tool = "tool_get_progress"
-        elif any(kw in prompt_lower for kw in ["danh sách task", "task của tôi", "công việc của tôi", "việc của tôi", "xem task"]):
+        elif any(kw in prompt_lower for kw in ["task của tôi", "công việc của tôi", "việc của tôi"]):
+            fast_path_tool = "tool_query_tasks"
+            if self.user:
+                fast_path_args["assignee_name"] = self.user.email or self.user.display_name or self.user.first_name
+        elif any(kw in prompt_lower for kw in ["quá hạn", "trễ hạn"]):
+            fast_path_tool = "tool_query_tasks"
+            fast_path_args["is_overdue"] = True
+        elif any(kw in prompt_lower for kw in ["danh sách task", "xem task"]):
             fast_path_tool = "tool_query_tasks"
         elif any(kw in prompt_lower for kw in ["thành viên", "khối lượng công việc", "ai làm gì", "phân bổ công việc"]):
             fast_path_tool = "tool_get_members_workload"
-        elif any(kw in prompt_lower for kw in ["danh sách dự án", "xem các dự án"]):
+        elif any(kw in prompt_lower for kw in ["danh sách dự án", "xem các dự án", "tất cả dự án"]):
             fast_path_tool = "tool_list_projects"
 
         if fast_path_tool:
@@ -84,8 +91,10 @@ class PlaneAgentEngine:
                 fast_path_args["_context"] = self.context
                 if "workspace_id" in sig_params or has_var_kwargs:
                     fast_path_args["workspace_id"] = self.context.workspace_id
-                if "project_id" in sig_params and self.project_id_str and fast_path_tool != "tool_list_projects":
-                    fast_path_args["project_id"] = self.project_id_str
+
+                valid_proj_id = self.project_id_str if (self.project_id_str and str(self.project_id_str).strip() not in ["None", "null", ""]) else None
+                if "project_id" in sig_params and valid_proj_id and fast_path_tool not in ["tool_list_projects", "tool_get_workspace_summary"]:
+                    fast_path_args["project_id"] = valid_proj_id
 
                 filtered_args = {k: v for k, v in fast_path_args.items() if has_var_kwargs or k in sig_params}
                 try:
@@ -93,6 +102,7 @@ class PlaneAgentEngine:
                     return self._format_tool_response(fast_path_tool, tool_result)
                 except ScopeViolationError as scope_err:
                     return {"action_taken": "scope_violation_error", "text": str(scope_err), "data": {"error": str(scope_err)}}
+
 
 
 

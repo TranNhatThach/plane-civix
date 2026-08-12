@@ -50,8 +50,15 @@ def tool_query_tasks(
 
 
     if assignee_name:
-        assignee_query = Q(assignees__first_name__icontains=assignee_name) | Q(assignees__email__icontains=assignee_name) | Q(assignees__display_name__icontains=assignee_name)
+        clean_name = assignee_name.lstrip("@").strip()
+        assignee_query = (
+            Q(assignees__first_name__icontains=clean_name)
+            | Q(assignees__email__icontains=clean_name)
+            | Q(assignees__display_name__icontains=clean_name)
+            | Q(assignees__username__icontains=clean_name)
+        )
         queryset = queryset.filter(assignee_query)
+
 
     if status_group:
         sg = status_group.lower()
@@ -111,36 +118,60 @@ def tool_query_tasks(
 
 @agent_tool(
     name="tool_create_task_with_subtasks",
-    description="Tạo một công việc (task) mới trong dự án kèm danh sách các task con (sub-tasks) nếu có.",
+    description="Tạo một công việc (task) mới trong dự án kèm danh sách các task con (sub-tasks).",
     parameters_schema={
         "type": "object",
         "properties": {
             "project_id": {"type": "string", "description": "ID UUID của dự án Plane."},
-            "title": {"type": "string", "description": "Tiêu đề công việc chính."},
-            "description": {"type": "string", "description": "Mô tả chi tiết công việc."},
-            "assignee_name": {"type": "string", "description": "Tên hoặc email người được gán việc."},
-            "priority": {"type": "string", "enum": ["urgent", "high", "medium", "low"], "description": "Mức ưu tiên."},
-            "due_date": {"type": "string", "description": "Hạn chót định dạng YYYY-MM-DD."},
+            "title": {"type": "string", "description": "Tiêu đề công việc."},
+            "description": {"type": "string", "description": "Mô tả công việc."},
+            "assignee_name": {"type": "string", "description": "Tên người làm công việc (ví dụ: Nam, Minh, email...)."},
+            "priority": {"type": "string", "enum": ["urgent", "high", "medium", "low"], "description": "Mức độ ưu tiên."},
+            "due_date": {"type": "string", "description": "Hạn chót công việc (YYYY-MM-DD)."},
             "subtasks": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "Danh sách tiêu đề các task con."
+                "description": "Danh sách tiêu đề các công việc con (subtasks)."
             }
         },
         "required": ["title"]
     }
 )
+@scope_guard(requires_project=False)
 def tool_create_task_with_subtasks(
-    project_id: str,
     title: str,
+    project_id: Optional[str] = None,
     description: str = "",
     assignee_name: Optional[str] = None,
     priority: str = "medium",
     due_date: Optional[str] = None,
     subtasks: Optional[List[str]] = None,
     created_by_user_id: Optional[str] = None,
+    workspace_id: Optional[str] = None,
+    _context: Optional[Any] = None,
+    **kwargs,
 ) -> Dict[str, Any]:
-    project = Project.objects.get(pk=project_id)
+    project = None
+    if project_id and str(project_id).strip() not in ["None", "null", ""]:
+        project = Project.objects.filter(pk=project_id, deleted_at__isnull=True).first()
+
+    if not project and _context and getattr(_context, "project_id", None):
+        project = Project.objects.filter(pk=_context.project_id, deleted_at__isnull=True).first()
+
+    if not project and _context and getattr(_context, "accessible_project_ids", None):
+        p_ids = _context.accessible_project_ids
+        if p_ids:
+            project = Project.objects.filter(pk=p_ids[0], deleted_at__isnull=True).first()
+
+    if not project and workspace_id:
+        project = Project.objects.filter(workspace_id=workspace_id, deleted_at__isnull=True).first()
+
+    if not project:
+        project = Project.objects.filter(deleted_at__isnull=True).first()
+
+    if not project:
+        return {"success": False, "error": "Hệ thống chưa có dự án nào để tạo công việc."}
+
     created_by_user = User.objects.filter(pk=created_by_user_id).first() if created_by_user_id else project.workspace.owner
 
     default_state = State.objects.filter(project=project, group="backlog", deleted_at__isnull=True).first()
@@ -166,8 +197,9 @@ def tool_create_task_with_subtasks(
 
     assigned_user = None
     if assignee_name:
+        clean_name = assignee_name.lstrip("@").strip()
         assigned_user = User.objects.filter(
-            Q(first_name__icontains=assignee_name) | Q(email__icontains=assignee_name) | Q(display_name__icontains=assignee_name)
+            Q(first_name__icontains=clean_name) | Q(email__icontains=clean_name) | Q(display_name__icontains=clean_name) | Q(username__icontains=clean_name)
         ).first()
 
         if assigned_user:

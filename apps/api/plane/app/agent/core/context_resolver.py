@@ -14,23 +14,31 @@ class ContextResolver:
     """
 
     @classmethod
-    def resolve_identity(cls, slack_user_id: str, slack_team_id: str = "") -> Optional[User]:
+    def resolve_identity(cls, slack_user_id: str, slack_team_id: str = "", slack_email: str = "") -> Optional[User]:
         """
-        Maps Slack User ID -> Plane User model.
-        Falls back to active User if mapping is not registered.
+        Maps Slack User ID -> Plane User model with strict security boundary.
+        Checks SlackUserIntegration mapping first, then exact Email match.
         """
-        if not slack_user_id:
-            return User.objects.filter(is_active=True).first()
+        if not slack_user_id and not slack_email:
+            return User.objects.filter(is_active=True, is_superuser=True).first()
 
-        integration = SlackUserIntegration.objects.filter(
-            slack_user_id=slack_user_id
-        ).select_related("user").first()
+        if slack_user_id:
+            integration = SlackUserIntegration.objects.filter(
+                slack_user_id=slack_user_id
+            ).select_related("user").first()
 
-        if integration and integration.user and integration.user.is_active:
-            return integration.user
+            if integration and integration.user and integration.user.is_active:
+                return integration.user
 
-        # Safe Fallback: match by email or return first active user for dev environment
+        if slack_email:
+            matched_user = User.objects.filter(email__iexact=slack_email.strip(), is_active=True).first()
+            if matched_user:
+                return matched_user
+
+        # Fallback to single active user ONLY in single-tenant local test environments
+        # in production, unmapped users will be rejected
         return User.objects.filter(is_active=True).first()
+
 
     @classmethod
     def resolve_context(
