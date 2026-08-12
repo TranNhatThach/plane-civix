@@ -158,10 +158,28 @@ def tool_create_task_with_subtasks(
     if not project and _context and getattr(_context, "project_id", None):
         project = Project.objects.filter(pk=_context.project_id, deleted_at__isnull=True).first()
 
-    if not project and _context and getattr(_context, "accessible_project_ids", None):
-        p_ids = _context.accessible_project_ids
-        if p_ids:
-            project = Project.objects.filter(pk=p_ids[0], deleted_at__isnull=True).first()
+    if not project:
+        accessible_projects = []
+        if _context and getattr(_context, "accessible_project_ids", None):
+            accessible_projects = list(Project.objects.filter(id__in=_context.accessible_project_ids, deleted_at__isnull=True))
+        elif workspace_id:
+            accessible_projects = list(Project.objects.filter(workspace_id=workspace_id, deleted_at__isnull=True))
+
+        if len(accessible_projects) > 1:
+            proj_list_str = "\n".join([f"• *{p.name}* (`{p.identifier}`)" for p in accessible_projects[:5]])
+            first_p_name = accessible_projects[0].name
+            return {
+                "success": False,
+                "error_type": "AMBIGUOUS_PROJECT",
+                "error": (
+                    f"❓ *Bạn muốn tạo task '{title}' trong Dự án nào ạ?*\n\n"
+                    f"Dưới đây là danh sách các dự án đang có trong Workspace:\n{proj_list_str}\n\n"
+                    f"👉 *Gợi ý*: Bạn có thể gán dự án bằng cách thêm tên vào câu lệnh:\n"
+                    f"`/agent Tạo task {title} trong dự án {first_p_name}`"
+                )
+            }
+        elif len(accessible_projects) == 1:
+            project = accessible_projects[0]
 
     if not project and workspace_id:
         project = Project.objects.filter(workspace_id=workspace_id, deleted_at__isnull=True).first()
@@ -171,6 +189,7 @@ def tool_create_task_with_subtasks(
 
     if not project:
         return {"success": False, "error": "Hệ thống chưa có dự án nào để tạo công việc."}
+
 
     created_by_user = User.objects.filter(pk=created_by_user_id).first() if created_by_user_id else project.workspace.owner
 
