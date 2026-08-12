@@ -23,6 +23,7 @@ from .workspace import urlpatterns as workspace_urls
 from .timezone import urlpatterns as timezone_urls
 from .exporter import urlpatterns as exporter_urls
 from plane.api.urls.integration import urlpatterns as integration_urls
+from .agent import urlpatterns as agent_urls
 
 urlpatterns = [
     *analytic_urls,
@@ -46,4 +47,6 @@ urlpatterns = [
     *timezone_urls,
     *exporter_urls,
     *integration_urls,
+    *agent_urls,
 ]
+

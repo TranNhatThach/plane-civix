@@ -19,6 +19,12 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
+# Ensure project root directory is in sys.path
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../../../"))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -108,37 +114,27 @@ def create_app(bot_token):
             )
             return
 
-        # Smart project selection: check if project name is mentioned in user prompt
-        text_lower = text.lower()
+        user_id = command.get("user_id", "")
+        channel_id = command.get("channel_id", "")
+        team_id = command.get("team_id", "")
+
+        from plane.app.agent.core.context_resolver import ContextResolver
+
+        context = ContextResolver.resolve_context(
+            slack_user_id=user_id,
+            channel_id=channel_id,
+            user_text=text,
+            slack_team_id=team_id,
+        )
+        user = ContextResolver.resolve_identity(user_id, team_id)
+
         project = None
-
-        # 1. Search for project matching name or identifier in prompt
-        for p in Project.objects.filter(deleted_at__isnull=True):
-            if p.name and (p.name.lower() in text_lower or (p.identifier and p.identifier.lower() in text_lower)):
-                project = p
-                break
-
-        # 2. If not explicitly mentioned, check project linked to SlackAutomation or project with active tasks
-        if not project:
-            automation = SlackAutomation.objects.filter(is_active=True).first()
-            if automation and automation.project:
-                project = automation.project
-            else:
-                from plane.db.models import Issue
-                for p in Project.objects.filter(deleted_at__isnull=True).order_by("-created_at"):
-                    if Issue.objects.filter(project=p, deleted_at__isnull=True).exists():
-                        project = p
-                        break
-                if not project:
-                    project = Project.objects.filter(deleted_at__isnull=True).order_by("-created_at").first()
-
-        if not project:
-            respond(text="❌ Không tìm thấy project nào trong hệ thống Plane.")
-            return
+        if context and context.project_id:
+            project = Project.objects.filter(id=context.project_id, deleted_at__isnull=True).first()
 
         try:
-            # Invoke Decoupled Core Agent Engine
-            agent_engine = PlaneAgentEngine(project=project)
+            # Invoke Decoupled Core Agent Engine with Authoritative Context
+            agent_engine = PlaneAgentEngine(project=project, user=user, context=context)
             agent_result = agent_engine.process_request(text)
 
             # Adapt Core Result ➔ Slack Block Kit Card
@@ -148,6 +144,7 @@ def create_app(bot_token):
         except Exception as e:
             logger.exception(f"Agent error processing request: {text}")
             respond(text=f"❌ Lỗi xử lý: {str(e)}")
+
 
     @bolt_app.action("agent_confirm_action")
     def handle_confirm_action(ack, respond, body):
@@ -190,6 +187,46 @@ def create_app(bot_token):
         user_info = body.get("user", {})
         slack_username = user_info.get("username", "user")
         respond(text=f"❌ *Đã hủy thao tác* theo yêu cầu của @{slack_username}.")
+
+    @bolt_app.action("agent_view_tasks_action")
+    def handle_view_tasks_action(ack, respond, body):
+        """
+        Handle [📋 Xem danh sách Task] button click from Slack Block Kit Card.
+        """
+        ack()
+        user_info = body.get("user", {})
+        slack_username = user_info.get("username", "user")
+
+        automation = SlackAutomation.objects.filter(is_active=True).first()
+        project = automation.project if (automation and automation.project) else Project.objects.filter(deleted_at__isnull=True).first()
+
+        if project:
+            agent_engine = PlaneAgentEngine(project=project)
+            agent_result = agent_engine.process_request("Xem danh sách công việc")
+            payload = render_slack_block_kit(agent_result, user_name=slack_username)
+            respond(**payload)
+        else:
+            respond(text="❌ Không tìm thấy dự án hiện tại trong hệ thống Plane.")
+
+    @bolt_app.action("agent_view_progress_action")
+    def handle_view_progress_action(ack, respond, body):
+        """
+        Handle [📊 Xem Báo Cáo Tiến Độ] button click from Slack Block Kit Card.
+        """
+        ack()
+        user_info = body.get("user", {})
+        slack_username = user_info.get("username", "user")
+
+        automation = SlackAutomation.objects.filter(is_active=True).first()
+        project = automation.project if (automation and automation.project) else Project.objects.filter(deleted_at__isnull=True).first()
+
+        if project:
+            agent_engine = PlaneAgentEngine(project=project)
+            agent_result = agent_engine.process_request("Báo cáo tiến độ dự án")
+            payload = render_slack_block_kit(agent_result, user_name=slack_username)
+            respond(**payload)
+        else:
+            respond(text="❌ Không tìm thấy dự án hiện tại trong hệ thống Plane.")
 
     return bolt_app
 

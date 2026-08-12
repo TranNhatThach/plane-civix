@@ -13,7 +13,7 @@ from plane.db.models import Issue, State, IssueAssignee, Project, Workspace, Use
 @pytest.mark.unit
 @pytest.mark.django_db
 def test_agent_tools_query_and_progress(db):
-    user = User.objects.create(email="agentuser@example.com", first_name="Agent", display_name="Agent User")
+    user = User.objects.create(username="agent_user_1", email="agentuser@example.com", first_name="Agent", display_name="Agent User")
     workspace = Workspace.objects.create(name="Test Agent WS", slug="test-agent-ws", owner=user)
     project = Project.objects.create(name="Test Agent Project", identifier="TAP", workspace=workspace)
 
@@ -49,9 +49,10 @@ def test_agent_tools_query_and_progress(db):
 @pytest.mark.unit
 @pytest.mark.django_db
 def test_agent_create_and_update_task(db):
-    user = User.objects.create(email="creator@example.com", first_name="Creator")
+    user = User.objects.create(username="creator_user_2", email="creator@example.com", first_name="Creator")
     workspace = Workspace.objects.create(name="Test Agent WS 2", slug="test-agent-ws-2", owner=user)
     project = Project.objects.create(name="Test Agent Project 2", identifier="TAP2", workspace=workspace)
+
 
     State.objects.create(name="Backlog", group="backlog", project=project, workspace=workspace)
     project_id_str = str(project.id)
@@ -80,12 +81,23 @@ def test_agent_create_and_update_task(db):
 
 @pytest.mark.unit
 @pytest.mark.django_db
-def test_plane_agent_engine_rule_router(db):
+def test_plane_agent_engine_rule_router(db, monkeypatch):
+    from plane.app.agent.core.llm_client import SystemLLMClient
+
     user = User.objects.create(email="router@example.com", first_name="Router")
     workspace = Workspace.objects.create(name="Test Router WS", slug="test-router-ws", owner=user)
     project = Project.objects.create(name="Test Router Project", identifier="TRP", workspace=workspace)
 
-    engine = PlaneAgentEngine(project=project)
+    def mock_generate_completion(self, user_prompt, context_prompt):
+        if "tiến độ" in user_prompt.lower():
+            return None, {"name": "tool_get_progress", "args": {}}
+        elif "thành viên" in user_prompt.lower():
+            return None, {"name": "tool_get_members_workload", "args": {}}
+        return "Hello", None
+
+    monkeypatch.setattr(SystemLLMClient, "generate_completion", mock_generate_completion)
+
+    engine = PlaneAgentEngine(project=project, user=user)
 
     # Test progress prompt
     res_progress = engine.process_request("Xem tiến độ dự án TRP")
@@ -97,13 +109,15 @@ def test_plane_agent_engine_rule_router(db):
     assert res_members["action_taken"] == "tool_get_members_workload"
 
 
+
 @pytest.mark.unit
 @pytest.mark.django_db
-def test_agent_extended_tools_and_hitl(db):
+def test_agent_extended_tools_and_hitl(db, monkeypatch):
     from plane.app.agent.tools import tool_manage_cycles, tool_rebalance_workload, tool_export_report, tool_tag_labels
     from plane.app.agent.engine import check_user_project_permission
+    from plane.app.agent.core.llm_client import SystemLLMClient
 
-    user = User.objects.create(email="extended@example.com", first_name="Extended", display_name="Extended User")
+    user = User.objects.create(username="extended_user", email="extended@example.com", first_name="Extended", display_name="Extended User")
     workspace = Workspace.objects.create(name="Extended WS", slug="extended-ws", owner=user)
     project = Project.objects.create(name="Extended Project", identifier="EXT", workspace=workspace)
 
@@ -135,12 +149,20 @@ def test_agent_extended_tools_and_hitl(db):
     # 4. Test RBAC Permission Check
     assert check_user_project_permission(user, project, min_role=15) is True
 
-    guest_user = User.objects.create(email="guest@example.com", first_name="Guest")
+    guest_user = User.objects.create(username="guest_user", email="guest@example.com", first_name="Guest")
     ProjectMember.objects.create(project=project, workspace=workspace, member=guest_user, role=5)
     assert check_user_project_permission(guest_user, project, min_role=15) is False
 
     # 5. Test HITL Engine Router
-    engine = PlaneAgentEngine(project=project)
+    def mock_generate_completion(self, user_prompt, context_prompt):
+        if "phân bổ" in user_prompt.lower():
+            return None, {"name": "tool_rebalance_workload", "args": {}}
+        return None, None
+
+    monkeypatch.setattr(SystemLLMClient, "generate_completion", mock_generate_completion)
+
+    engine = PlaneAgentEngine(project=project, user=user)
     rebalance_req = engine.process_request("Hãy phân bổ lại task quá hạn")
     assert rebalance_req["action_taken"] == "tool_rebalance_workload"
+
 

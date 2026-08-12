@@ -103,7 +103,9 @@ services:
     environment:
       PYTHONPATH: /code
     env_file:
+      - .env
       - ./apps/api/.env
+
     volumes:
       - ./apps/api/plane:/code/plane
     depends_on:

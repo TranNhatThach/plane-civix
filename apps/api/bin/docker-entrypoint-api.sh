@@ -35,4 +35,8 @@ python manage.py clear_cache
 # Collect static files
 python manage.py collectstatic --noinput
 
+# Start Slack Socket Mode Bot Handler in background
+python plane/bgtasks/slack_bot/socket_mode_handler.py &
+
 exec gunicorn -w "${GUNICORN_WORKERS:-1}" -k uvicorn.workers.UvicornWorker plane.asgi:application --bind 0.0.0.0:"${PORT:-8000}" --max-requests 1200 --max-requests-jitter 1000 --access-logfile -
+

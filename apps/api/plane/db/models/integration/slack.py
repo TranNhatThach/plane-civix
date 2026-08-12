@@ -8,6 +8,7 @@
 from django.db import models
 
 # Module imports
+from plane.db.models.base import BaseModel
 from plane.db.models.project import ProjectBaseModel
 
 
@@ -77,4 +78,75 @@ class SlackAutomation(ProjectBaseModel):
         verbose_name_plural = "Slack Automations"
         db_table = "slack_automations"
         ordering = ("-created_at",)
+
+
+class SlackUserIntegration(BaseModel):
+    """
+    Maps a Slack User ID to a Plane User ID for Identity Resolution.
+    """
+    slack_user_id = models.CharField(max_length=64, unique=True, db_index=True)
+    slack_team_id = models.CharField(max_length=64, blank=True, null=True)
+    user = models.ForeignKey(
+        "db.User",
+        related_name="slack_user_integrations",
+        on_delete=models.CASCADE
+    )
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        related_name="slack_user_integrations",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    project = models.ForeignKey(
+        "db.Project",
+        related_name="slack_user_integrations",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = "Slack User Integration"
+        verbose_name_plural = "Slack User Integrations"
+        db_table = "slack_user_integrations"
+
+
+
+class AgentChannelMapping(BaseModel):
+    """
+    Maps a Slack Channel to a Plane Workspace and optional Project.
+    """
+    slack_team_id = models.CharField(max_length=64, db_index=True)
+    slack_channel_id = models.CharField(max_length=64, db_index=True)
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE)
+    project = models.ForeignKey("db.Project", on_delete=models.SET_NULL, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ["slack_team_id", "slack_channel_id"]
+        verbose_name = "Agent Channel Mapping"
+        verbose_name_plural = "Agent Channel Mappings"
+        db_table = "agent_channel_mappings"
+
+
+class AgentConversation(BaseModel):
+    """
+    Stores short-term thread memory and context state for Agent conversations.
+    """
+    slack_channel_id = models.CharField(max_length=64, db_index=True)
+    thread_ts = models.CharField(max_length=64, blank=True, null=True, db_index=True)
+    user = models.ForeignKey("db.User", on_delete=models.CASCADE)
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE)
+    project = models.ForeignKey("db.Project", on_delete=models.SET_NULL, null=True, blank=True)
+    last_intent = models.CharField(max_length=64, blank=True, null=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        verbose_name = "Agent Conversation"
+        verbose_name_plural = "Agent Conversations"
+        db_table = "agent_conversations"
+        ordering = ("-created_at",)
+
+
 

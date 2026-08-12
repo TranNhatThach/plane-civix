@@ -1,0 +1,232 @@
+import logging
+import inspect
+from typing import Dict, Any, Optional
+from plane.db.models import Project, ProjectMember
+from plane.app.agent.registry import ToolRegistry
+from plane.app.agent.core.llm_client import SystemLLMClient
+from plane.app.agent.core.scope_guard import AgentContext, scope_guard, ScopeViolationError
+from plane.app.agent.core.context_resolver import ContextResolver
+
+# Ensure all tools are registered into ToolRegistry
+import plane.app.agent.tools  # noqa
+
+logger = logging.getLogger(__name__)
+
+
+def check_user_project_permission(user, project, min_role=15, strict=False) -> bool:
+    """Check if user has member (>=15) or admin (20) role in project."""
+    if not user:
+        return True
+    if getattr(user, "is_superuser", False):
+        return True
+    pm = ProjectMember.objects.filter(project=project, member=user, is_active=True, deleted_at__isnull=True).first()
+    if not pm:
+        return False
+    return pm.role >= min_role
+
+
+
+class PlaneAgentEngine:
+    """
+    Modular Decoupled Core Plane AI Agent Engine.
+    Executes natural language queries strictly using system-configured LLM provider/model
+    with dynamic Tool Registry, Scope Guard Security Boundary, and Fast Path Deterministic Rendering.
+    """
+
+    def __init__(self, project, user=None, context: Optional[AgentContext] = None):
+        self.project = project
+        self.user = user
+        self.project_id_str = str(project.id) if project else None
+        
+        # Build or attach Context Object
+        if context:
+            self.context = context
+        else:
+            workspace_id = str(project.workspace_id) if project else ""
+            user_id_str = str(user.id) if user else ""
+            self.context = AgentContext(
+                slack_user_id="user_slack",
+                plane_user_id=user_id_str,
+                is_superuser=getattr(user, "is_superuser", False) if user else False,
+                workspace_id=workspace_id,
+                project_id=self.project_id_str,
+            )
+
+    def process_request(self, user_prompt: str) -> dict:
+        """
+        Main entrypoint to process user prompt and execute tools via system configured LLM.
+        Applies Response Generation Policy: Direct Deterministic Fast Path vs Analytical Synthesis Path.
+        """
+        # Dynamic Project Auto-matching if user mentions another project name in prompt
+        prompt_lower = user_prompt.lower()
+        if self.project:
+            for p in Project.objects.filter(workspace_id=self.context.workspace_id, deleted_at__isnull=True):
+                if p.name and (p.name.lower() in prompt_lower or (p.identifier and p.identifier.lower() in prompt_lower)):
+                    self.project = p
+                    self.project_id_str = str(p.id)
+                    self.context.project_id = self.project_id_str
+                    break
+
+        try:
+            llm_client = SystemLLMClient()
+            proj_name = self.project.name if self.project else "Không chỉ định"
+            context_prompt = (
+                f"Context hiện tại: Workspace ID là '{self.context.workspace_id}', Dự án mặc định là '{proj_name}' (ID: {self.project_id_str}).\n"
+                f"Yêu cầu từ người dùng: {user_prompt}"
+            )
+
+            text_response, tool_call = llm_client.generate_completion(user_prompt, context_prompt)
+
+            if tool_call:
+                func_name = tool_call["name"]
+                func_args = tool_call["args"]
+
+                registered_tool = ToolRegistry.get_tool(func_name)
+                if registered_tool:
+                    target_func = registered_tool.func
+                    sig_params = inspect.signature(target_func).parameters
+                    has_var_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig_params.values())
+
+
+                    # Inject authoritative Context and Parameters
+                    func_args["_context"] = self.context
+                    if "workspace_id" in sig_params or has_var_kwargs:
+                        func_args["workspace_id"] = self.context.workspace_id
+                    if "project_id" in sig_params and self.project_id_str and func_name != "tool_list_projects":
+                        func_args["project_id"] = self.project_id_str
+                    if "created_by_user_id" in sig_params and self.user:
+                        func_args["created_by_user_id"] = str(self.user.id)
+
+                    filtered_args = {}
+                    for k, v in func_args.items():
+                        if has_var_kwargs or k in sig_params:
+                            filtered_args[k] = v
+
+                    try:
+                        tool_result = target_func(**filtered_args)
+
+                    except ScopeViolationError as scope_err:
+                        return {
+                            "action_taken": "scope_violation_error",
+                            "text": str(scope_err),
+                            "data": {"error": str(scope_err)},
+                        }
+
+                    # Fast Path: Direct Deterministic Rendering Policy
+                    return self._format_tool_response(func_name, tool_result)
+
+            return {
+                "action_taken": "system_llm_chat",
+                "text": text_response or "",
+                "data": {},
+            }
+
+        except Exception as e:
+            logger.exception(f"Error executing System LLM: {e}")
+            return {
+                "action_taken": "system_llm_error",
+                "text": (
+                    f"⚠️ *Lỗi kết nối hoặc xử lý từ AI Agent System:*\n"
+                    f"_{str(e)}_\n\n"
+                    f"👉 *Hướng xử lý*: Vui lòng kiểm tra lại API Key hoặc cấu hình Model trong **Plane Settings → AI Configuration**."
+                ),
+                "data": {"error": str(e)},
+            }
+
+    def _format_tool_response(self, func_name: str, tool_result: dict) -> dict:
+        res_data = {"action_taken": func_name, "text": "", "data": tool_result}
+        proj_name = self.project.name if self.project else "Dự án"
+
+        if func_name == "tool_get_progress":
+            res_data["text"] = (
+                f"📊 *Dạ em xin gửi báo cáo tiến độ dự án {tool_result.get('project_name', proj_name)}:*\n\n"
+                f"• Mức độ hoàn thành: *{tool_result.get('completion_percentage', 0)}%*\n"
+                f"• Công việc đã xong: *{tool_result.get('completed_tasks', 0)}* / {tool_result.get('total_tasks', 0)} tasks\n"
+                f"• Công việc đang làm: *{tool_result.get('started_tasks', 0)}* tasks\n"
+                f"• Công việc trễ hạn: *{tool_result.get('overdue_tasks', 0)}* tasks\n\n"
+                f"Anh/chị có cần em kiểm tra chi tiết các task nào không ạ?"
+            )
+        elif func_name == "tool_query_tasks":
+            tasks = tool_result.get("tasks", [])
+            if not tasks:
+                res_data["text"] = f"ℹ️ Dạ em kiểm tra trong dự án *{proj_name}* không tìm thấy công việc nào thỏa mãn."
+            else:
+                lines = [f"📋 *Dạ em xin gửi danh sách {tool_result.get('count', len(tasks))} công việc trong dự án {proj_name}:*"]
+                for t in tasks:
+                    assignee_str = f" ➔ @{t['assignees'][0]}" if t.get("assignees") else ""
+                    lines.append(f"• *[{t['key']}] {t['name']}* ({t['status']}){assignee_str}")
+                res_data["text"] = "\n".join(lines)
+        elif func_name == "tool_create_task_with_subtasks":
+            if tool_result.get("success"):
+                subtasks = tool_result.get("subtasks", [])
+                sub_lines = [f"  ▫️ [{s['key']}] {s['title']}" for s in subtasks]
+                sub_str = "\n".join(sub_lines) if sub_lines else ""
+                text = (
+                    f"✨ *Khởi tạo công việc mới thành công!*\n\n"
+                    f"• *Mã Task*: `{tool_result.get('task_key')}`\n"
+                    f"• *Tiêu đề*: *{tool_result.get('title')}*\n"
+                    f"• *Người phụ trách*: @{tool_result.get('assignee', 'Chưa gán')}\n"
+                    f"• *Độ ưu tiên*: `{tool_result.get('priority', 'medium').upper()}`\n"
+                )
+                if sub_str:
+                    text += f"\n*Task con (Sub-tasks):*\n{sub_str}"
+                res_data["text"] = text
+            else:
+                res_data["text"] = f"❌ *Không thể tạo task*: {tool_result.get('error', 'Lỗi không xác định')}"
+        elif func_name == "tool_get_members_workload":
+            members = tool_result.get("members", [])
+            lines = [f"👥 *Phân bổ công việc thành viên dự án {tool_result.get('project_name', proj_name)} ({tool_result.get('total_members', len(members))} thành viên):*\n"]
+            for m in members:
+                lines.append(f"• *{m['display_name']}*: Đang làm `{m['in_progress']}` task | Đã xong `{m['completed']}` task")
+            res_data["text"] = "\n".join(lines)
+        elif func_name == "tool_list_projects":
+            projects = tool_result.get("projects", [])
+            lines = [f"📁 *Danh sách {tool_result.get('count', len(projects))} dự án trên hệ thống:*"]
+            for p in projects:
+                lines.append(f"• *{p['name']}* (`{p['identifier']}`) — {p['total_issues']} tasks | {p['members_count']} thành viên")
+            res_data["text"] = "\n".join(lines)
+        elif func_name == "tool_rebalance_workload":
+            if tool_result.get("dry_run", True):
+                if not tool_result.get("reassigned_count"):
+                    res_data["text"] = f"ℹ️ Hiện tại dự án *{proj_name}* không có công việc quá hạn nào cần điều chuyển."
+                else:
+                    text = (
+                        f"🤖 *ĐỀ XUẤT TÁI PHÂN BỔ CÔNG VIỆC DỰ ÁN {tool_result.get('project_name', proj_name).upper()}*\n\n"
+                        f"Thành viên *{tool_result.get('most_busy')}* đang bận nhiều task trễ hạn.\n"
+                        f"Đề xuất chuyển *{tool_result.get('reassigned_count')} task* cho *{tool_result.get('least_busy')}*:\n"
+                    )
+                    for t in tool_result.get("reassigned_tasks", []):
+                        text += f"• Task *{t['key']}*: _{t['title']}_\n"
+                    text += "\n*Anh/chị có đồng ý thực hiện điều chuyển ngay không ạ?*"
+                    res_data["text"] = text
+                    res_data["requires_confirmation"] = True
+                    res_data["pending_action"] = {
+                        "type": "rebalance_workload",
+                        "project_id": self.project_id_str,
+                    }
+        elif func_name == "tool_manage_cycles":
+            cycles = tool_result.get("cycles", [])
+            lines = [f"🚀 *Danh sách {tool_result.get('count', len(cycles))} Sprint/Cycle của dự án {tool_result.get('project_name', proj_name)}:*"]
+            for c in cycles:
+                lines.append(f"• *{c['name']}* ({c['issue_count']} tasks)")
+            res_data["text"] = "\n".join(lines)
+        elif func_name == "tool_export_report":
+            res_data["text"] = tool_result.get("report_markdown", "")
+        elif func_name == "tool_get_workspace_summary":
+            projects = tool_result.get("projects", [])
+            lines = [
+                f"🏢 *BÁO CÁO TỔNG HỢP TOÀN WORKSPACE*\n",
+                f"• *Tổng số dự án*: `{tool_result.get('total_projects', len(projects))}`",
+                f"• *Mức độ hoàn thành*: `{tool_result.get('workspace_completion_percentage', 0)}%`",
+                f"• *Tổng số task*: `{tool_result.get('total_workspace_tasks', 0)}` tasks (Đã xong: `{tool_result.get('total_workspace_completed', 0)}` | Quá hạn: `{tool_result.get('total_workspace_overdue', 0)}`)\n",
+                "📊 *Chi tiết theo từng dự án:*"
+            ]
+            for p in projects:
+                lines.append(f"• *{p['name']}* (`{p['identifier']}`): {p['completion_percentage']}% hoàn thành ({p['completed_tasks']}/{p['total_tasks']} tasks | `{p['overdue_tasks']}` quá hạn)")
+            res_data["text"] = "\n".join(lines)
+        else:
+            res_data["text"] = f"Dạ em đã thực hiện xong tác vụ *{func_name}* cho dự án {proj_name} rồi ạ! 😊"
+
+
+        return res_data
+
