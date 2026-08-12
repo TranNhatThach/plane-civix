@@ -57,15 +57,44 @@ class PlaneAgentEngine:
         Main entrypoint to process user prompt and execute tools via system configured LLM.
         Applies Response Generation Policy: Direct Deterministic Fast Path vs Analytical Synthesis Path.
         """
-        # Dynamic Project Auto-matching if user mentions another project name in prompt
-        prompt_lower = user_prompt.lower()
-        if self.project:
-            for p in Project.objects.filter(workspace_id=self.context.workspace_id, deleted_at__isnull=True):
-                if p.name and (p.name.lower() in prompt_lower or (p.identifier and p.identifier.lower() in prompt_lower)):
-                    self.project = p
-                    self.project_id_str = str(p.id)
-                    self.context.project_id = self.project_id_str
-                    break
+        prompt_lower = (user_prompt or "").lower()
+        # 1. Fast-Path Pattern Matcher: Instant sub-50ms execution for standard read-only queries
+        fast_path_tool = None
+
+        fast_path_args = {}
+
+        if any(kw in prompt_lower for kw in ["báo cáo workspace", "tổng quan workspace", "tất cả task workspace", "tiến độ workspace", "tất cả dự án"]):
+            fast_path_tool = "tool_get_workspace_summary"
+        elif any(kw in prompt_lower for kw in ["báo cáo tiến độ", "xem tiến độ", "tiến độ dự án"]):
+            fast_path_tool = "tool_get_progress"
+        elif any(kw in prompt_lower for kw in ["danh sách task", "task của tôi", "công việc của tôi", "việc của tôi", "xem task"]):
+            fast_path_tool = "tool_query_tasks"
+        elif any(kw in prompt_lower for kw in ["thành viên", "khối lượng công việc", "ai làm gì", "phân bổ công việc"]):
+            fast_path_tool = "tool_get_members_workload"
+        elif any(kw in prompt_lower for kw in ["danh sách dự án", "xem các dự án"]):
+            fast_path_tool = "tool_list_projects"
+
+        if fast_path_tool:
+            registered_tool = ToolRegistry.get_tool(fast_path_tool)
+            if registered_tool:
+                target_func = registered_tool.func
+                sig_params = inspect.signature(target_func).parameters
+                has_var_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig_params.values())
+
+                fast_path_args["_context"] = self.context
+                if "workspace_id" in sig_params or has_var_kwargs:
+                    fast_path_args["workspace_id"] = self.context.workspace_id
+                if "project_id" in sig_params and self.project_id_str and fast_path_tool != "tool_list_projects":
+                    fast_path_args["project_id"] = self.project_id_str
+
+                filtered_args = {k: v for k, v in fast_path_args.items() if has_var_kwargs or k in sig_params}
+                try:
+                    tool_result = target_func(**filtered_args)
+                    return self._format_tool_response(fast_path_tool, tool_result)
+                except ScopeViolationError as scope_err:
+                    return {"action_taken": "scope_violation_error", "text": str(scope_err), "data": {"error": str(scope_err)}}
+
+
 
         try:
             llm_client = SystemLLMClient()
