@@ -71,9 +71,10 @@ class PlaneAgentEngine:
             fast_path_tool = "tool_query_tasks"
             if self.user:
                 fast_path_args["assignee_name"] = self.user.email or self.user.display_name or self.user.first_name
-        elif any(kw in prompt_lower for kw in ["quá hạn", "trễ hạn"]):
+        elif any(kw in prompt_lower for kw in ["quá hạn", "trễ hạn"]) and not any(kw in prompt_lower for kw in ["phân bổ", "điều chuyển", "rebalance"]):
             fast_path_tool = "tool_query_tasks"
             fast_path_args["is_overdue"] = True
+
         elif any(kw in prompt_lower for kw in ["danh sách task", "xem task"]):
             fast_path_tool = "tool_query_tasks"
         elif any(kw in prompt_lower for kw in ["thành viên", "khối lượng công việc", "ai làm gì", "phân bổ công việc"]):
