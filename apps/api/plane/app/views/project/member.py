@@ -367,38 +367,17 @@ class UserProjectRolesEndpoint(BaseAPIView):
     use_read_replica = True
 
     def get(self, request, slug):
-        workspace_member = WorkspaceMember.objects.filter(
+        project_members = ProjectMember.objects.filter(
             workspace__slug=slug,
             member_id=request.user.id,
             is_active=True,
-        ).first()
-
-        if not workspace_member:
-            return Response({}, status=status.HTTP_200_OK)
-
-        project_members_qs = ProjectMember.objects.filter(
-            workspace__slug=slug,
-            member_id=request.user.id,
-            is_active=True,
+            member__member_workspace__workspace__slug=slug,
+            member__member_workspace__is_active=True,
         ).values("project_id", "role")
 
-        project_roles = {str(m["project_id"]): m["role"] for m in project_members_qs}
+        project_members = {str(member["project_id"]): member["role"] for member in project_members}
+        return Response(project_members, status=status.HTTP_200_OK)
 
-        # If user is Workspace Admin or Member, include all Public Projects in workspace
-        if workspace_member.role in [ROLE.ADMIN.value, ROLE.MEMBER.value]:
-            from plane.db.models import Project, ProjectNetwork
-            public_proj_ids = Project.objects.filter(
-                workspace__slug=slug,
-                network=ProjectNetwork.PUBLIC.value,
-                deleted_at__isnull=True,
-            ).values_list("id", flat=True)
-
-            for pid in public_proj_ids:
-                pid_str = str(pid)
-                if pid_str not in project_roles:
-                    project_roles[pid_str] = ROLE.MEMBER.value
-
-        return Response(project_roles, status=status.HTTP_200_OK)
 
 
 
