@@ -75,8 +75,11 @@ class PlaneAgentEngine:
             fast_path_tool = "tool_query_tasks"
             fast_path_args["is_overdue"] = True
 
-        elif any(kw in prompt_lower for kw in ["danh sách task", "xem task"]):
-            fast_path_tool = "tool_query_tasks"
+        elif any(kw in prompt_lower for kw in ["danh sách task", "xem task", "danh sách công việc"]):
+            has_specific_filters = any(word in prompt_lower for word in ["của ", "trạng thái", "in progress", "done", "completed", "lọc", "ưu tiên"])
+            if not has_specific_filters:
+                fast_path_tool = "tool_query_tasks"
+
         elif any(kw in prompt_lower for kw in ["thành viên", "khối lượng công việc", "ai làm gì", "phân bổ công việc"]):
             fast_path_tool = "tool_get_members_workload"
         elif any(kw in prompt_lower for kw in ["danh sách dự án", "xem các dự án", "tất cả dự án"]):
