@@ -125,7 +125,7 @@ class ProjectViewSet(BaseViewSet):
                     project_projectmember__is_active=True,
                 )
                 | Q(network=2)
-            ).distinct()
+            )
 
         if request.GET.get("per_page", False) and request.GET.get("cursor", False):
             return self.paginate(
@@ -150,35 +150,8 @@ class ProjectViewSet(BaseViewSet):
             workspace__slug=self.kwargs.get("slug"),
         ).values("sort_order")
 
-        projects_qs = Project.objects.filter(workspace__slug=self.kwargs.get("slug"))
-
-        if WorkspaceMember.objects.filter(
-            member=request.user,
-            workspace__slug=slug,
-            is_active=True,
-            role=ROLE.GUEST.value,
-        ).exists():
-            projects_qs = projects_qs.filter(
-                project_projectmember__member=self.request.user,
-                project_projectmember__is_active=True,
-            )
-
-        if WorkspaceMember.objects.filter(
-            member=request.user,
-            workspace__slug=slug,
-            is_active=True,
-            role=ROLE.MEMBER.value,
-        ).exists():
-            projects_qs = projects_qs.filter(
-                Q(
-                    project_projectmember__member=self.request.user,
-                    project_projectmember__is_active=True,
-                )
-                | Q(network=2)
-            )
-
         projects = (
-            projects_qs
+            Project.objects.filter(workspace__slug=self.kwargs.get("slug"))
             .select_related("workspace", "workspace__owner", "default_assignee", "project_lead")
             .annotate(
                 member_role=ProjectMember.objects.filter(
@@ -222,8 +195,32 @@ class ProjectViewSet(BaseViewSet):
             "created_by",
             "updated_by",
         )
-        return Response(projects, status=status.HTTP_200_OK)
 
+        if WorkspaceMember.objects.filter(
+            member=request.user,
+            workspace__slug=slug,
+            is_active=True,
+            role=ROLE.GUEST.value,
+        ).exists():
+            projects = projects.filter(
+                project_projectmember__member=self.request.user,
+                project_projectmember__is_active=True,
+            )
+
+        if WorkspaceMember.objects.filter(
+            member=request.user,
+            workspace__slug=slug,
+            is_active=True,
+            role=ROLE.MEMBER.value,
+        ).exists():
+            projects = projects.filter(
+                Q(
+                    project_projectmember__member=self.request.user,
+                    project_projectmember__is_active=True,
+                )
+                | Q(network=2)
+            )
+        return Response(projects, status=status.HTTP_200_OK)
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def retrieve(self, request, slug, pk):

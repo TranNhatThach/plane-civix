@@ -379,8 +379,6 @@ class UserProjectRolesEndpoint(BaseAPIView):
         return Response(project_members, status=status.HTTP_200_OK)
 
 
-
-
 class ProjectMemberPreferenceEndpoint(BaseAPIView):
     def get_queryset(self, slug, project_id, member_id):
         return ProjectMember.objects.get(

@@ -60,26 +60,12 @@ class ProjectMemberPermission(BasePermission):
 
         ## Safe Methods -> Handle the filtering logic in queryset
         if request.method in SAFE_METHODS:
-            proj_id = getattr(view, "project_id", None)
-            if proj_id and str(proj_id).lower() != "none":
-                from plane.db.models import Project, ProjectNetwork
-                proj = Project.objects.filter(id=proj_id, deleted_at__isnull=True).only("network").first()
-                if proj and proj.network == ProjectNetwork.PUBLIC.value:
-                    if WorkspaceMember.objects.filter(
-                        workspace__slug=view.workspace_slug,
-                        member=request.user,
-                        role__in=[ROLE.ADMIN.value, ROLE.MEMBER.value],
-                        is_active=True,
-                    ).exists():
-                        return True
-
             return ProjectMember.objects.filter(
                 workspace__slug=view.workspace_slug,
                 member=request.user,
                 project_id=view.project_id,
                 is_active=True,
             ).exists()
-
         ## Only workspace owners or admins can create the projects
         if request.method == "POST":
             return WorkspaceMember.objects.filter(
@@ -107,21 +93,6 @@ class ProjectEntityPermission(BasePermission):
         # Handle requests based on project__identifier
         if hasattr(view, "project_identifier") and view.project_identifier:
             if request.method in SAFE_METHODS:
-                from plane.db.models import Project, ProjectNetwork
-                proj = Project.objects.filter(
-                    workspace__slug=view.workspace_slug,
-                    identifier=view.project_identifier,
-                    deleted_at__isnull=True,
-                ).only("network").first()
-                if proj and proj.network == ProjectNetwork.PUBLIC.value:
-                    if WorkspaceMember.objects.filter(
-                        workspace__slug=view.workspace_slug,
-                        member=request.user,
-                        role__in=[ROLE.ADMIN.value, ROLE.MEMBER.value],
-                        is_active=True,
-                    ).exists():
-                        return True
-
                 return ProjectMember.objects.filter(
                     workspace__slug=view.workspace_slug,
                     member=request.user,
@@ -131,26 +102,12 @@ class ProjectEntityPermission(BasePermission):
 
         ## Safe Methods -> Handle the filtering logic in queryset
         if request.method in SAFE_METHODS:
-            proj_id = getattr(view, "project_id", None)
-            if proj_id and str(proj_id).lower() != "none":
-                from plane.db.models import Project, ProjectNetwork
-                proj = Project.objects.filter(id=proj_id, deleted_at__isnull=True).only("network").first()
-                if proj and proj.network == ProjectNetwork.PUBLIC.value:
-                    if WorkspaceMember.objects.filter(
-                        workspace__slug=view.workspace_slug,
-                        member=request.user,
-                        role__in=[ROLE.ADMIN.value, ROLE.MEMBER.value],
-                        is_active=True,
-                    ).exists():
-                        return True
-
             return ProjectMember.objects.filter(
                 workspace__slug=view.workspace_slug,
                 member=request.user,
                 project_id=view.project_id,
                 is_active=True,
             ).exists()
-
 
         ## Only project members or admins can create and edit the project attributes
         return ProjectMember.objects.filter(
