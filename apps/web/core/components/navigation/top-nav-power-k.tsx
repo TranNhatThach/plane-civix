@@ -20,7 +20,7 @@ import { usePowerK } from "@/hooks/store/use-power-k";
 import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { useExpandableSearch } from "@/hooks/use-expandable-search";
-import { DynamicIslandAgent } from "@/components/agent/dynamic-island-agent";
+
 
 
 export const TopNavPowerK = observer(() => {

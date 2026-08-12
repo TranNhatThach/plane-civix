@@ -20,7 +20,7 @@ import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 // local imports
 import { StarUsOnGitHubLink } from "@/app/(all)/[workspaceSlug]/(projects)/star-us-link";
-import { DynamicIslandAgent } from "@/components/agent/dynamic-island-agent";
+
 
 
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
