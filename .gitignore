@@ -53,6 +53,7 @@ venv
 *.pyc
 staticfiles
 mediafiles
+apps/api/plane/static-assets/collected-static/
 .env
 .DS_Store
 logs/
