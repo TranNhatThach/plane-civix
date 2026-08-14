@@ -8,6 +8,7 @@ from plane.app.agent.tools.project_tools import (
     tool_list_projects,
     tool_get_progress,
     tool_export_report,
+    tool_get_workspace_summary,
 )
 from plane.app.agent.tools.member_tools import (
     tool_get_members_workload,
@@ -25,6 +26,7 @@ __all__ = [
     "tool_list_projects",
     "tool_get_progress",
     "tool_export_report",
+    "tool_get_workspace_summary",
     "tool_get_members_workload",
     "tool_rebalance_workload",
     "tool_manage_cycles",
