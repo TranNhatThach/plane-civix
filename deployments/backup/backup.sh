@@ -15,6 +15,7 @@ BACKUP_FILE="$BACKUP_DIR/plane_backup_${TIMESTAMP}.sql.gz"
 
 CONTAINER_NAME="plane-db"
 DB_USER="${POSTGRES_USER:-plane}"
+DB_PASS="${POSTGRES_PASSWORD:-plane}"
 DB_NAME="${POSTGRES_DB:-plane}"
 
 # 1. Verify container is running
@@ -25,7 +26,7 @@ fi
 
 # 2. Perform Database Dump with Gzip Compression
 echo "[$(date)] Starting backup for database '${DB_NAME}'..."
-if docker exec "$CONTAINER_NAME" pg_dump -U "$DB_USER" "$DB_NAME" | gzip > "$BACKUP_FILE"; then
+if docker exec -e PGPASSWORD="$DB_PASS" "$CONTAINER_NAME" pg_dump -U "$DB_USER" "$DB_NAME" | gzip > "$BACKUP_FILE"; then
     FILE_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
     echo "[$(date)] Backup SUCCESS: ${BACKUP_FILE} (${FILE_SIZE})"
 else

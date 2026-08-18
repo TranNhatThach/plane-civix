@@ -7,14 +7,12 @@ set -eo pipefail
 # ==============================================================================
 
 BACKUP_DIR="${BACKUP_DIR:-$HOME/plane-backups/data}"
+mkdir -p "$BACKUP_DIR"
+
 CONTAINER_NAME="plane-db"
 DB_USER="${POSTGRES_USER:-plane}"
+DB_PASS="${POSTGRES_PASSWORD:-plane}"
 DB_NAME="${POSTGRES_DB:-plane}"
-
-if [ ! -d "$BACKUP_DIR" ]; then
-    echo "[!] Thu muc backup khong ton tai: $BACKUP_DIR"
-    exit 1
-fi
 
 echo "================================================================="
 echo "       PLANE DATABASE RESTORE WIZARD (KHOI PHUC DU LIEU)"
@@ -24,7 +22,8 @@ echo "================================================================="
 mapfile -t files < <(find "$BACKUP_DIR" -maxdepth 1 -type f -name "plane_backup_*.sql.gz" -printf "%T@ %p\n" 2>/dev/null | sort -nr | head -n 15 | awk '{print $2}')
 
 if [ ${#files[@]} -eq 0 ]; then
-    echo "[x] Khong tim thay ban backup nao trong: $BACKUP_DIR"
+    echo "[x] Chua tim thay ban sao luu nao trong: $BACKUP_DIR"
+    echo "    (Moi ban chay 'bash deployments/backup/backup.sh' de tao ban sao luu dau tien)."
     exit 1
 fi
 
@@ -59,7 +58,7 @@ if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#fil
     
     echo ""
     echo "[...] Dang khoi phuc du lieu vao ${CONTAINER_NAME}..."
-    gunzip -c "$SELECTED_FILE" | docker exec -i "$CONTAINER_NAME" psql -U "$DB_USER" -d "$DB_NAME" > /dev/null 2>&1
+    gunzip -c "$SELECTED_FILE" | docker exec -e PGPASSWORD="$DB_PASS" -i "$CONTAINER_NAME" psql -U "$DB_USER" -d "$DB_NAME" > /dev/null 2>&1
     
     echo ""
     echo "================================================================="
