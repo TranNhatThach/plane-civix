@@ -315,32 +315,33 @@ def create_app(bot_token):
 
 
 def main():
-    bot_token, app_token = get_tokens()
-
-    if not bot_token:
-        print("❌ ERROR: Slack Bot Token chưa được cấu hình.")
-        print("   Cách 1: Vào Plane Web UI → Settings → Integrations → Slack → Điền Bot Token")
-        print("   Cách 2: Set biến môi trường SLACK_BOT_TOKEN=xoxb-...")
-        sys.exit(1)
-
-    if not app_token:
-        print("❌ ERROR: Slack App Token chưa được cấu hình.")
-        print("   Cách 1: Vào Plane Web UI → Settings → Integrations → Slack → Điền App Token")
-        print("   Cách 2: Set biến môi trường SLACK_APP_TOKEN=xapp-...")
-        sys.exit(1)
-
+    import time
+    
     print("=" * 60)
-    print("🤖 Plane Core AI Agent — Slack Socket Mode")
-    print("=" * 60)
-    print(f"   Bot Token: {bot_token[:15]}...***")
-    print(f"   App Token: {app_token[:15]}...***")
-    print("   Listening for /agent commands...")
-    print("   (Không cần ngrok / domain public)")
+    print("🤖 Plane Core AI Agent — Slack Socket Mode Service")
     print("=" * 60)
 
-    bolt_app = create_app(bot_token)
-    handler = SocketModeHandler(bolt_app, app_token)
-    handler.start()
+    while True:
+        bot_token, app_token = get_tokens()
+
+        if not bot_token or not app_token:
+            logger.info("Slack Bot Token / App Token chưa được cấu hình. Đang đợi cấu hình từ Plane Web Settings...")
+            time.sleep(15)
+            continue
+
+        print(f"   Bot Token: {bot_token[:15]}...***")
+        print(f"   App Token: {app_token[:15]}...***")
+        print("   Listening for /agent commands...")
+        print("   (Không cần ngrok / domain public)")
+        print("=" * 60)
+
+        try:
+            bolt_app = create_app(bot_token)
+            handler = SocketModeHandler(bolt_app, app_token)
+            handler.start()
+        except Exception as e:
+            logger.error(f"Lỗi khi chạy Slack SocketModeHandler: {e}. Thử kết nối lại sau 15s...")
+            time.sleep(15)
 
 
 if __name__ == "__main__":
