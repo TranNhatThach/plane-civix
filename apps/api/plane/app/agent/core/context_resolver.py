@@ -1,5 +1,6 @@
 import logging
 from typing import Optional, Dict, Any, List
+from django.db.models import Q
 from plane.db.models import User, Workspace, Project, ProjectMember
 from plane.db.models.integration.slack import SlackUserIntegration, AgentChannelMapping, AgentConversation
 from plane.app.agent.core.scope_guard import AgentContext
@@ -18,6 +19,7 @@ class ContextResolver:
         """
         Maps Slack User ID -> Plane User model with strict security boundary.
         Checks SlackUserIntegration mapping first, then exact Email match.
+        Auto-links SlackUserIntegration if matching email is found.
         """
         if not slack_user_id and not slack_email:
             return User.objects.filter(is_active=True, is_superuser=True).first()
@@ -33,10 +35,21 @@ class ContextResolver:
         if slack_email:
             matched_user = User.objects.filter(email__iexact=slack_email.strip(), is_active=True).first()
             if matched_user:
+                # Auto-link SlackUserIntegration for future fast lookups
+                if slack_user_id:
+                    try:
+                        SlackUserIntegration.objects.get_or_create(
+                            slack_user_id=slack_user_id,
+                            defaults={
+                                "user": matched_user,
+                                "slack_team_id": slack_team_id,
+                            }
+                        )
+                    except Exception as e:
+                        logger.warning(f"Could not auto-link SlackUserIntegration: {e}")
                 return matched_user
 
-        # Fallback to single active user ONLY in single-tenant local test environments
-        # in production, unmapped users will be rejected
+        # Return first active user as fallback in dev / single-tenant environments
         return User.objects.filter(is_active=True).first()
 
 
@@ -48,14 +61,16 @@ class ContextResolver:
         thread_ts: Optional[str] = None,
         user_text: str = "",
         slack_team_id: str = "",
+        slack_email: str = "",
         fallback_workspace_id: Optional[str] = None,
         fallback_project_id: Optional[str] = None,
     ) -> AgentContext:
         """
         Builds the Authoritative AgentContext Object following the 5-priority project resolution chain.
+        Strictly enforces Workspace and Project access boundaries.
         """
         # 1. Resolve User Identity
-        user = cls.resolve_identity(slack_user_id, slack_team_id)
+        user = cls.resolve_identity(slack_user_id, slack_team_id, slack_email)
         if not user:
             raise ValueError("Không thể xác thực người dùng trong hệ thống Plane.")
 
@@ -89,20 +104,26 @@ class ContextResolver:
         if not workspace:
             raise ValueError("Không tìm thấy Workspace hợp lệ trên hệ thống.")
 
-
         workspace_id_str = str(workspace.id)
 
-        # 3. Resolve Accessible Project IDs for User
+        # 3. Resolve Accessible Project IDs for User (Strict Isolation)
         accessible_project_ids: List[str] = []
-        if user.is_superuser:
+        if getattr(user, "is_superuser", False) or workspace.owner_id == user.id:
+            # Superuser / Workspace Owner: all active projects within this specific workspace
             accessible_project_ids = list(
                 Project.objects.filter(workspace=workspace, deleted_at__isnull=True)
                 .values_list("id", flat=True)
             )
         else:
+            # Member / Guest: only projects where the user is an active member OR public projects (network=2)
             accessible_project_ids = list(
-                ProjectMember.objects.filter(workspace=workspace, member=user, is_active=True, deleted_at__isnull=True)
-                .values_list("project_id", flat=True)
+                Project.objects.filter(
+                    workspace=workspace,
+                    deleted_at__isnull=True,
+                ).filter(
+                    Q(project_projectmember__member=user, project_projectmember__is_active=True, project_projectmember__deleted_at__isnull=True)
+                    | Q(network=2)
+                ).distinct().values_list("id", flat=True)
             )
 
         accessible_project_ids = [str(pid) for pid in accessible_project_ids]
@@ -113,7 +134,12 @@ class ContextResolver:
         # Priority 1: User explicitly mentions project name or identifier in text
         if user_text:
             text_lower = user_text.lower()
-            all_projects = Project.objects.filter(workspace=workspace, deleted_at__isnull=True)
+            # Only search within accessible projects in this workspace
+            all_projects = Project.objects.filter(
+                workspace=workspace,
+                id__in=accessible_project_ids,
+                deleted_at__isnull=True,
+            )
             for proj in all_projects:
                 p_name = (proj.name or "").lower()
                 p_id = (proj.identifier or "").lower()
@@ -128,7 +154,7 @@ class ContextResolver:
                 slack_channel_id=channel_id,
                 is_active=True,
             ).first()
-            if mapping and mapping.project:
+            if mapping and mapping.project and str(mapping.project.id) in accessible_project_ids:
                 resolved_project = mapping.project
 
         # Priority 3: Thread context memory
@@ -138,12 +164,17 @@ class ContextResolver:
                 thread_ts=thread_ts,
                 workspace=workspace,
             ).first()
-            if conv and conv.project:
+            if conv and conv.project and str(conv.project.id) in accessible_project_ids:
                 resolved_project = conv.project
 
         # Priority 4: Explicit fallback parameter or single obvious project
         if not resolved_project and fallback_project_id:
-            resolved_project = Project.objects.filter(id=fallback_project_id, workspace=workspace, deleted_at__isnull=True).first()
+            resolved_project = Project.objects.filter(
+                id=fallback_project_id,
+                workspace=workspace,
+                id__in=accessible_project_ids,
+                deleted_at__isnull=True,
+            ).first()
 
         if not resolved_project and len(accessible_project_ids) == 1:
             resolved_project = Project.objects.filter(id=accessible_project_ids[0]).first()

@@ -45,6 +45,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 from plane.app.agent.engine import PlaneAgentEngine
 from plane.bgtasks.slack_bot.slack_adapter import render_slack_block_kit
+from plane.bgtasks.slack_bot.permissions import check_slack_command_permission
 from plane.db.models import Project
 from plane.db.models.integration.slack import SlackAutomation
 
@@ -90,6 +91,30 @@ def create_app(bot_token):
 
         text = (command.get("text", "") or "").strip()
         user_name = command.get("user_name", "user")
+        user_id = command.get("user_id", "")
+        channel_id = command.get("channel_id", "")
+        team_id = command.get("team_id", "")
+
+        # Fast Command: Check My ID (/agent myid or /agent id)
+        if text.lower() in ["myid", "id", "whoami", "/myid", "/id"]:
+            respond(
+                response_type="ephemeral",
+                blocks=[
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": (
+                                f"🆔 *Thông tin tài khoản Slack của bạn:*\n\n"
+                                f"• *Slack User ID:* `{user_id}`\n"
+                                f"• *Username:* `@{user_name}`\n\n"
+                                f"💡 _Hãy gửi mã User ID này cho Quản trị viên để được thêm vào danh sách phân quyền trên Plane Web (Settings → Integrations → Slack)._"
+                            ),
+                        },
+                    }
+                ],
+            )
+            return
 
         if not text:
             respond(
@@ -102,6 +127,7 @@ def create_app(bot_token):
                             "text": (
                                 "🤖 *Plane Core AI Agent*\n"
                                 "Hãy nhập câu lệnh tự nhiên bằng Tiếng Việt hoặc Tiếng Anh sau lệnh `/agent`:\n\n"
+                                "• `/agent myid` ➔ Xem Slack User ID của bạn để cấu hình phân quyền\n"
                                 "• `/agent Báo cáo tiến độ Civix` ➔ Xem % tiến độ & thanh progress bar\n"
                                 "• `/agent Danh sách task của tôi` ➔ Xem các công việc đang được gán\n"
                                 "• `/agent Thành viên dự án` ➔ Xem danh sách member & khối lượng công việc\n"
@@ -114,19 +140,56 @@ def create_app(bot_token):
             )
             return
 
-        user_id = command.get("user_id", "")
-        channel_id = command.get("channel_id", "")
-        team_id = command.get("team_id", "")
+        # Check Permission Configured on Plane Web
+        automation = SlackAutomation.objects.filter(is_active=True).first()
+        is_allowed, deny_message = check_slack_command_permission(
+            automation=automation,
+            user_id=user_id,
+            user_name=user_name,
+            command_text=text,
+        )
+        if not is_allowed:
+            respond(
+                response_type="ephemeral",
+                blocks=[
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": deny_message,
+                        },
+                    }
+                ],
+            )
+            return
+
+        # Resolve Slack User Email & Workspace context
+        slack_email = ""
+        try:
+            user_info = bolt_app.client.users_info(user=user_id)
+            if user_info and user_info.get("user"):
+                slack_email = user_info["user"].get("profile", {}).get("email", "")
+        except Exception:
+            pass
 
         from plane.app.agent.core.context_resolver import ContextResolver
+
+        fb_workspace_id = None
+        fb_project_id = None
+        if automation and automation.project:
+            fb_workspace_id = str(automation.project.workspace_id)
+            fb_project_id = str(automation.project.id)
 
         context = ContextResolver.resolve_context(
             slack_user_id=user_id,
             channel_id=channel_id,
             user_text=text,
             slack_team_id=team_id,
+            slack_email=slack_email,
+            fallback_workspace_id=fb_workspace_id,
+            fallback_project_id=fb_project_id,
         )
-        user = ContextResolver.resolve_identity(user_id, team_id)
+        user = ContextResolver.resolve_identity(user_id, team_id, slack_email)
 
         project = None
         if context and context.project_id:
@@ -138,7 +201,15 @@ def create_app(bot_token):
             agent_result = agent_engine.process_request(text)
 
             # Adapt Core Result ➔ Slack Block Kit Card
-            payload = render_slack_block_kit(agent_result, user_name=user_name)
+            ws_slug = context.workspace_slug if context else (project.workspace.slug if project and project.workspace else "")
+            proj_id = context.project_id if context else (str(project.id) if project else "")
+
+            payload = render_slack_block_kit(
+                agent_result,
+                user_name=user_name,
+                workspace_slug=ws_slug,
+                project_id=proj_id,
+            )
 
             respond(**payload)
         except Exception as e:
@@ -203,7 +274,13 @@ def create_app(bot_token):
         if project:
             agent_engine = PlaneAgentEngine(project=project)
             agent_result = agent_engine.process_request("Xem danh sách công việc")
-            payload = render_slack_block_kit(agent_result, user_name=slack_username)
+            ws_slug = project.workspace.slug if project.workspace else ""
+            payload = render_slack_block_kit(
+                agent_result,
+                user_name=slack_username,
+                workspace_slug=ws_slug,
+                project_id=str(project.id),
+            )
             respond(**payload)
         else:
             respond(text="❌ Không tìm thấy dự án hiện tại trong hệ thống Plane.")
@@ -223,7 +300,13 @@ def create_app(bot_token):
         if project:
             agent_engine = PlaneAgentEngine(project=project)
             agent_result = agent_engine.process_request("Báo cáo tiến độ dự án")
-            payload = render_slack_block_kit(agent_result, user_name=slack_username)
+            ws_slug = project.workspace.slug if project.workspace else ""
+            payload = render_slack_block_kit(
+                agent_result,
+                user_name=slack_username,
+                workspace_slug=ws_slug,
+                project_id=str(project.id),
+            )
             respond(**payload)
         else:
             respond(text="❌ Không tìm thấy dự án hiện tại trong hệ thống Plane.")

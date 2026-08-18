@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 @agent_tool(
     name="tool_list_projects",
-    description="Tra cứu danh sách tất cả các dự án (Projects) đang có trong hệ thống Plane.",
+    description="Tra cứu danh sách các dự án (Projects) mà người dùng có quyền truy cập trong Workspace hiện tại.",
     parameters_schema={
         "type": "object",
         "properties": {
@@ -20,10 +20,24 @@ logger = logging.getLogger(__name__)
         "required": []
     }
 )
-def tool_list_projects(workspace_slug: Optional[str] = None) -> Dict[str, Any]:
+@scope_guard(requires_project=False)
+def tool_list_projects(
+    workspace_slug: Optional[str] = None,
+    workspace_id: Optional[str] = None,
+    _context: Optional[Any] = None,
+    **kwargs,
+) -> Dict[str, Any]:
+    eff_ws_id = workspace_id or (_context.workspace_id if _context else None)
+    
     queryset = Project.objects.filter(deleted_at__isnull=True).select_related("workspace")
-    if workspace_slug:
+    if eff_ws_id:
+        queryset = queryset.filter(workspace_id=eff_ws_id)
+    elif workspace_slug:
         queryset = queryset.filter(workspace__slug=workspace_slug)
+
+    # Strictly filter by accessible projects for this specific user
+    if _context and getattr(_context, "accessible_project_ids", None) is not None:
+        queryset = queryset.filter(id__in=_context.accessible_project_ids)
 
     projects = list(queryset)
     items = []

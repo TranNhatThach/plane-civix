@@ -126,3 +126,67 @@ def test_send_slack_webhook_error(mock_post):
 
     assert success is False
     assert "HTTP 400" in res
+
+
+@pytest.mark.unit
+def test_check_slack_command_permission():
+    from plane.bgtasks.slack_bot.permissions import check_slack_command_permission
+
+    mock_automation = MagicMock()
+    mock_automation.events = {
+        "restrict_commands": True,
+        "allowed_users": ["U123456", "@nam_dev", "UADMIN"],
+    }
+
+    # 1. Allowed by Slack User ID
+    allowed, msg = check_slack_command_permission(mock_automation, "U123456", "someuser")
+    assert allowed is True
+    assert msg == ""
+
+    # 2. Allowed by username with @
+    allowed, msg = check_slack_command_permission(mock_automation, "U999999", "nam_dev")
+    assert allowed is True
+    assert msg == ""
+
+    # 3. Denied for unknown user
+    allowed, msg = check_slack_command_permission(mock_automation, "U_UNKNOWN", "intruder")
+    assert allowed is False
+    assert "Quyền truy cập bị từ chối" in msg
+    assert "U_UNKNOWN" in msg
+
+    # 4. Allowed when restriction is disabled
+    mock_automation.events = {"restrict_commands": False}
+    allowed, msg = check_slack_command_permission(mock_automation, "U_UNKNOWN", "intruder")
+    assert allowed is True
+
+
+@pytest.mark.unit
+def test_render_slack_block_kit_dynamic_url():
+    from plane.app.agent.adapters.slack_adapter import render_slack_block_kit
+
+    agent_result = {
+        "action_taken": "tool_get_progress",
+        "text": "Báo cáo tiến độ",
+        "data": {
+            "project_name": "Civix Core",
+            "completion_percentage": 75,
+            "completed_tasks": 3,
+            "total_tasks": 4,
+            "started_tasks": 1,
+            "backlog_tasks": 0,
+            "overdue_tasks": 0,
+        },
+    }
+
+    payload = render_slack_block_kit(
+        agent_result,
+        user_name="nam",
+        app_url="https://plane.civix.vn",
+        workspace_slug="civix-ws",
+        project_id="proj-123",
+    )
+
+    blocks_str = str(payload["blocks"])
+    assert "https://plane.civix.vn/civix-ws/projects/proj-123/issues" in blocks_str
+    assert "http://localhost/" not in blocks_str
+

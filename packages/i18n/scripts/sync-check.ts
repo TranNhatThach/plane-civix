@@ -49,7 +49,7 @@ function findCollisions(localeData: LocaleData): CollisionEntry[] {
       collisions.push({ key, files });
     }
   }
-  return collisions.toSorted((a, b) => a.key.localeCompare(b.key));
+  return collisions.toSorted((a: CollisionEntry, b: CollisionEntry) => a.key.localeCompare(b.key));
 }
 
 interface PathConflict {
@@ -59,7 +59,7 @@ interface PathConflict {
 
 /** Path conflict check: a key is both a leaf AND a prefix of another key. */
 function findPathConflicts(localeData: LocaleData): PathConflict[] {
-  const allKeysArray = [...localeData.allKeys].toSorted();
+  const allKeysArray = Array.from(localeData.allKeys).toSorted();
   const conflicts: PathConflict[] = [];
 
   // Build a set of all prefixes used in the keys
@@ -75,7 +75,7 @@ function findPathConflicts(localeData: LocaleData): PathConflict[] {
   for (const key of allKeysArray) {
     if (prefixes.has(key)) {
       // Find one example of a key that extends this prefix
-      const extending = allKeysArray.find((k) => k.startsWith(key + "."));
+      const extending = allKeysArray.find((k: string) => k.startsWith(key + "."));
       if (extending) {
         conflicts.push({ leaf: key, branch: extending });
       }

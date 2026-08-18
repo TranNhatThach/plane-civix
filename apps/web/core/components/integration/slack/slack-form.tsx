@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from "react";
 import useSWR from "swr";
-import { MessageSquare, Send } from "lucide-react";
+import { MessageSquare, Send, ShieldCheck } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Input } from "@plane/ui";
@@ -44,6 +44,11 @@ export function SlackIntegrationForm({ workspaceSlug, projectId, initialData, on
     comment_created: existingConfig?.events?.comment_created ?? true,
   });
 
+  const [restrictCommands, setRestrictCommands] = useState(existingConfig?.events?.restrict_commands ?? false);
+  const [allowedUsers, setAllowedUsers] = useState(
+    (existingConfig?.events?.allowed_users || existingConfig?.events?.allowed_creators || []).join(", ")
+  );
+
   useEffect(() => {
     if (automations && automations.length > 0) {
       const config = automations[0];
@@ -58,6 +63,8 @@ export function SlackIntegrationForm({ workspaceSlug, projectId, initialData, on
           issue_updated: config.events.issue_updated ?? true,
           comment_created: config.events.comment_created ?? true,
         });
+        setRestrictCommands(config.events.restrict_commands ?? false);
+        setAllowedUsers((config.events.allowed_users || config.events.allowed_creators || []).join(", "));
       }
     }
   }, [automations]);
@@ -114,19 +121,28 @@ export function SlackIntegrationForm({ workspaceSlug, projectId, initialData, on
 
     setIsSaving(true);
     try {
+      const parsedUsers = allowedUsers
+        .split(",")
+        .map((s: string) => s.trim())
+        .filter(Boolean);
+
       await slackService.createOrUpdateSlackAutomation(workspaceSlug, projectId, {
         webhook_url: webhookUrl,
         channel_name: channelName,
         is_active: isActive,
         bot_token: botToken,
         app_token: appToken,
-        events,
+        events: {
+          ...events,
+          restrict_commands: restrictCommands,
+          allowed_users: parsedUsers,
+        },
       });
 
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Slack Configuration Saved",
-        message: "Slack Webhook notifications configured successfully.",
+        message: "Slack Webhook notifications and permission controls configured successfully.",
       });
 
       mutate();
@@ -147,99 +163,229 @@ export function SlackIntegrationForm({ workspaceSlug, projectId, initialData, on
   };
 
   return (
-    <div className="w-full rounded-lg border border-border-subtle bg-bg-surface-2 p-5 shadow-sm space-y-5 my-4">
-      <div className="flex items-center justify-between border-b border-border-subtle pb-4">
+    <div className="border-border-subtle bg-bg-surface-2 shadow-sm my-4 w-full space-y-5 rounded-lg border p-5">
+      {/* Header */}
+      <div className="border-border-subtle flex items-center justify-between border-b pb-4">
         <div className="flex items-center space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+          <div className="bg-emerald-500/10 text-emerald-500 flex h-10 w-10 items-center justify-center rounded-lg">
             <MessageSquare className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-16 font-semibold text-primary">Slack Webhook Notifications</h3>
+            <h3 className="text-16 font-semibold text-primary">Slack Webhook & AI Agent Integration</h3>
             <p className="text-13 text-secondary">
-              Automatically publish issue updates, new tasks, and comments to your Slack channel via Webhook.
+              Automatically publish issue updates to your Slack channel and configure Socket Mode AI Agent.
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <label className="text-13 font-medium text-secondary">Active</label>
+        <label htmlFor="slack-active-toggle" className="flex cursor-pointer items-center space-x-2">
+          <span className="text-13 font-medium text-secondary">Active</span>
           <input
+            id="slack-active-toggle"
+            name="slack-active-toggle"
             type="checkbox"
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-custom-primary-600 focus:ring-custom-primary-500 cursor-pointer"
+            className="border-gray-300 text-custom-primary-600 focus:ring-custom-primary-500 h-4 w-4 cursor-pointer rounded"
           />
-        </div>
+        </label>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-4">
-        <div>
-          <label htmlFor="slack-webhook-url" className="text-13 font-medium text-tertiary block mb-1">
-            Slack Incoming Webhook URL <span className="text-red-500">*</span>
-          </label>
-          <Input
-            id="slack-webhook-url"
-            name="slack-webhook-url"
-            type="url"
-            value={webhookUrl}
-            onChange={(e) => setWebhookUrl(e.target.value)}
-            placeholder="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
-            className="w-full"
-            required
-          />
-          <p className="mt-1 text-12 text-tertiary">
-            Create an Incoming Webhook in your Slack App configuration and paste the URL here.
-          </p>
-        </div>
+      <form onSubmit={handleSave} className="space-y-5">
+        {/* Webhook Configuration */}
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="slack-webhook-url" className="mb-1 block text-13 font-medium text-tertiary">
+              Slack Incoming Webhook URL <span className="text-red-500">*</span>
+            </label>
+            <Input
+              id="slack-webhook-url"
+              name="slack-webhook-url"
+              type="url"
+              value={webhookUrl}
+              onChange={(e) => setWebhookUrl(e.target.value)}
+              placeholder="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+              className="w-full"
+              required
+            />
+            <p className="mt-1 text-12 text-tertiary">
+              Create an Incoming Webhook in your Slack App configuration and paste the URL here.
+            </p>
+          </div>
 
-        <div>
-          <label htmlFor="slack-channel-name" className="text-13 font-medium text-tertiary block mb-1">
-            Channel Name / Target (Optional)
-          </label>
-          <Input
-            id="slack-channel-name"
-            name="slack-channel-name"
-            type="text"
-            value={channelName}
-            onChange={(e) => setChannelName(e.target.value)}
-            placeholder="#proj-civix-updates"
-            className="w-full"
-          />
-        </div>
+          <div>
+            <label htmlFor="slack-channel-name" className="mb-1 block text-13 font-medium text-tertiary">
+              Channel Name / Target (Optional)
+            </label>
+            <Input
+              id="slack-channel-name"
+              name="slack-channel-name"
+              type="text"
+              value={channelName}
+              onChange={(e) => setChannelName(e.target.value)}
+              placeholder="#proj-civix-updates"
+              className="w-full"
+            />
+          </div>
 
-        <div className="space-y-2 pt-2">
-          <label className="text-13 font-medium text-tertiary block">Trigger Events</label>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <label className="flex items-center space-x-2 text-13 text-secondary cursor-pointer">
-              <input
-                type="checkbox"
-                checked={events.issue_created}
-                onChange={(e) => setEvents({ ...events, issue_created: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-custom-primary-600 focus:ring-custom-primary-500"
-              />
-              <span>📌 New Task Created</span>
-            </label>
-            <label className="flex items-center space-x-2 text-13 text-secondary cursor-pointer">
-              <input
-                type="checkbox"
-                checked={events.issue_updated}
-                onChange={(e) => setEvents({ ...events, issue_updated: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-custom-primary-600 focus:ring-custom-primary-500"
-              />
-              <span>🔄 Status Changed</span>
-            </label>
-            <label className="flex items-center space-x-2 text-13 text-secondary cursor-pointer">
-              <input
-                type="checkbox"
-                checked={events.comment_created}
-                onChange={(e) => setEvents({ ...events, comment_created: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-custom-primary-600 focus:ring-custom-primary-500"
-              />
-              <span>💬 New Comment Added</span>
-            </label>
+          {/* Trigger Events */}
+          <div className="space-y-2 pt-2">
+            <span className="block text-13 font-medium text-tertiary">Trigger Events</span>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <label className="flex cursor-pointer items-center space-x-2 text-13 text-secondary">
+                <input
+                  type="checkbox"
+                  checked={events.issue_created}
+                  onChange={(e) => setEvents({ ...events, issue_created: e.target.checked })}
+                  className="border-gray-300 text-custom-primary-600 focus:ring-custom-primary-500 h-4 w-4 rounded"
+                />
+                <span>📌 New Task Created</span>
+              </label>
+              <label className="flex cursor-pointer items-center space-x-2 text-13 text-secondary">
+                <input
+                  type="checkbox"
+                  checked={events.issue_updated}
+                  onChange={(e) => setEvents({ ...events, issue_updated: e.target.checked })}
+                  className="border-gray-300 text-custom-primary-600 focus:ring-custom-primary-500 h-4 w-4 rounded"
+                />
+                <span>🔄 Status Changed</span>
+              </label>
+              <label className="flex cursor-pointer items-center space-x-2 text-13 text-secondary">
+                <input
+                  type="checkbox"
+                  checked={events.comment_created}
+                  onChange={(e) => setEvents({ ...events, comment_created: e.target.checked })}
+                  className="border-gray-300 text-custom-primary-600 focus:ring-custom-primary-500 h-4 w-4 rounded"
+                />
+                <span>💬 New Comment Added</span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-border-subtle">
+        {/* Socket Mode Tokens */}
+        <div className="border-border-subtle space-y-4 border-t pt-4">
+          <div className="flex items-center space-x-3">
+            <div className="bg-purple-500/10 text-purple-500 flex h-10 w-10 items-center justify-center rounded-lg">
+              🤖
+            </div>
+            <div>
+              <h4 className="text-14 font-semibold text-primary">Slack AI Agent — Socket Mode</h4>
+              <p className="text-12 text-tertiary">
+                Cấu hình Bot Token & App Token để kích hoạt lệnh <code>/agent</code> trên Slack mà không cần ngrok.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="slack-bot-token" className="mb-1 block text-13 font-medium text-tertiary">
+              Bot User OAuth Token (xoxb-...)
+            </label>
+            <Input
+              id="slack-bot-token"
+              name="slack-bot-token"
+              type="password"
+              value={botToken}
+              onChange={(e) => setBotToken(e.target.value)}
+              placeholder="xoxb-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx"
+              className="w-full"
+            />
+            <p className="mt-1 text-12 text-tertiary">
+              Lấy từ trang Slack API → <strong>OAuth & Permissions</strong> → Bot User OAuth Token.
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="slack-app-token" className="mb-1 block text-13 font-medium text-tertiary">
+              App-Level Token (xapp-...)
+            </label>
+            <Input
+              id="slack-app-token"
+              name="slack-app-token"
+              type="password"
+              value={appToken}
+              onChange={(e) => setAppToken(e.target.value)}
+              placeholder="xapp-x-xxxxxxxxxxxxxxx-xxxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx"
+              className="w-full"
+            />
+            <p className="mt-1 text-12 text-tertiary">
+              Lấy từ trang Slack API → <strong>Basic Information</strong> → App-Level Tokens → Generate Token (scope:{" "}
+              <code>connections:write</code>).
+            </p>
+          </div>
+        </div>
+
+        {/* Permission Controls Section */}
+        <div className="border-border-subtle space-y-3 border-t pt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <ShieldCheck className="text-custom-primary-500 h-5 w-5" />
+              <div>
+                <h4 className="text-13 font-medium text-primary">Phân quyền thực thi lệnh (/agent)</h4>
+                <p className="text-12 text-tertiary">
+                  Giới hạn chỉ những người có Slack User ID hoặc @username được phép sử dụng AI Agent.
+                </p>
+              </div>
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 text-13 font-medium text-secondary">
+              <input
+                type="checkbox"
+                checked={restrictCommands}
+                onChange={(e) => setRestrictCommands(e.target.checked)}
+                className="border-gray-300 text-custom-primary-600 focus:ring-custom-primary-500 h-4 w-4 cursor-pointer rounded"
+              />
+              <span>Bật giới hạn quyền</span>
+            </label>
+          </div>
+
+          {restrictCommands && (
+            <div className="flex flex-col gap-1.5 pt-2">
+              <label htmlFor="slack-allowed-users" className="text-13 font-medium text-tertiary">
+                Danh sách Slack User IDs / Usernames được phép
+              </label>
+              <Input
+                id="slack-allowed-users"
+                name="slack-allowed-users"
+                type="text"
+                value={allowedUsers}
+                onChange={(e) => setAllowedUsers(e.target.value)}
+                placeholder="U0123456789, @nam, @admin"
+                className="w-full"
+              />
+              <p className="text-11 text-tertiary">
+                💡 Người dùng có thể gõ lệnh <code className="font-mono font-semibold text-primary">/agent myid</code>{" "}
+                trên Slack để lấy nhanh User ID của họ. Điền các ID/Username phân cách bằng dấu phẩy.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Examples */}
+        <div className="border-border-subtle bg-bg-surface-1 space-y-1 rounded border p-3 text-12">
+          <span className="block text-13 font-semibold text-primary">💬 Ví dụ sử dụng lệnh /agent:</span>
+          <p className="text-secondary">
+            • <code className="font-mono text-primary">/agent myid</code> — Xem Slack User ID để gửi cho Quản trị viên
+            phân quyền.
+          </p>
+          <p className="text-secondary">
+            • <code className="font-mono text-primary">/agent Báo cáo tiến độ Civix</code> — AI tự động phân tích & xuất
+            % progress bar.
+          </p>
+          <p className="text-secondary">
+            • <code className="font-mono text-primary">/agent Danh sách task của Nam</code> — Tra cứu công việc đang gán
+            cho Nam.
+          </p>
+          <p className="text-secondary">
+            • <code className="font-mono text-primary">/agent Có những task nào quá hạn không?</code> — Tự động lọc các
+            task trễ hạn.
+          </p>
+          <p className="text-secondary">
+            • <code className="font-mono text-primary">/agent Tạo task fix bug API gán cho @Nam hạn thứ 6</code> — AI tự
+            tạo task.
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="border-border-subtle flex items-center justify-between border-t pt-4">
           <Button
             type="button"
             variant="secondary"
@@ -252,69 +398,10 @@ export function SlackIntegrationForm({ workspaceSlug, projectId, initialData, on
           </Button>
 
           <Button type="submit" variant="primary" loading={isSaving}>
-            Save Slack Configuration
+            {isSaving ? "Saving..." : "Save Slack Configuration"}
           </Button>
         </div>
       </form>
-
-      <div className="pt-4 border-t border-border-subtle space-y-4">
-        <div className="flex items-center space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
-            🤖
-          </div>
-          <div>
-            <h4 className="text-14 font-semibold text-primary">Slack AI Agent — Socket Mode</h4>
-            <p className="text-12 text-tertiary">
-              Cấu hình Bot Token & App Token để kích hoạt lệnh <code>/agent</code> trên Slack.
-              Không cần ngrok hay domain public.
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="slack-bot-token" className="text-13 font-medium text-tertiary block mb-1">
-            Bot User OAuth Token (xoxb-...)
-          </label>
-          <Input
-            id="slack-bot-token"
-            name="slack-bot-token"
-            type="password"
-            value={botToken}
-            onChange={(e) => setBotToken(e.target.value)}
-            placeholder="xoxb-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx"
-            className="w-full"
-          />
-          <p className="mt-1 text-12 text-tertiary">
-            Lấy từ trang Slack API → <strong>OAuth & Permissions</strong> → Bot User OAuth Token.
-          </p>
-        </div>
-
-        <div>
-          <label htmlFor="slack-app-token" className="text-13 font-medium text-tertiary block mb-1">
-            App-Level Token (xapp-...)
-          </label>
-          <Input
-            id="slack-app-token"
-            name="slack-app-token"
-            type="password"
-            value={appToken}
-            onChange={(e) => setAppToken(e.target.value)}
-            placeholder="xapp-x-xxxxxxxxxxxxxxx-xxxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx"
-            className="w-full"
-          />
-          <p className="mt-1 text-12 text-tertiary">
-            Lấy từ trang Slack API → <strong>Basic Information</strong> → App-Level Tokens → Generate Token (scope: <code>connections:write</code>).
-          </p>
-        </div>
-
-        <div className="rounded border border-border-subtle p-3 text-12 space-y-1 bg-bg-surface-1">
-          <span className="font-semibold text-primary block text-13">💬 Ví dụ sử dụng lệnh /agent:</span>
-          <p className="text-secondary">• <code className="text-primary font-mono">/agent Báo cáo tiến độ Civix</code> — AI tự động phân tích & xuất % progress bar.</p>
-          <p className="text-secondary">• <code className="text-primary font-mono">/agent Danh sách task của Nam</code> — Tra cứu công việc đang gán cho Nam.</p>
-          <p className="text-secondary">• <code className="text-primary font-mono">/agent Có những task nào quá hạn không?</code> — Tự động lọc các task trễ hạn.</p>
-          <p className="text-secondary">• <code className="text-primary font-mono">/agent Tạo task fix bug API gán cho @Nam hạn thứ 6</code> — AI tự tạo task.</p>
-        </div>
-      </div>
     </div>
   );
 }

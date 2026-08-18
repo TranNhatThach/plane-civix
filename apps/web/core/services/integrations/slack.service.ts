@@ -18,6 +18,10 @@ export interface ISlackAutomationData {
     issue_created?: boolean;
     issue_updated?: boolean;
     comment_created?: boolean;
+    restrict_commands?: boolean;
+    allowed_users?: string[];
+    allowed_creators?: string[];
+    [key: string]: any;
   };
 }
 

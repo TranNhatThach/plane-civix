@@ -30,10 +30,7 @@ export const AIStream: React.FC = () => {
   const isCollapsed = state === "collapsed";
 
   return (
-    <div
-      ref={containerRef}
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-[calc(100vw-24px)] pointer-events-auto"
-    >
+    <div ref={containerRef} className="pointer-events-auto fixed right-6 bottom-6 z-[100] max-w-[calc(100vw-24px)]">
       <motion.div
         layout
         transition={{
@@ -45,8 +42,8 @@ export const AIStream: React.FC = () => {
           "overflow-hidden backdrop-blur-2xl transition-shadow duration-300",
           "bg-neutral-950/95 border border-white/15 shadow-[0_20px_60px_rgba(0,0,0,0.7)]",
           isCollapsed
-            ? "w-[200px] h-[48px] rounded-full hover:border-white/30"
-            : "w-[460px] max-w-[calc(100vw-24px)] h-auto rounded-3xl"
+            ? "h-[48px] w-[200px] rounded-full hover:border-white/30"
+            : "h-auto w-[460px] max-w-[calc(100vw-48px)] rounded-3xl"
         )}
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -57,7 +54,7 @@ export const AIStream: React.FC = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="w-full h-full"
+              className="h-full w-full"
             >
               <AIStreamButton state={state} onClick={expand} />
             </motion.div>
@@ -68,7 +65,7 @@ export const AIStream: React.FC = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.2 }}
-              className="w-full h-full"
+              className="h-full w-full"
             >
               <AIStreamPanel
                 state={state}

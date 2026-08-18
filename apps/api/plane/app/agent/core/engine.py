@@ -67,10 +67,13 @@ class PlaneAgentEngine:
             fast_path_tool = "tool_get_workspace_summary"
         elif any(kw in prompt_lower for kw in ["báo cáo tiến độ", "xem tiến độ", "tiến độ dự án"]):
             fast_path_tool = "tool_get_progress"
-        elif any(kw in prompt_lower for kw in ["task của tôi", "công việc của tôi", "việc của tôi"]):
+        elif any(kw in prompt_lower for kw in ["task của tôi", "công việc của tôi", "việc của tôi", "tasks của tôi"]):
             fast_path_tool = "tool_query_tasks"
             if self.user:
+                fast_path_args["assignee_id"] = str(self.user.id)
                 fast_path_args["assignee_name"] = self.user.email or self.user.display_name or self.user.first_name
+            elif self.context and self.context.plane_user_id:
+                fast_path_args["assignee_id"] = str(self.context.plane_user_id)
         elif any(kw in prompt_lower for kw in ["quá hạn", "trễ hạn"]) and not any(kw in prompt_lower for kw in ["phân bổ", "điều chuyển", "rebalance"]):
             fast_path_tool = "tool_query_tasks"
             fast_path_args["is_overdue"] = True

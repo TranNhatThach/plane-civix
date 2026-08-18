@@ -1,10 +1,41 @@
+import os
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 
-def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") -> Dict[str, Any]:
+def get_app_url() -> str:
+    """Gets the public frontend web application URL."""
+    url = getattr(settings, "WEB_URL", None) or os.environ.get("WEB_URL") or "http://localhost:3000"
+    return url.rstrip("/")
+
+
+def build_plane_url(
+    app_url: str = "",
+    workspace_slug: str = "",
+    project_id: str = "",
+    issue_id: str = "",
+) -> str:
+    """Builds a contextual URL to Plane web application."""
+    base = (app_url or get_app_url()).rstrip("/")
+    if workspace_slug and project_id and issue_id:
+        return f"{base}/{workspace_slug}/projects/{project_id}/issues/{issue_id}"
+    elif workspace_slug and project_id:
+        return f"{base}/{workspace_slug}/projects/{project_id}/issues"
+    elif workspace_slug:
+        return f"{base}/{workspace_slug}"
+    return base
+
+
+def render_slack_block_kit(
+    agent_result: Dict[str, Any],
+    user_name: str = "",
+    app_url: str = "",
+    workspace_slug: str = "",
+    project_id: str = "",
+) -> Dict[str, Any]:
     """
     Adapts standardized JSON results from Plane Core Agent Engine
     into rich, interactive, high-aesthetic Slack Block Kit Cards.
@@ -13,6 +44,12 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
     text = agent_result.get("text", "")
     data = agent_result.get("data", {})
     user_str = f"@{user_name}" if user_name else "bạn"
+
+    # Contextual URL targets
+    eff_app_url = app_url or get_app_url()
+    eff_ws_slug = workspace_slug or data.get("workspace_slug", "")
+    eff_proj_id = project_id or data.get("project_id", "")
+    eff_task_id = data.get("task_id", "")
 
     # Default fallback Slack Block Card
     blocks = [
@@ -89,8 +126,13 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
         filled = int(pct / 10)
         bar = "▓" * filled + "░" * (10 - filled)
         proj_name = data.get("project_name", "Dự án")
-
         status_emoji = "🟢" if pct >= 70 else ("🟡" if pct >= 30 else "🔴")
+
+        progress_target_url = build_plane_url(
+            app_url=eff_app_url,
+            workspace_slug=eff_ws_slug,
+            project_id=eff_proj_id,
+        )
 
         blocks = [
             {
@@ -124,7 +166,7 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
                     {
                         "type": "button",
                         "text": {"type": "plain_text", "text": "🌐 Mở trên Plane Web", "emoji": True},
-                        "url": "http://localhost/",
+                        "url": progress_target_url,
                         "style": "primary",
                     },
                     {
@@ -175,6 +217,11 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
     # Render Tasks List Card
     elif action == "tool_query_tasks" and data:
         tasks = data.get("tasks", [])
+        tasks_target_url = build_plane_url(
+            app_url=eff_app_url,
+            workspace_slug=eff_ws_slug,
+            project_id=eff_proj_id,
+        )
 
         if not tasks:
             msg_text = text if text else "🎉 *Hiện tại không có công việc nào thỏa mãn điều kiện tìm kiếm!*"
@@ -224,7 +271,7 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
                         {
                             "type": "button",
                             "text": {"type": "plain_text", "text": "➕ Tạo Task Mới", "emoji": True},
-                            "url": "http://localhost/",
+                            "url": tasks_target_url,
                             "style": "primary",
                         },
                         {
@@ -287,6 +334,13 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
         sub_lines = [f"• ▫️ *[{s['key']}] {s['title']}*" for s in subtasks]
         sub_str = "\n".join(sub_lines) if sub_lines else "Không có sub-task"
 
+        task_target_url = build_plane_url(
+            app_url=eff_app_url,
+            workspace_slug=eff_ws_slug,
+            project_id=eff_proj_id,
+            issue_id=eff_task_id,
+        )
+
         blocks = [
             {
                 "type": "header",
@@ -313,7 +367,7 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
                     {
                         "type": "button",
                         "text": {"type": "plain_text", "text": "🔗 Mở Task Trên Web", "emoji": True},
-                        "url": "http://localhost/",
+                        "url": task_target_url,
                         "style": "primary",
                     }
                 ],
@@ -329,7 +383,7 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
     if agent_result.get("requires_confirmation"):
         pending = agent_result.get("pending_action", {})
         action_type = pending.get("type", "confirm")
-        project_id = pending.get("project_id", "")
+        target_proj_id = pending.get("project_id", "") or eff_proj_id
 
         blocks.append({"type": "divider"})
         blocks.append({
@@ -339,14 +393,14 @@ def render_slack_block_kit(agent_result: Dict[str, Any], user_name: str = "") ->
                     "type": "button",
                     "text": {"type": "plain_text", "text": "✅ Xác nhận thực hiện", "emoji": True},
                     "style": "primary",
-                    "value": f"{action_type}:{project_id}",
+                    "value": f"{action_type}:{target_proj_id}",
                     "action_id": "agent_confirm_action",
                 },
                 {
                     "type": "button",
                     "text": {"type": "plain_text", "text": "❌ Hủy bỏ", "emoji": True},
                     "style": "danger",
-                    "value": f"{action_type}:{project_id}",
+                    "value": f"{action_type}:{target_proj_id}",
                     "action_id": "agent_cancel_action",
                 },
             ],

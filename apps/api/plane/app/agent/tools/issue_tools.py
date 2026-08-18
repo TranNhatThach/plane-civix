@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 @scope_guard(requires_project=False)
 def tool_query_tasks(
     project_id: Optional[str] = None,
+    assignee_id: Optional[str] = None,
     assignee_name: Optional[str] = None,
     status_group: Optional[str] = None,
     is_overdue: bool = False,
@@ -48,8 +49,9 @@ def tool_query_tasks(
         if _context and getattr(_context, "accessible_project_ids", None):
             queryset = queryset.filter(project_id__in=_context.accessible_project_ids)
 
-
-    if assignee_name:
+    if assignee_id:
+        queryset = queryset.filter(assignees__id=assignee_id)
+    elif assignee_name:
         clean_name = assignee_name.lstrip("@").strip()
         assignee_query = (
             Q(assignees__first_name__icontains=clean_name)
