@@ -23,6 +23,7 @@ import { IntegrationService } from "@/services/integrations";
 
 import { TelegramIntegrationForm } from "@/components/integration/telegram/telegram-form";
 import { SlackIntegrationForm } from "@/components/integration/slack/slack-form";
+import { TrelloImportForm } from "@/components/integration/trello/trello-import-form";
 
 import type { Route } from "./+types/page";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
@@ -62,7 +63,8 @@ function WorkspaceIntegrationsPage({ params }: Route.ComponentProps) {
       <section className="w-full space-y-6 overflow-y-auto">
         <IntegrationAndImportExportBanner bannerName="Integrations" />
         {workspaceSlug && (
-          <div className="px-6 space-y-6">
+          <div className="space-y-6 px-6">
+            <TrelloImportForm workspaceSlug={workspaceSlug} />
             <SlackIntegrationForm workspaceSlug={workspaceSlug} projectId="global" />
             <TelegramIntegrationForm workspaceSlug={workspaceSlug} projectId="global" />
           </div>
@@ -71,9 +73,7 @@ function WorkspaceIntegrationsPage({ params }: Route.ComponentProps) {
           {appIntegrations ? (
             appIntegrations
               .filter((integration) => integration.provider !== "slack")
-              .map((integration) => (
-                <SingleIntegrationCard key={integration.id} integration={integration} />
-              ))
+              .map((integration) => <SingleIntegrationCard key={integration.id} integration={integration} />)
           ) : (
             <IntegrationsSettingsLoader />
           )}

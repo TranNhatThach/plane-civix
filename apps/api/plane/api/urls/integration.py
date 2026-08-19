@@ -13,6 +13,7 @@ from plane.api.views.integration.slack import (
     SlackTestWebhookEndpoint,
     SlackCommandsEndpoint,
 )
+from plane.api.views.integration.trello import TrelloImportEndpoint
 
 urlpatterns = [
     path(
@@ -54,6 +55,11 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<str:project_id>/slack-commands/",
         SlackCommandsEndpoint.as_view(),
         name="slack-commands",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<str:project_id>/trello/import/",
+        TrelloImportEndpoint.as_view(),
+        name="trello-import",
     ),
 ]
 
