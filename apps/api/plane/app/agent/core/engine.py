@@ -1,6 +1,8 @@
+import os
 import logging
 import inspect
 from typing import Dict, Any, Optional
+from plane.license.utils.instance_value import get_configuration_value
 from plane.db.models import Project, ProjectMember
 from plane.app.agent.registry import ToolRegistry
 from plane.app.agent.core.llm_client import SystemLLMClient
@@ -57,36 +59,43 @@ class PlaneAgentEngine:
         Main entrypoint to process user prompt and execute tools via system configured LLM.
         Applies Response Generation Policy: Direct Deterministic Fast Path vs Analytical Synthesis Path.
         """
+        (fast_path_cfg,) = get_configuration_value(
+            [
+                {"key": "AGENT_FAST_PATH_ENABLED", "default": os.environ.get("AGENT_FAST_PATH_ENABLED", "1")},
+            ]
+        )
+        is_fast_path_enabled = str(fast_path_cfg or "1").strip().lower() in ["1", "true", "yes"]
+
         prompt_lower = (user_prompt or "").lower()
         # 1. Fast-Path Pattern Matcher: Instant sub-50ms execution for standard read-only queries
         fast_path_tool = None
-
         fast_path_args = {}
 
-        if any(kw in prompt_lower for kw in ["báo cáo workspace", "tổng quan workspace", "tất cả task workspace", "tiến độ workspace"]):
-            fast_path_tool = "tool_get_workspace_summary"
-        elif any(kw in prompt_lower for kw in ["báo cáo tiến độ", "xem tiến độ", "tiến độ dự án"]):
-            fast_path_tool = "tool_get_progress"
-        elif any(kw in prompt_lower for kw in ["task của tôi", "công việc của tôi", "việc của tôi", "tasks của tôi"]):
-            fast_path_tool = "tool_query_tasks"
-            if self.user:
-                fast_path_args["assignee_id"] = str(self.user.id)
-                fast_path_args["assignee_name"] = self.user.email or self.user.display_name or self.user.first_name
-            elif self.context and self.context.plane_user_id:
-                fast_path_args["assignee_id"] = str(self.context.plane_user_id)
-        elif any(kw in prompt_lower for kw in ["quá hạn", "trễ hạn"]) and not any(kw in prompt_lower for kw in ["phân bổ", "điều chuyển", "rebalance"]):
-            fast_path_tool = "tool_query_tasks"
-            fast_path_args["is_overdue"] = True
-
-        elif any(kw in prompt_lower for kw in ["danh sách task", "xem task", "danh sách công việc"]):
-            has_specific_filters = any(word in prompt_lower for word in ["của ", "trạng thái", "in progress", "done", "completed", "lọc", "ưu tiên"])
-            if not has_specific_filters:
+        if is_fast_path_enabled:
+            if any(kw in prompt_lower for kw in ["báo cáo workspace", "tổng quan workspace", "tất cả task workspace", "tiến độ workspace"]):
+                fast_path_tool = "tool_get_workspace_summary"
+            elif any(kw in prompt_lower for kw in ["báo cáo tiến độ", "xem tiến độ", "tiến độ dự án"]):
+                fast_path_tool = "tool_get_progress"
+            elif any(kw in prompt_lower for kw in ["task của tôi", "công việc của tôi", "việc của tôi", "tasks của tôi"]):
                 fast_path_tool = "tool_query_tasks"
+                if self.user:
+                    fast_path_args["assignee_id"] = str(self.user.id)
+                    fast_path_args["assignee_name"] = self.user.email or self.user.display_name or self.user.first_name
+                elif self.context and self.context.plane_user_id:
+                    fast_path_args["assignee_id"] = str(self.context.plane_user_id)
+            elif any(kw in prompt_lower for kw in ["quá hạn", "trễ hạn"]) and not any(kw in prompt_lower for kw in ["phân bổ", "điều chuyển", "rebalance"]):
+                fast_path_tool = "tool_query_tasks"
+                fast_path_args["is_overdue"] = True
 
-        elif any(kw in prompt_lower for kw in ["thành viên", "khối lượng công việc", "ai làm gì", "phân bổ công việc"]):
-            fast_path_tool = "tool_get_members_workload"
-        elif any(kw in prompt_lower for kw in ["danh sách dự án", "xem các dự án", "tất cả dự án"]):
-            fast_path_tool = "tool_list_projects"
+            elif any(kw in prompt_lower for kw in ["danh sách task", "xem task", "danh sách công việc"]):
+                has_specific_filters = any(word in prompt_lower for word in ["của ", "trạng thái", "in progress", "done", "completed", "lọc", "ưu tiên"])
+                if not has_specific_filters:
+                    fast_path_tool = "tool_query_tasks"
+
+            elif any(kw in prompt_lower for kw in ["thành viên", "khối lượng công việc", "ai làm gì", "phân bổ công việc"]):
+                fast_path_tool = "tool_get_members_workload"
+            elif any(kw in prompt_lower for kw in ["danh sách dự án", "xem các dự án", "tất cả dự án"]):
+                fast_path_tool = "tool_list_projects"
 
         if fast_path_tool:
             registered_tool = ToolRegistry.get_tool(fast_path_tool)

@@ -238,6 +238,36 @@ llm_config_variables = [
         "category": "AI",
         "is_encrypted": False,
     },
+    {
+        "key": "AGENT_SYSTEM_PROMPT",
+        "value": os.environ.get("AGENT_SYSTEM_PROMPT", None),
+        "category": "AI",
+        "is_encrypted": False,
+    },
+    {
+        "key": "AGENT_TEMPERATURE",
+        "value": os.environ.get("AGENT_TEMPERATURE", "0.2"),
+        "category": "AI",
+        "is_encrypted": False,
+    },
+    {
+        "key": "AGENT_FAST_PATH_ENABLED",
+        "value": os.environ.get("AGENT_FAST_PATH_ENABLED", "1"),
+        "category": "AI",
+        "is_encrypted": False,
+    },
+    {
+        "key": "AGENT_HITL_ENABLED",
+        "value": os.environ.get("AGENT_HITL_ENABLED", "1"),
+        "category": "AI",
+        "is_encrypted": False,
+    },
+    {
+        "key": "AGENT_THINKING_ENABLED",
+        "value": os.environ.get("AGENT_THINKING_ENABLED", "1"),
+        "category": "AI",
+        "is_encrypted": False,
+    },
     # Deprecated, use LLM_MODEL
     {
         "key": "GPT_ENGINE",

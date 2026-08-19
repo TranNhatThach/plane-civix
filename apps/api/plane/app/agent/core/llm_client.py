@@ -1,7 +1,9 @@
+import os
 import logging
 import json
 from typing import Optional, Dict, Any, Tuple
 from openai import OpenAI
+from plane.license.utils.instance_value import get_configuration_value
 from plane.app.views.external.base import get_llm_config, sanitize_base_url
 from plane.app.agent.registry import ToolRegistry
 from plane.app.agent.core.prompts import PLANE_AGENT_SYSTEM_PROMPT
@@ -17,6 +19,22 @@ class SystemLLMClient:
 
     def __init__(self):
         self.api_key, self.model, self.provider, self.base_url = get_llm_config()
+        self.system_prompt, self.temperature_val, self.thinking_val = get_configuration_value(
+            [
+                {
+                    "key": "AGENT_SYSTEM_PROMPT",
+                    "default": os.environ.get("AGENT_SYSTEM_PROMPT", None),
+                },
+                {
+                    "key": "AGENT_TEMPERATURE",
+                    "default": os.environ.get("AGENT_TEMPERATURE", "0.2"),
+                },
+                {
+                    "key": "AGENT_THINKING_ENABLED",
+                    "default": os.environ.get("AGENT_THINKING_ENABLED", "1"),
+                },
+            ]
+        )
 
     def generate_completion(
         self,
@@ -52,8 +70,19 @@ class SystemLLMClient:
 
         client = OpenAI(**client_kwargs)
 
+        try:
+            temperature = float(self.temperature_val)
+        except (TypeError, ValueError):
+            temperature = 0.2
+
+        eff_system_prompt = (
+            self.system_prompt.strip()
+            if (self.system_prompt and self.system_prompt.strip())
+            else PLANE_AGENT_SYSTEM_PROMPT
+        )
+
         messages = [
-            {"role": "system", "content": PLANE_AGENT_SYSTEM_PROMPT},
+            {"role": "system", "content": eff_system_prompt},
             {"role": "user", "content": context_prompt},
         ]
 
@@ -64,14 +93,14 @@ class SystemLLMClient:
                 model=eff_model,
                 messages=messages,
                 tools=tools_schema,
-                temperature=0.2,
+                temperature=temperature,
             )
         except Exception as call_err:
             logger.warning(f"LLM tool calling failed, falling back to plain chat: {call_err}")
             response = client.chat.completions.create(
                 model=eff_model,
                 messages=messages,
-                temperature=0.2,
+                temperature=temperature,
             )
 
         choice = response.choices[0]

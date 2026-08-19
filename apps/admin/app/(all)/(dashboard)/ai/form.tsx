@@ -5,10 +5,10 @@
  */
 
 import { useForm, Controller } from "react-hook-form";
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, Bot } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { CustomSelect } from "@plane/ui";
+import { CustomSelect, ToggleSwitch } from "@plane/ui";
 import type { IFormattedInstanceConfiguration, TInstanceAIConfigurationKeys } from "@plane/types";
 import { ControllerInput } from "@/components/common/controller-input";
 import { useInstance } from "@/hooks/store";
@@ -115,6 +115,11 @@ export function InstanceAIForm({ config }: { config: Partial<IFormattedInstanceC
       LLM_MODEL: config["LLM_MODEL"] || "gpt-4o-mini",
       LLM_BASE_URL: config["LLM_BASE_URL"] || "",
       LLM_API_KEY: config["LLM_API_KEY"] || "",
+      AGENT_SYSTEM_PROMPT: config["AGENT_SYSTEM_PROMPT"] || "",
+      AGENT_TEMPERATURE: config["AGENT_TEMPERATURE"] || "0.2",
+      AGENT_FAST_PATH_ENABLED: config["AGENT_FAST_PATH_ENABLED"] ?? "1",
+      AGENT_HITL_ENABLED: config["AGENT_HITL_ENABLED"] ?? "1",
+      AGENT_THINKING_ENABLED: config["AGENT_THINKING_ENABLED"] ?? "1",
     },
   });
 
@@ -129,12 +134,15 @@ export function InstanceAIForm({ config }: { config: Partial<IFormattedInstanceC
 
   const onSubmit = async (data: AIFormValues) => {
     await updateInstanceConfigurations(data)
-      .then(() => setToast({ type: TOAST_TYPE.SUCCESS, title: "Success", message: "AI Settings updated successfully" }))
+      .then(() =>
+        setToast({ type: TOAST_TYPE.SUCCESS, title: "Success", message: "AI & Agent Settings updated successfully" })
+      )
       .catch((err) => console.error(err));
   };
 
   return (
     <div className="space-y-8">
+      {/* Section 1: Provider Settings */}
       <div className="space-y-6">
         <div>
           <div className="pb-1 text-18 font-medium text-primary">LLM Provider Settings</div>
@@ -217,6 +225,116 @@ export function InstanceAIForm({ config }: { config: Partial<IFormattedInstanceC
         </div>
       </div>
 
+      {/* Section 2: Agent / Harness Controls */}
+      <div className="space-y-6 border-t border-subtle pt-6">
+        <div>
+          <div className="flex items-center gap-2 pb-1 text-18 font-medium text-primary">
+            <Bot className="size-5 text-accent-secondary" />
+            <span>AI Agent & Harness Controls</span>
+          </div>
+          <div className="text-13 text-tertiary">
+            Control autonomous agent execution policy, system persona instructions, and safety parameters.
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-x-12 gap-y-6 lg:grid-cols-2">
+          {/* System Prompt Override */}
+          <div className="flex flex-col gap-2 lg:col-span-2">
+            <label htmlFor="agent_system_prompt" className="text-13 font-medium text-tertiary">
+              Custom Agent System Prompt (Optional)
+            </label>
+            <Controller
+              control={control}
+              name="AGENT_SYSTEM_PROMPT"
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  id="agent_system_prompt"
+                  rows={4}
+                  placeholder="Enter custom persona or system rules for the agent (Leave blank to use default Plane Work Management Agent system prompt)"
+                  className="text-xs focus:border-accent focus:ring-accent font-mono w-full rounded-md border border-subtle bg-transparent p-3 text-primary placeholder:text-tertiary focus:ring-1 focus:outline-none"
+                />
+              )}
+            />
+            <span className="text-11 text-tertiary">
+              Overrides default instructions, response guidelines, and scope enforcement rules.
+            </span>
+          </div>
+
+          {/* Temperature */}
+          <ControllerInput
+            control={control}
+            type="text"
+            name="AGENT_TEMPERATURE"
+            label="Sampling Temperature"
+            placeholder="0.2"
+            description="Value between 0.0 (strict/deterministic) and 1.0 (creative). Default: 0.2"
+            error={Boolean(errors.AGENT_TEMPERATURE)}
+            required={false}
+          />
+
+          {/* Toggles */}
+          <div className="flex flex-col justify-center gap-3">
+            {/* Fast Path Acceleration */}
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-subtle bg-layer-2 p-3">
+              <div>
+                <div className="text-13 font-medium text-primary">Fast-Path Intent Acceleration</div>
+                <div className="text-11 text-tertiary">Sub-50ms rule-based direct matching before calling LLM</div>
+              </div>
+              <Controller
+                control={control}
+                name="AGENT_FAST_PATH_ENABLED"
+                render={({ field: { value, onChange } }) => (
+                  <ToggleSwitch
+                    value={value === "1" || value === "true"}
+                    onChange={(checked) => onChange(checked ? "1" : "0")}
+                    size="sm"
+                  />
+                )}
+              />
+            </div>
+
+            {/* HITL Safety */}
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-subtle bg-layer-2 p-3">
+              <div>
+                <div className="text-13 font-medium text-primary">Human-In-The-Loop (HITL)</div>
+                <div className="text-11 text-tertiary">Require user confirmation for destructive data mutations</div>
+              </div>
+              <Controller
+                control={control}
+                name="AGENT_HITL_ENABLED"
+                render={({ field: { value, onChange } }) => (
+                  <ToggleSwitch
+                    value={value === "1" || value === "true"}
+                    onChange={(checked) => onChange(checked ? "1" : "0")}
+                    size="sm"
+                  />
+                )}
+              />
+            </div>
+
+            {/* Reasoning / Thinking Trace */}
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-subtle bg-layer-2 p-3">
+              <div>
+                <div className="text-13 font-medium text-primary">Reasoning / Thinking Format</div>
+                <div className="text-11 text-tertiary">Enable DeepSeek R1 & Qwen reasoning trace compatibility</div>
+              </div>
+              <Controller
+                control={control}
+                name="AGENT_THINKING_ENABLED"
+                render={({ field: { value, onChange } }) => (
+                  <ToggleSwitch
+                    value={value === "1" || value === "true"}
+                    onChange={(checked) => onChange(checked ? "1" : "0")}
+                    size="sm"
+                  />
+                )}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col items-start gap-4 border-t border-subtle pt-4">
         <Button variant="primary" size="lg" onClick={handleSubmit(onSubmit)} loading={isSubmitting}>
           {isSubmitting ? "Saving..." : "Save changes"}
@@ -226,7 +344,7 @@ export function InstanceAIForm({ config }: { config: Partial<IFormattedInstanceC
           <span>
             Support for <strong>FPT AI Factory</strong>, <strong>DeepSeek</strong>, <strong>Google Gemini</strong>,{" "}
             <strong>OpenAI</strong>, <strong>Anthropic</strong>, <strong>Groq</strong>, <strong>OpenRouter</strong>, and{" "}
-            <strong>Custom Base URLs</strong> enabled.
+            <strong>CiviX Custom Gateway</strong> enabled.
           </span>
         </div>
       </div>
