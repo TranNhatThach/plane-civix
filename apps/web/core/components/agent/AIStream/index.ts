@@ -7,4 +7,5 @@
 export * from "./types";
 export * from "./useAIStream";
 export * from "./AIStream";
+export * from "./AIMarkdownRenderer";
 export { AIStream as default } from "./AIStream";

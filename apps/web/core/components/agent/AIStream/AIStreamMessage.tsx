@@ -8,7 +8,7 @@ import React from "react";
 import { Sparkles, User, Check, X } from "lucide-react";
 import { cn } from "@plane/utils";
 import type { AIStreamMessageItem } from "./types";
-
+import { AIMarkdownRenderer } from "./AIMarkdownRenderer";
 
 interface AIStreamMessageProps {
   message: AIStreamMessageItem;
@@ -21,17 +21,15 @@ export const AIStreamMessage: React.FC<AIStreamMessageProps> = ({ message, onCon
   return (
     <div
       className={cn(
-        "flex gap-3 max-w-[90%] transition-all duration-300",
+        "flex max-w-[90%] gap-3 transition-all duration-300",
         isUser ? "ml-auto flex-row-reverse" : "mr-auto"
       )}
     >
       {/* Avatar Icon */}
       <div
         className={cn(
-          "size-7 rounded-full flex items-center justify-center shrink-0 text-xs shadow-md border",
-          isUser
-            ? "bg-indigo-600 border-indigo-400 text-white"
-            : "bg-neutral-900 border-neutral-700/60 text-violet-400"
+          "text-xs shadow-md flex size-7 shrink-0 items-center justify-center rounded-full border",
+          isUser ? "bg-indigo-600 border-indigo-400 text-white" : "bg-neutral-900 border-neutral-700/60 text-violet-400"
         )}
       >
         {isUser ? <User className="size-3.5" /> : <Sparkles className="size-3.5" />}
@@ -40,28 +38,28 @@ export const AIStreamMessage: React.FC<AIStreamMessageProps> = ({ message, onCon
       {/* Bubble Content */}
       <div
         className={cn(
-          "flex flex-col rounded-2xl px-4 py-3 text-xs leading-relaxed font-sans shadow-md border backdrop-blur-md",
+          "text-xs font-sans shadow-md flex flex-col rounded-2xl border px-4 py-3 leading-relaxed backdrop-blur-md",
           isUser
-            ? "bg-indigo-600/90 border-indigo-500/40 text-white rounded-tr-xs"
-            : "bg-neutral-900/90 border-white/10 text-neutral-200 rounded-tl-xs"
+            ? "bg-indigo-600/90 border-indigo-500/40 rounded-tr-xs text-white"
+            : "bg-neutral-900/90 text-neutral-200 rounded-tl-xs border-white/10"
         )}
       >
-        <div className="whitespace-pre-wrap">{message.content}</div>
+        <AIMarkdownRenderer content={message.content} isUser={isUser} />
 
         {/* HITL Confirmation Actions if needed */}
         {message.metadata?.requires_confirmation && (
-          <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-2.5">
             <button
               type="button"
               onClick={() => onConfirmAction?.("Xác nhận thực hiện")}
-              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs flex items-center gap-1.5 shadow-sm transition"
+              className="bg-emerald-600 hover:bg-emerald-500 text-xs shadow-sm flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium text-white transition"
             >
               <Check className="size-3.5" /> Xác nhận
             </button>
             <button
               type="button"
               onClick={() => onConfirmAction?.("Hủy bỏ thao tác")}
-              className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-rose-600 text-neutral-300 hover:text-white font-medium text-xs flex items-center gap-1.5 shadow-sm transition"
+              className="bg-neutral-800 hover:bg-rose-600 text-neutral-300 text-xs shadow-sm flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition hover:text-white"
             >
               <X className="size-3.5" /> Hủy
             </button>

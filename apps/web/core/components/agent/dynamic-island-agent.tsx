@@ -9,6 +9,7 @@ import { useParams } from "next/navigation";
 import { cn } from "@plane/utils";
 import { useVoiceRecognition } from "@/helpers/use-voice-recognition";
 import { AudioWaveform } from "./audio-waveform";
+import { AIMarkdownRenderer } from "./AIStream/AIMarkdownRenderer";
 
 interface AgentMessageItem {
   id: string;
@@ -109,6 +110,7 @@ export const DynamicIslandAgent: React.FC = () => {
         let responseMeta: any = {};
 
         while (true) {
+          // eslint-disable-next-line no-await-in-loop
           const { value, done } = await reader.read();
           if (done) break;
 
@@ -126,13 +128,11 @@ export const DynamicIslandAgent: React.FC = () => {
                   accumulatedText += data.content;
                   setMessages((prev) =>
                     prev.map((msg) =>
-                      msg.id === assistantMsgId
-                        ? { ...msg, content: accumulatedText, metadata: responseMeta }
-                        : msg
+                      msg.id === assistantMsgId ? { ...msg, content: accumulatedText, metadata: responseMeta } : msg
                     )
                   );
                 }
-              } catch (e) {
+              } catch {
                 // fallback raw text parsing
               }
             }
@@ -144,9 +144,7 @@ export const DynamicIslandAgent: React.FC = () => {
             msg.id === assistantMsgId
               ? {
                   ...msg,
-                  content: `⚠️ Không thể kết nối với Plane AI Backend: ${
-                    err?.message || "Server error"
-                  }.`,
+                  content: `⚠️ Không thể kết nối với Plane AI Backend: ${err?.message || "Server error"}.`,
                 }
               : msg
           )
@@ -166,34 +164,30 @@ export const DynamicIslandAgent: React.FC = () => {
         onClick={() => setIsExpanded((prev) => !prev)}
         title="Plane AI Copilot"
         className={cn(
-          "relative flex size-8 items-center justify-center rounded-md transition-all duration-200 border cursor-pointer select-none",
+          "relative flex size-8 cursor-pointer items-center justify-center rounded-md border transition-all duration-200 select-none",
           isExpanded || isThinking || isListening
-            ? "bg-indigo-600/30 border-indigo-500/60 text-indigo-300 shadow-md ring-2 ring-indigo-500/30"
-            : "border-subtle-1 bg-layer-2 hover:bg-layer-1-hover text-placeholder hover:text-primary"
+            ? "bg-indigo-600/30 border-indigo-500/60 text-indigo-300 shadow-md ring-indigo-500/30 ring-2"
+            : "border-subtle-1 bg-layer-2 text-placeholder hover:bg-layer-1-hover hover:text-primary"
         )}
       >
         <span className="text-sm">✨</span>
-        {isListening && (
-          <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-pink-500 animate-ping" />
-        )}
-        {isThinking && (
-          <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-indigo-500 animate-pulse" />
-        )}
+        {isListening && <span className="bg-pink-500 absolute -top-1 -right-1 size-2.5 animate-ping rounded-full" />}
+        {isThinking && <span className="bg-indigo-500 absolute -top-1 -right-1 size-2.5 animate-pulse rounded-full" />}
       </button>
 
       {/* Expanded Floating Glass Panel Dropdown */}
       {isExpanded && (
-        <div className="absolute top-10 right-0 w-[480px] max-h-[560px] bg-neutral-900/95 backdrop-blur-2xl border border-neutral-700/70 shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 z-50">
+        <div className="bg-neutral-900/95 border-neutral-700/70 shadow-2xl animate-in fade-in slide-in-from-top-2 absolute top-10 right-0 z-50 flex max-h-[560px] w-[480px] flex-col overflow-hidden rounded-2xl border backdrop-blur-2xl duration-300">
           {/* Header Bar */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-950/60">
+          <div className="border-neutral-800 bg-neutral-950/60 flex items-center justify-between border-b px-4 py-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-white flex items-center gap-1.5">
+              <span className="text-sm flex items-center gap-1.5 font-bold text-white">
                 <span className="text-indigo-400">✨</span> Plane AI Copilot
               </span>
               {isListening && (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-950/80 border border-purple-500/40">
+                <div className="bg-purple-950/80 border-purple-500/40 flex items-center gap-1.5 rounded-full border px-2 py-0.5">
                   <AudioWaveform active={true} />
-                  <span className="text-[10px] text-purple-300 font-medium truncate max-w-[120px]">
+                  <span className="text-purple-300 max-w-[120px] truncate text-[10px] font-medium">
                     {transcript || "Đang nghe..."}
                   </span>
                 </div>
@@ -207,9 +201,9 @@ export const DynamicIslandAgent: React.FC = () => {
                 onClick={toggleListening}
                 title={isListening ? "Tắt Micro" : "Bật Micro"}
                 className={cn(
-                  "px-2.5 py-1 rounded-md text-[11px] font-medium transition flex items-center gap-1",
+                  "flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition",
                   isListening
-                    ? "bg-pink-600 text-white animate-bounce"
+                    ? "bg-pink-600 animate-bounce text-white"
                     : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white"
                 )}
               >
@@ -218,14 +212,14 @@ export const DynamicIslandAgent: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleSendMessage("Tổng hợp báo cáo Standup 24h qua")}
-                className="text-[11px] px-2 py-1 rounded-md bg-neutral-800 text-neutral-300 hover:bg-indigo-600 hover:text-white transition"
+                className="bg-neutral-800 text-neutral-300 hover:bg-indigo-600 rounded-md px-2 py-1 text-[11px] transition hover:text-white"
               >
                 📊 Standup
               </button>
               <button
                 type="button"
                 onClick={() => handleSendMessage("Đề xuất kế hoạch Sprint tiếp theo")}
-                className="text-[11px] px-2 py-1 rounded-md bg-neutral-800 text-neutral-300 hover:bg-purple-600 hover:text-white transition"
+                className="bg-neutral-800 text-neutral-300 hover:bg-purple-600 rounded-md px-2 py-1 text-[11px] transition hover:text-white"
               >
                 🚀 Sprint
               </button>
@@ -233,33 +227,33 @@ export const DynamicIslandAgent: React.FC = () => {
           </div>
 
           {/* Messages Body */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[220px] max-h-[360px] text-xs">
+          <div className="text-xs max-h-[360px] min-h-[220px] flex-1 space-y-3 overflow-y-auto p-4">
             {messages.map((msg) => (
               <div
                 key={msg.id}
                 className={cn(
-                  "flex flex-col max-w-[88%] rounded-xl p-3 shadow-md transition-all",
+                  "shadow-md flex max-w-[88%] flex-col rounded-xl p-3 transition-all",
                   msg.role === "user"
-                    ? "ml-auto bg-indigo-600 text-white rounded-br-none"
-                    : "mr-auto bg-neutral-800/90 border border-neutral-700/50 text-neutral-100 rounded-bl-none"
+                    ? "bg-indigo-600 ml-auto rounded-br-none text-white"
+                    : "bg-neutral-800/90 border-neutral-700/50 text-neutral-100 mr-auto rounded-bl-none border"
                 )}
               >
-                <div className="whitespace-pre-wrap leading-relaxed font-sans">{msg.content}</div>
+                <AIMarkdownRenderer content={msg.content} isUser={msg.role === "user"} />
 
                 {/* HITL Interactive Buttons if confirmation is required */}
                 {msg.metadata?.requires_confirmation && (
-                  <div className="mt-3 pt-2 border-t border-neutral-700/60 flex items-center gap-2">
+                  <div className="border-neutral-700/60 mt-3 flex items-center gap-2 border-t pt-2">
                     <button
                       type="button"
                       onClick={() => handleSendMessage("Xác nhận thực hiện điều chuyển ngay")}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs flex items-center gap-1 shadow-sm transition"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-xs shadow-sm flex items-center gap-1 rounded-lg px-3 py-1.5 font-medium text-white transition"
                     >
                       ✅ Xác nhận thực hiện
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSendMessage("Hủy bỏ thao tác")}
-                      className="px-3 py-1.5 rounded-lg bg-neutral-700 hover:bg-rose-600 text-white font-medium text-xs flex items-center gap-1 shadow-sm transition"
+                      className="bg-neutral-700 hover:bg-rose-600 text-xs shadow-sm flex items-center gap-1 rounded-lg px-3 py-1.5 font-medium text-white transition"
                     >
                       ❌ Hủy bỏ
                     </button>
@@ -271,20 +265,20 @@ export const DynamicIslandAgent: React.FC = () => {
           </div>
 
           {/* Input Footer */}
-          <div className="p-3 border-t border-neutral-800 bg-neutral-950/60 flex items-center gap-2">
+          <div className="border-neutral-800 bg-neutral-950/60 flex items-center gap-2 border-t p-3">
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
               placeholder="Nhập yêu cầu hoặc nói bằng giọng nói..."
-              className="flex-1 bg-neutral-800/80 border border-neutral-700/60 text-white placeholder-neutral-400 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+              className="bg-neutral-800/80 border-neutral-700/60 placeholder-neutral-400 text-xs focus:border-indigo-500 focus:ring-indigo-500 flex-1 rounded-xl border px-3.5 py-2.5 text-white transition outline-none focus:ring-1"
             />
             <button
               type="button"
               onClick={() => handleSendMessage()}
               disabled={isThinking || !inputText.trim()}
-              className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 text-white font-semibold text-xs rounded-xl transition shadow-md flex items-center gap-1"
+              className="from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-xs shadow-md flex items-center gap-1 rounded-xl bg-gradient-to-r px-4 py-2.5 font-semibold text-white transition disabled:opacity-50"
             >
               Gửi 🚀
             </button>
