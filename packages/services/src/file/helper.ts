@@ -103,8 +103,24 @@ const validateAndDetectFileType = async (file: File): Promise<string> => {
     console.warn("Error detecting file type from signature:", _error);
   }
 
-  // fallback for unknown files
-  return "";
+  // Fallback to browser-provided MIME type for text-based files (.md, .txt,
+  // .csv, .doc, etc.) whose binary signatures cannot be detected by file-type.
+  if (file.type) {
+    return file.type;
+  }
+
+  // Last resort: infer from extension for common text-based formats
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const extensionMimeMap: Record<string, string> = {
+    md: "text/markdown",
+    txt: "text/plain",
+    csv: "text/csv",
+    json: "application/json",
+    xml: "application/xml",
+    rtf: "application/rtf",
+    doc: "application/msword",
+  };
+  return extensionMimeMap[ext ?? ""] ?? "";
 };
 
 /**
