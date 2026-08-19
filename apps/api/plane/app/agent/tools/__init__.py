@@ -17,6 +17,9 @@ from plane.app.agent.tools.member_tools import (
 from plane.app.agent.tools.cycle_tools import (
     tool_manage_cycles,
 )
+from plane.app.agent.tools.changelog_tools import (
+    tool_get_changelog,
+)
 
 __all__ = [
     "tool_query_tasks",
@@ -30,4 +33,5 @@ __all__ = [
     "tool_get_members_workload",
     "tool_rebalance_workload",
     "tool_manage_cycles",
+    "tool_get_changelog",
 ]

@@ -43,6 +43,9 @@ export const coreRoutes: RouteConfigEntry[] = [
     route("workspace-invitations", "./(all)/workspace-invitations/page.tsx"),
   ]),
 
+  // Changelog & Product Updates
+  route("changelog", "./(all)/changelog/page.tsx"),
+
   // ========================================================================
   // ALL APP ROUTES
   // ========================================================================

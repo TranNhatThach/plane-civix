@@ -141,7 +141,15 @@ def create_app(bot_token):
             return
 
         # Check Permission Configured on Plane Web
-        automation = SlackAutomation.objects.filter(is_active=True).first()
+        # Find active automation that owns the bot tokens or active project integration
+        automation = (
+            SlackAutomation.objects.filter(
+                is_active=True,
+                bot_token__isnull=False,
+                app_token__isnull=False,
+            ).exclude(bot_token="").exclude(app_token="").select_related("project__workspace").first()
+            or SlackAutomation.objects.filter(is_active=True).select_related("project__workspace").first()
+        )
         is_allowed, deny_message = check_slack_command_permission(
             automation=automation,
             user_id=user_id,
@@ -169,8 +177,8 @@ def create_app(bot_token):
             user_info = bolt_app.client.users_info(user=user_id)
             if user_info and user_info.get("user"):
                 slack_email = user_info["user"].get("profile", {}).get("email", "")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Could not retrieve Slack email for {user_id}: {e}")
 
         from plane.app.agent.core.context_resolver import ContextResolver
 
@@ -180,16 +188,37 @@ def create_app(bot_token):
             fb_workspace_id = str(automation.project.workspace_id)
             fb_project_id = str(automation.project.id)
 
-        context = ContextResolver.resolve_context(
-            slack_user_id=user_id,
-            channel_id=channel_id,
-            user_text=text,
-            slack_team_id=team_id,
-            slack_email=slack_email,
-            fallback_workspace_id=fb_workspace_id,
-            fallback_project_id=fb_project_id,
-        )
-        user = ContextResolver.resolve_identity(user_id, team_id, slack_email)
+        try:
+            context = ContextResolver.resolve_context(
+                slack_user_id=user_id,
+                channel_id=channel_id,
+                user_text=text,
+                slack_team_id=team_id,
+                slack_email=slack_email,
+                fallback_workspace_id=fb_workspace_id,
+                fallback_project_id=fb_project_id,
+            )
+            user = ContextResolver.resolve_identity(user_id, team_id, slack_email)
+        except ValueError as val_err:
+            respond(
+                response_type="ephemeral",
+                blocks=[
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": (
+                                f"⚠️ *Không thể truy cập hệ thống Plane:*\n\n"
+                                f"{str(val_err)}\n\n"
+                                f"• *Slack User ID:* `{user_id}`\n"
+                                f"• *Email phát hiện từ Slack:* `{slack_email or 'Không lấy được email (vui lòng cấp quyền users:read.email)'}`\n\n"
+                                f"💡 _Hãy đảm bảo tài khoản Plane của bạn có cùng email với Slack hoặc liên hệ Quản trị viên để được thêm vào Workspace công ty._"
+                            ),
+                        },
+                    }
+                ],
+            )
+            return
 
         project = None
         if context and context.project_id:
@@ -268,8 +297,14 @@ def create_app(bot_token):
         user_info = body.get("user", {})
         slack_username = user_info.get("username", "user")
 
-        automation = SlackAutomation.objects.filter(is_active=True).first()
-        project = automation.project if (automation and automation.project) else Project.objects.filter(deleted_at__isnull=True).first()
+        automation = (
+            SlackAutomation.objects.filter(
+                is_active=True,
+                bot_token__isnull=False,
+            ).exclude(bot_token="").select_related("project__workspace").first()
+            or SlackAutomation.objects.filter(is_active=True).select_related("project__workspace").first()
+        )
+        project = automation.project if (automation and automation.project) else None
 
         if project:
             agent_engine = PlaneAgentEngine(project=project)
@@ -283,7 +318,7 @@ def create_app(bot_token):
             )
             respond(**payload)
         else:
-            respond(text="❌ Không tìm thấy dự án hiện tại trong hệ thống Plane.")
+            respond(text="❌ Không tìm thấy dự án đã kết nối Slack trong hệ thống Plane.")
 
     @bolt_app.action("agent_view_progress_action")
     def handle_view_progress_action(ack, respond, body):
@@ -294,8 +329,14 @@ def create_app(bot_token):
         user_info = body.get("user", {})
         slack_username = user_info.get("username", "user")
 
-        automation = SlackAutomation.objects.filter(is_active=True).first()
-        project = automation.project if (automation and automation.project) else Project.objects.filter(deleted_at__isnull=True).first()
+        automation = (
+            SlackAutomation.objects.filter(
+                is_active=True,
+                bot_token__isnull=False,
+            ).exclude(bot_token="").select_related("project__workspace").first()
+            or SlackAutomation.objects.filter(is_active=True).select_related("project__workspace").first()
+        )
+        project = automation.project if (automation and automation.project) else None
 
         if project:
             agent_engine = PlaneAgentEngine(project=project)
@@ -309,7 +350,7 @@ def create_app(bot_token):
             )
             respond(**payload)
         else:
-            respond(text="❌ Không tìm thấy dự án hiện tại trong hệ thống Plane.")
+            respond(text="❌ Không tìm thấy dự án đã kết nối Slack trong hệ thống Plane.")
 
     return bolt_app
 

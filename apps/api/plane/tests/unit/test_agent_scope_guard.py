@@ -207,3 +207,48 @@ def test_tasks_cua_toi_exact_user_id_matching(db):
     assert "Task for User B" not in matched_keys
 
 
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_slack_workspace_resolution_prioritizes_slack_connected_company_workspace(db):
+    from plane.db.models.integration.slack import SlackAutomation
+
+    dev_user = User.objects.create(username="dev_thach", email="thach@example.com")
+    boss_user = User.objects.create(username="boss_user", email="boss@example.com")
+
+    # Developer's personal workspace (NOT connected to Slack)
+    dev_personal_ws = Workspace.objects.create(name="Dev Personal WS", slug="dev-personal", owner=dev_user)
+    dev_personal_proj = Project.objects.create(name="Dev Personal Project", identifier="DEV", workspace=dev_personal_ws)
+    ProjectMember.objects.create(project=dev_personal_proj, workspace=dev_personal_ws, member=dev_user, role=20)
+
+    # Company Workspace (Connected to Slack with active SlackAutomation)
+    company_ws = Workspace.objects.create(name="Civix Company WS", slug="civix-company", owner=dev_user)
+    company_proj = Project.objects.create(name="Civix Main Project", identifier="CIVIX", workspace=company_ws)
+    ProjectMember.objects.create(project=company_proj, workspace=company_ws, member=dev_user, role=20)
+    ProjectMember.objects.create(project=company_proj, workspace=company_ws, member=boss_user, role=20)
+
+    # Boss has a personal workspace as well
+    boss_personal_ws = Workspace.objects.create(name="Boss Personal WS", slug="boss-personal", owner=boss_user)
+
+    # SlackAutomation is active on Company Project ONLY
+    SlackAutomation.objects.create(
+        project=company_proj,
+        webhook_url="https://hooks.slack.com/services/test",
+        bot_token="xoxb-test-token",
+        app_token="xapp-test-token",
+        is_active=True
+    )
+
+    # When boss invokes Slack bot
+    ctx_boss = ContextResolver.resolve_context(
+        slack_user_id="U_BOSS_123",
+        slack_email="boss@example.com",
+        fallback_workspace_id=str(company_ws.id),
+        fallback_project_id=str(company_proj.id),
+    )
+
+    # Must resolve strictly to Company Workspace, NEVER Dev Personal WS or Boss Personal WS
+    assert ctx_boss.workspace_id == str(company_ws.id)
+    assert ctx_boss.workspace_slug == "civix-company"
+    assert ctx_boss.user_email == "boss@example.com"
+
+

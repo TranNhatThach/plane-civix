@@ -1,8 +1,13 @@
 import logging
 from typing import Optional, Dict, Any, List
 from django.db.models import Q
-from plane.db.models import User, Workspace, Project, ProjectMember
-from plane.db.models.integration.slack import SlackUserIntegration, AgentChannelMapping, AgentConversation
+from plane.db.models import User, Workspace, Project, ProjectMember, WorkspaceMember
+from plane.db.models.integration.slack import (
+    SlackUserIntegration,
+    AgentChannelMapping,
+    AgentConversation,
+    SlackAutomation,
+)
 from plane.app.agent.core.scope_guard import AgentContext
 
 logger = logging.getLogger(__name__)
@@ -12,6 +17,7 @@ class ContextResolver:
     """
     Resolves authoritative User Identity and Workspace/Project Context
     from incoming Slack Webhook / Socket Mode payloads and user natural language prompts.
+    Enforces strict Workspace boundary and Slack integration attachment.
     """
 
     @classmethod
@@ -20,9 +26,10 @@ class ContextResolver:
         Maps Slack User ID -> Plane User model with strict security boundary.
         Checks SlackUserIntegration mapping first, then exact Email match.
         Auto-links SlackUserIntegration if matching email is found.
+        Returns None if user cannot be matched (never blindly falls back to another user).
         """
         if not slack_user_id and not slack_email:
-            return User.objects.filter(is_active=True, is_superuser=True).first()
+            return None
 
         if slack_user_id:
             integration = SlackUserIntegration.objects.filter(
@@ -49,8 +56,7 @@ class ContextResolver:
                         logger.warning(f"Could not auto-link SlackUserIntegration: {e}")
                 return matched_user
 
-        # Return first active user as fallback in dev / single-tenant environments
-        return User.objects.filter(is_active=True).first()
+        return None
 
 
     @classmethod
@@ -67,20 +73,39 @@ class ContextResolver:
     ) -> AgentContext:
         """
         Builds the Authoritative AgentContext Object following the 5-priority project resolution chain.
-        Strictly enforces Workspace and Project access boundaries.
+        Strictly enforces Workspace connection to Slack and User membership access boundaries.
         """
         # 1. Resolve User Identity
         user = cls.resolve_identity(slack_user_id, slack_team_id, slack_email)
         if not user:
-            raise ValueError("Không thể xác thực người dùng trong hệ thống Plane.")
+            raise ValueError(
+                "Không tìm thấy tài khoản Plane tương ứng với tài khoản Slack của bạn. "
+                "Vui lòng đảm bảo email trên Slack trùng với email tài khoản Plane hoặc liên hệ Quản trị viên để được cấp quyền."
+            )
 
         user_id_str = str(user.id)
 
-        # 2. Resolve Workspace
+        # 2. Resolve Workspace strictly connected to Slack and accessible by User
         workspace = None
-        if fallback_workspace_id:
-            workspace = Workspace.objects.filter(id=fallback_workspace_id, deleted_at__isnull=True).first()
 
+        # Priority A: Check fallback_workspace_id (e.g. from active Slack Bot integration)
+        if fallback_workspace_id:
+            candidate_ws = Workspace.objects.filter(id=fallback_workspace_id, deleted_at__isnull=True).first()
+            if candidate_ws:
+                is_accessible = (
+                    getattr(user, "is_superuser", False)
+                    or candidate_ws.owner_id == user.id
+                    or WorkspaceMember.objects.filter(workspace=candidate_ws, member=user, is_active=True, deleted_at__isnull=True).exists()
+                    or ProjectMember.objects.filter(workspace=candidate_ws, member=user, is_active=True, deleted_at__isnull=True).exists()
+                )
+                if is_accessible:
+                    workspace = candidate_ws
+                else:
+                    logger.warning(
+                        f"User {user.email} is not a member of the Slack Bot fallback workspace: {candidate_ws.name}"
+                    )
+
+        # Priority B: Slack Channel mapping
         if not workspace and channel_id and slack_team_id:
             mapping = AgentChannelMapping.objects.filter(
                 slack_team_id=slack_team_id,
@@ -88,21 +113,64 @@ class ContextResolver:
                 is_active=True,
             ).select_related("workspace", "project").first()
             if mapping and mapping.workspace:
-                workspace = mapping.workspace
+                is_accessible = (
+                    getattr(user, "is_superuser", False)
+                    or mapping.workspace.owner_id == user.id
+                    or WorkspaceMember.objects.filter(workspace=mapping.workspace, member=user, is_active=True, deleted_at__isnull=True).exists()
+                    or ProjectMember.objects.filter(workspace=mapping.workspace, member=user, is_active=True, deleted_at__isnull=True).exists()
+                )
+                if is_accessible:
+                    workspace = mapping.workspace
 
+        # Priority C: Find Workspaces connected to Slack where the User is an active member
         if not workspace:
-            # Fallback to user's first owned or member workspace
-            workspace = Workspace.objects.filter(owner=user, deleted_at__isnull=True).first()
-            if not workspace:
-                pm = ProjectMember.objects.filter(member=user, is_active=True).select_related("workspace").first()
+            slack_ws_ids = list(
+                SlackAutomation.objects.filter(is_active=True, deleted_at__isnull=True)
+                .values_list("project__workspace_id", flat=True)
+                .distinct()
+            )
+            if slack_ws_ids:
+                wm = WorkspaceMember.objects.filter(
+                    workspace_id__in=slack_ws_ids,
+                    member=user,
+                    is_active=True,
+                    deleted_at__isnull=True,
+                ).select_related("workspace").first()
+                if wm:
+                    workspace = wm.workspace
+                else:
+                    pm = ProjectMember.objects.filter(
+                        workspace_id__in=slack_ws_ids,
+                        member=user,
+                        is_active=True,
+                        deleted_at__isnull=True,
+                    ).select_related("workspace").first()
+                    if pm:
+                        workspace = pm.workspace
+                    elif getattr(user, "is_superuser", False):
+                        workspace = Workspace.objects.filter(id__in=slack_ws_ids, deleted_at__isnull=True).first()
+                    else:
+                        owner_ws = Workspace.objects.filter(id__in=slack_ws_ids, owner=user, deleted_at__isnull=True).first()
+                        if owner_ws:
+                            workspace = owner_ws
+
+        # Priority D: Fallback to user member workspace (if no Slack-connected workspace restriction in test environment)
+        if not workspace:
+            wm = WorkspaceMember.objects.filter(member=user, is_active=True, deleted_at__isnull=True).select_related("workspace").first()
+            if wm:
+                workspace = wm.workspace
+            else:
+                pm = ProjectMember.objects.filter(member=user, is_active=True, deleted_at__isnull=True).select_related("workspace").first()
                 if pm:
                     workspace = pm.workspace
+                else:
+                    workspace = Workspace.objects.filter(owner=user, deleted_at__isnull=True).first()
 
         if not workspace:
-            workspace = Workspace.objects.filter(deleted_at__isnull=True).first()
-
-        if not workspace:
-            raise ValueError("Không tìm thấy Workspace hợp lệ trên hệ thống.")
+            raise ValueError(
+                f"Tài khoản '{user.email}' chưa được thêm vào Workspace công ty được kết nối Slack. "
+                "Vui lòng liên hệ Quản trị viên để được cấp quyền thành viên."
+            )
 
         workspace_id_str = str(workspace.id)
 

@@ -96,6 +96,10 @@ class PlaneAgentEngine:
                 fast_path_tool = "tool_get_members_workload"
             elif any(kw in prompt_lower for kw in ["danh sách dự án", "xem các dự án", "tất cả dự án"]):
                 fast_path_tool = "tool_list_projects"
+            elif any(kw in prompt_lower for kw in ["changelog", "phiên bản", "cập nhật gì", "bản cập nhật", "có gì mới", "bug nào", "lỗi đã sửa"]):
+                fast_path_tool = "tool_get_changelog"
+                if any(w in prompt_lower for w in ["bug", "lỗi", "fix", "sửa"]):
+                    fast_path_args["only_fixes"] = True
 
         if fast_path_tool:
             registered_tool = ToolRegistry.get_tool(fast_path_tool)
@@ -278,6 +282,32 @@ class PlaneAgentEngine:
             ]
             for p in projects:
                 lines.append(f"• *{p['name']}* (`{p['identifier']}`): {p['completion_percentage']}% hoàn thành ({p['completed_tasks']}/{p['total_tasks']} tasks | `{p['overdue_tasks']}` quá hạn)")
+            res_data["text"] = "\n".join(lines)
+        elif func_name == "tool_get_changelog":
+            v_name = tool_result.get("version", "Mới nhất")
+            title = tool_result.get("title", "")
+            r_date = tool_result.get("release_date", "")
+            summary = tool_result.get("summary", "")
+            fixes = tool_result.get("fixes", [])
+            features = tool_result.get("features", [])
+            only_fixes = tool_result.get("only_fixes", False)
+
+            lines = [f"🚀 *Nhật Ký Phiên Bản Civix — {v_name} ({r_date})*"]
+            lines.append(f"*{title}*\n_{summary}_\n")
+
+            if not only_fixes and features:
+                lines.append("*✨ Tính năng mới:*")
+                for f in features:
+                    lines.append(f"• {f}")
+                lines.append("")
+
+            if fixes:
+                lines.append("*🐛 Các lỗi đã khắc phục (Bug Fixes):*")
+                for fix in fixes:
+                    lines.append(f"• {fix}")
+                lines.append("")
+
+            lines.append("💡 _Anh/chị có thể truy cập Web Plane → /changelog để xem đầy đủ chi tiết mọi phiên bản._")
             res_data["text"] = "\n".join(lines)
         else:
             res_data["text"] = f"Dạ em đã thực hiện xong tác vụ *{func_name}* cho dự án {proj_name} rồi ạ! 😊"
