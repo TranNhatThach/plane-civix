@@ -85,6 +85,13 @@ export const LLM_PROVIDERS = [
     models: ["deepseek-r1:70b", "deepseek-r1:14b", "llama3.3:70b", "qwen2.5-coder:32b", "phi4"],
   },
   {
+    key: "civix",
+    label: "CiviX Custom Gateway",
+    defaultModel: "civix-model",
+    defaultBaseUrl: "https://api.civix.com.vn/api",
+    models: ["civix-model", "deepseek-r1", "deepseek-v3", "qwen2.5-coder:32b"],
+  },
+  {
     key: "custom",
     label: "Custom Base URL",
     defaultModel: "deepseek-r1",

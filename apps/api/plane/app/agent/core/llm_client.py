@@ -2,7 +2,7 @@ import logging
 import json
 from typing import Optional, Dict, Any, Tuple
 from openai import OpenAI
-from plane.app.views.external.base import get_llm_config
+from plane.app.views.external.base import get_llm_config, sanitize_base_url
 from plane.app.agent.registry import ToolRegistry
 from plane.app.agent.core.prompts import PLANE_AGENT_SYSTEM_PROMPT
 
@@ -31,16 +31,22 @@ class SystemLLMClient:
         eff_provider = (self.provider or "openai").lower()
         eff_api_key = self.api_key or "sk-dummy-key"
 
-        # Sanitize base_url
-        eff_base_url = self.base_url
-        if eff_provider == "openrouter" and (not eff_base_url or "civix" in eff_base_url or "localhost" in eff_base_url or not eff_base_url.endswith("/v1")):
-            eff_base_url = "https://openrouter.ai/api/v1"
-        elif eff_provider == "deepseek" and (not eff_base_url or "civix" in eff_base_url or "localhost" in eff_base_url):
-            eff_base_url = "https://api.deepseek.com/v1"
-        elif eff_provider == "groq" and (not eff_base_url or "civix" in eff_base_url or "localhost" in eff_base_url):
-            eff_base_url = "https://api.groq.com/openai/v1"
+        # Resolve effective base_url
+        eff_base_url = sanitize_base_url(self.base_url)
+        if not eff_base_url:
+            if eff_provider == "openrouter":
+                eff_base_url = "https://openrouter.ai/api/v1"
+            elif eff_provider == "deepseek":
+                eff_base_url = "https://api.deepseek.com/v1"
+            elif eff_provider == "groq":
+                eff_base_url = "https://api.groq.com/openai/v1"
+            elif eff_provider == "civix":
+                eff_base_url = "https://api.civix.com.vn/api"
 
-        client_kwargs = {"api_key": eff_api_key}
+        client_kwargs = {
+            "api_key": eff_api_key,
+            "default_headers": {"User-Agent": "Plane-AI/1.0"},
+        }
         if eff_base_url:
             client_kwargs["base_url"] = eff_base_url
 

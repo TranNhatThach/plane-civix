@@ -23,6 +23,7 @@ def test_supported_providers_registration():
     assert "openrouter" in SUPPORTED_PROVIDERS
     assert "custom" in SUPPORTED_PROVIDERS
     assert "ollama" in SUPPORTED_PROVIDERS
+    assert "civix" in SUPPORTED_PROVIDERS
 
     assert DeepSeekProvider.default_model == "deepseek-chat"
     assert "deepseek-reasoner" in DeepSeekProvider.models

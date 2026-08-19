@@ -111,6 +111,14 @@ class CustomProvider(LLMProvider):
     requires_api_key = False
 
 
+class CivixProvider(LLMProvider):
+    name = "CiviX Custom Gateway"
+    models = ["civix-model", "deepseek-r1", "deepseek-v3", "qwen2.5-coder"]
+    default_model = "civix-model"
+    default_base_url = "https://api.civix.com.vn/api"
+    requires_api_key = False
+
+
 SUPPORTED_PROVIDERS = {
     "openai": OpenAIProvider,
     "anthropic": AnthropicProvider,
@@ -121,7 +129,22 @@ SUPPORTED_PROVIDERS = {
     "openrouter": OpenRouterProvider,
     "custom": CustomProvider,
     "ollama": CustomProvider,
+    "civix": CivixProvider,
 }
+
+
+def sanitize_base_url(url: str | None) -> str | None:
+    """Helper to strip trailing slashes or sub-paths like /chat/completions from base_url"""
+    if not url:
+        return None
+    cleaned = url.strip().rstrip("/")
+    if cleaned.endswith("/chat/completions"):
+        cleaned = cleaned[:-len("/chat/completions")]
+    elif cleaned.endswith("/chat"):
+        cleaned = cleaned[:-len("/chat")]
+    elif cleaned.endswith("/completions"):
+        cleaned = cleaned[:-len("/completions")]
+    return cleaned.rstrip("/")
 
 
 def get_llm_config() -> Tuple[str | None, str | None, str | None, str | None]:
@@ -158,8 +181,9 @@ def get_llm_config() -> Tuple[str | None, str | None, str | None, str | None]:
         log_exception(ValueError(f"Unsupported provider: {provider_key}"))
         return None, None, None, None
 
-    # Determine effective base_url
-    effective_base_url = base_url if (base_url and base_url.strip()) else provider.default_base_url
+    # Determine effective base_url and sanitize
+    raw_base_url = base_url if (base_url and base_url.strip()) else provider.default_base_url
+    effective_base_url = sanitize_base_url(raw_base_url)
 
     # Check API Key unless provider does not strictly require one or custom base_url is set
     if not api_key and provider.requires_api_key and not effective_base_url:
@@ -172,7 +196,7 @@ def get_llm_config() -> Tuple[str | None, str | None, str | None, str | None]:
 
     # Validate model is supported if provider defines a strict model list and no custom base_url overrides it
     if provider.models and model not in provider.models:
-        if not base_url and provider_key.lower() not in ["custom", "ollama"]:
+        if not base_url and provider_key.lower() not in ["custom", "ollama", "civix"]:
             log_exception(
                 ValueError(
                     f"Model {model} not supported by {provider.name}. Supported models: {', '.join(provider.models)}"
@@ -200,9 +224,13 @@ def get_llm_response(
         if provider.lower() == "gemini" and not base_url and not model.startswith("gemini/"):
             model = f"gemini/{model}"
 
-        client_kwargs = {"api_key": effective_api_key}
-        if base_url:
-            client_kwargs["base_url"] = base_url
+        client_kwargs = {
+            "api_key": effective_api_key,
+            "default_headers": {"User-Agent": "Plane-AI/1.0"},
+        }
+        clean_base = sanitize_base_url(base_url)
+        if clean_base:
+            client_kwargs["base_url"] = clean_base
 
         client = OpenAI(**client_kwargs)
         chat_completion = client.chat.completions.create(
@@ -214,11 +242,19 @@ def get_llm_response(
         if stream:
             collected_chunks = []
             for chunk in chat_completion:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    collected_chunks.append(chunk.choices[0].delta.content)
+                if chunk.choices:
+                    delta = chunk.choices[0].delta
+                    content_piece = getattr(delta, "content", None)
+                    if not content_piece and getattr(delta, "reasoning_content", None):
+                        content_piece = getattr(delta, "reasoning_content", None)
+                    if content_piece:
+                        collected_chunks.append(content_piece)
             text = "".join(collected_chunks)
         else:
-            text = chat_completion.choices[0].message.content
+            choice = chat_completion.choices[0]
+            text = choice.message.content
+            if not text and hasattr(choice.message, "reasoning_content"):
+                text = getattr(choice.message, "reasoning_content", None)
 
         return text, None
     except Exception as e:
@@ -245,7 +281,7 @@ class GPTIntegrationEndpoint(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not api_key and provider not in ["custom", "ollama"] and not base_url:
+        if not api_key and provider not in ["custom", "ollama", "civix"] and not base_url:
             return Response(
                 {"error": "LLM provider API key is required"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -287,7 +323,7 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not api_key and provider not in ["custom", "ollama"] and not base_url:
+        if not api_key and provider not in ["custom", "ollama", "civix"] and not base_url:
             return Response(
                 {"error": "LLM provider API key is required"},
                 status=status.HTTP_400_BAD_REQUEST,
