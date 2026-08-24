@@ -100,3 +100,45 @@ Mỗi phiên bản trong Changelog phải được nhóm thành 5 nhóm biểu t
    - Phải map chính xác User Slack qua Email hoặc `SlackUserIntegration`. Nếu không xác thực được, trả về thông báo hướng dẫn thay vì tự gán sang người khác.
 3. **Cơ chế An Toàn HITL (Human-In-The-Loop)**:
    - Các hành động ghi/sửa dữ liệu quan trọng (như tự động rebalance workload, tạo hàng loạt task) phải có nút bấm xác nhận `[Xác nhận]` / `[Hủy]` trước khi thực thi.
+
+---
+
+## 🔄 5. Quy Chuẩn Đồng Bộ Hóa Changelog JSON Tự Động (`civix-docs.json`)
+
+Mỗi khi AI Agent hoặc Developer thực hiện bất kỳ thay đổi mã nguồn, tính năng mới, hoặc sửa lỗi (fix bug), **BẮT BUỘC** phải cập nhật vào file:
+📂 `apps/web/core/data/civix-docs.json`
+
+### 📋 Cấu trúc một mục cập nhật trong `civix-docs.json`:
+
+```json
+{
+  "id": "ma-dinh-danh-khong-trung-lap",
+  "version": "v1.4.2",
+  "updatedAt": "24/08/2026",
+  "title": "Tiêu đề tính năng hoặc bản vá lỗi ngắn gọn, chuyên nghiệp",
+  "badge": "Tính Năng Mới | Vá Lỗi & Tối Ưu | Bản Mới Nhất | Bảo Mật",
+  "iconName": "server | lock | zap | bot | file-text | check-circle",
+  "description": "Tóm tắt 1-2 câu về giá trị mang lại cho người dùng và hệ thống.",
+  "content": [
+    {
+      "heading": "1. Mô Tả Chi Tiết Kỹ Thuật / Vấn Đề Được Giải Quyết",
+      "subheadings": [
+        {
+          "title": "Nguyên nhân & Giải pháp thực thi",
+          "body": [
+            "Mô tả chi tiết nguyên nhân phát sinh lỗi hoặc bối cảnh cần nâng cấp.",
+            "Các bước xử lý logic, tệp tin được chỉnh sửa và cơ chế bảo đảm."
+          ],
+          "code": "Ví dụ lệnh CLI, cấu hình .env hoặc code minh họa (nếu có)",
+          "callout": {
+            "type": "tip | info | warning",
+            "text": "Lưu ý quan trọng cho người dùng hoặc DevOps khi triển khai."
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+> 💡 **Quy tắc thực thi**: Các mục mới nhất luôn được đưa lên **đầu mảng** JSON (`index: 0`) và gắn badge `"Bản Mới Nhất"`. Mục trước đó sẽ chuyển badge thành `"Vá Lỗi & Tối Ưu"` hoặc `"Tính Năng Mới"`.

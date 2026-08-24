@@ -1,10 +1,50 @@
 [
   {
+    "id": "storage-upload-domain-whitelist",
+    "version": "v1.4.2",
+    "updatedAt": "24/08/2026",
+    "title": "Khắc Phục Tải File Lên (MinIO Dynamic Host) & Siết Chặt Đăng Ký @civix.com.vn",
+    "badge": "Bản Mới Nhất",
+    "iconName": "server",
+    "description": "Tối ưu hóa toàn diện hạ tầng lưu trữ S3/MinIO với cơ chế tự động phân giải tên miền công khai cho Presigned URLs, đồng thời thiết lập chính sách bảo mật chỉ cho phép đăng ký tài khoản mới bằng email @civix.com.vn.",
+    "content": [
+      {
+        "heading": "1. Khắc Phục Triệt Để Lỗi Tải File Lên (S3 / MinIO Presigned URL)",
+        "subheadings": [
+          {
+            "title": "Tự động phân giải Domain thực tế cho trình duyệt",
+            "body": [
+              "Trước đây hệ thống sinh URL tải lên nội bộ (plane-minio:9000 hoặc localhost:9000), khiến trình duyệt người dùng bên ngoài không thể kết nối và báo lỗi Network Error.",
+              "Phiên bản v1.4.2 tự động chuyển đổi đường dẫn Presigned POST / GET theo đúng domain người dùng đang truy cập qua Proxy Caddy (cổng 80/443), loại bỏ triệt để lỗi CORS và xung đột chữ ký số S3 Signature."
+            ],
+            "callout": {
+              "type": "tip",
+              "text": "Tất cả ảnh đại diện (avatar), ảnh bìa (cover), tài liệu đính kèm task và ảnh trong trình soạn thảo đều được tải lên và hiển thị tức thì."
+            }
+          }
+        ]
+      },
+      {
+        "heading": "2. Bảo Mật Xác Thực & Đăng Ký Tài Khoản Mới",
+        "subheadings": [
+          {
+            "title": "Giới hạn đăng ký mới theo tên miền doanh nghiệp",
+            "body": [
+              "Chỉ cho phép tài khoản có đuôi email @civix.com.vn đăng ký mới vào hệ thống.",
+              "Các tài khoản legacy đã tồn tại trước đó từ các nhà cung cấp khác vẫn tiếp tục đăng nhập và làm việc bình thường mà không bị gián đoạn."
+            ],
+            "code": "# Cấu hình SMTP gửi mail kích hoạt tài khoản trong apps/api/.env\nEMAIL_HOST=\"smtp.gmail.com\"\nEMAIL_PORT=587\nEMAIL_USE_TLS=1"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "slack-security-changelog",
     "version": "v1.4.1",
     "updatedAt": "19/08/2026",
     "title": "Bảo Mật Định Tuyến Slack & Cổng Changelog / Skill .Civix",
-    "badge": "Bản Mới Nhất",
+    "badge": "Bảo Mật & Tính Năng",
     "iconName": "bot",
     "description": "Khắc phục triệt để lỗi định tuyến nhầm vào Workspace cá nhân khi dùng lệnh /agent từ Slack, ra mắt cổng tra cứu Changelog Timeline và ban hành bộ cẩm nang Skill .Civix.",
     "content": [

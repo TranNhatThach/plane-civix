@@ -11,7 +11,7 @@
 - `pnpm turbo run <command> --filter=<package>` - Target specific package/app
 - `pnpm --filter=@plane/ui storybook` - Start Storybook on port 6006
 
-## Code Style
+## Code Style & Workflow
 
 - **Imports**: Use `workspace:*` for internal packages, `catalog:` for external deps
 - **TypeScript**: Strict mode enabled, all files must be typed
@@ -22,6 +22,7 @@
 - **State Management**: MobX stores in `packages/shared-state`, reactive patterns
 - **Testing**: All features require unit tests, use existing test framework per package
 - **Components**: Build in `@plane/ui` with Storybook for isolated development
+- **Changelog & Documentation Sync (BẮT BUỘC)**: Mỗi thay đổi logic, tính năng mới, hoặc bản vá lỗi BẮT BUỘC phải được cập nhật tương ứng vào file `apps/web/core/data/civix-docs.json` để đồng bộ Cổng Changelog & Docs Portal `/changelog` theo chuẩn dự án Civix.
 
 ## Backend tests (Docker)
 
