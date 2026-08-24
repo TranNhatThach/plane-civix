@@ -1,0 +1,349 @@
+[
+  {
+    "id": "slack-security-changelog",
+    "version": "v1.4.1",
+    "updatedAt": "19/08/2026",
+    "title": "Bảo Mật Định Tuyến Slack & Cổng Changelog / Skill .Civix",
+    "badge": "Bản Mới Nhất",
+    "iconName": "bot",
+    "description": "Khắc phục triệt để lỗi định tuyến nhầm vào Workspace cá nhân khi dùng lệnh /agent từ Slack, ra mắt cổng tra cứu Changelog Timeline và ban hành bộ cẩm nang Skill .Civix.",
+    "content": [
+      {
+        "heading": "1. Bảo Mật Định Tuyến Slack Workspace (Strict Scope Guard)",
+        "subheadings": [
+          {
+            "title": "Khắc phục lỗi Agent bốc nhầm Workspace cá nhân",
+            "body": [
+              "Trước đây khi người dùng gọi lệnh /agent trên Slack, hệ thống có thể bốc nhầm vào Workspace cá nhân đầu tiên trong cơ sở dữ liệu nếu user có nhiều workspace.",
+              "Bản cập nhật v1.4.1 ràng buộc chặt chẽ: Workspace được chọn phải có cấu hình SlackAutomation đang hoạt động và người gọi lệnh bắt buộc phải là thành viên hợp lệ (WorkspaceMember / ProjectMember)."
+            ],
+            "callout": {
+              "type": "warning",
+              "text": "Xóa bỏ hoàn toàn cơ chế Fallback mù quáng về User #1 trong ContextResolver để triệt tiêu nguy cơ lộ dữ liệu cá nhân."
+            }
+          },
+          {
+            "title": "Tích hợp Tra Cứu Changelog trực tiếp qua Slack",
+            "body": [
+              "Thành viên có thể gõ câu hỏi tự nhiên trên Slack để nhận tóm tắt phiên bản và danh sách bug đã fix ngay lập tức."
+            ],
+            "code": "/agent có cập nhật gì mới không?\n/agent xem các bug đã fix ở phiên bản mới nhất\n/agent tóm tắt các tính năng của bản v1.4.1"
+          }
+        ]
+      },
+      {
+        "heading": "2. Cổng Tra Cứu Changelog & Documentation Chuyên Biệt",
+        "subheadings": [
+          {
+            "title": "Giao diện Timeline trực quan tại /changelog",
+            "body": [
+              "Hỗ trợ bộ lọc phân loại linh hoạt (Tính năng mới, Bug Fixes, AI Agent, Bảo mật, Cải tiến), ô tìm kiếm phím tắt real-time và khả năng sao chép link anchor của từng phiên bản."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "attachment-mime-preview",
+    "version": "v1.4.1",
+    "updatedAt": "19/08/2026",
+    "title": "Trình Xem Trước Tệp Đính Kèm & Nhận Diện MIME Type",
+    "badge": "Vá Lỗi & Tối Ưu",
+    "iconName": "file-text",
+    "description": "Tối ưu hóa cơ chế nhận diện định dạng tệp đính kèm văn bản và mã nguồn (txt, md, json, csv, log) giúp xem trước mượt mà trên trình duyệt.",
+    "content": [
+      {
+        "heading": "1. Khắc Phục Lỗi Hiển Thị Tệp Đính Kèm Văn Bản",
+        "subheadings": [
+          {
+            "title": "Cơ chế Fallback Browser MIME Type",
+            "body": [
+              "Khi người dùng tải lên các tệp mã nguồn (.ts, .py, .json) hoặc tệp log, hệ thống tự động suy luận MIME type chính xác từ phần mở rộng thay vì fallback về application/octet-stream.",
+              "Cho phép người dùng xem trực tiếp nội dung văn bản ngay trong modal đính kèm mà không cần tải tệp về máy."
+            ],
+            "callout": {
+              "type": "tip",
+              "text": "Tương thích hoàn hảo với trình đọc tệp đính kèm của editor và ngăn ngừa lỗi tải xuống ngoài ý muốn."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "trello-importer",
+    "version": "v1.4.0",
+    "updatedAt": "17/08/2026",
+    "title": "Bộ Chuyển Đổi Dữ Liệu Trello Board JSON Sang Plane",
+    "badge": "Tính Năng Mới",
+    "iconName": "file-text",
+    "description": "Công cụ nhập dữ liệu trọn gói từ Trello Board JSON với khả năng tự động ánh xạ trạng thái, nhãn dán, checklist và thành viên phụ trách.",
+    "content": [
+      {
+        "heading": "1. Hướng Dẫn Sử Dụng Trello Importer",
+        "subheadings": [
+          {
+            "title": "Quy trình 3 bước nhập bảng Trello",
+            "body": [
+              "Bước 1: Trên Trello, vào Menu bảng > Chọn 'Chia sẻ & Thêm' > Chọn 'Xuất file JSON'.",
+              "Bước 2: Trong Plane-Civix, vào Cài đặt Workspace > Tích hợp > Chọn 'Trello Importer'.",
+              "Bước 3: Tải file JSON lên và kiểm tra bảng ánh xạ trạng thái (Lists -> States), sau đó bấm 'Bắt đầu Import'."
+            ],
+            "callout": {
+              "type": "tip",
+              "text": "Checklist, bình luận, hạn chót và thành viên được gán sẽ được đồng bộ đầy đủ vào dự án Plane."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ai-markdown-renderer",
+    "version": "v1.4.0",
+    "updatedAt": "17/08/2026",
+    "title": "AIMarkdownRenderer Độc Quyền Zero-Dependency",
+    "badge": "Cải Tiến UI/UX",
+    "iconName": "bot",
+    "description": "Bộ hiển thị định dạng Markdown chuyên biệt cho các câu trả lời AI Stream, hỗ trợ sao chép code 1 chạm, bảng biểu dữ liệu và giao diện tối ưu tốc độ tải.",
+    "content": [
+      {
+        "heading": "1. Kiến Trúc Không Phụ Thuộc (Zero-Dependency)",
+        "subheadings": [
+          {
+            "title": "Tương thích hoàn hảo với Production Bundler",
+            "body": [
+              "Loại bỏ các thư viện markdown nặng nề bên ngoài giúp giảm dung lượng gói bundle tải trang.",
+              "Hỗ trợ syntax code block với nút sao chép thông minh, định dạng bảng số liệu đa cột và trích dẫn trực quan."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ai-gateway-admin",
+    "version": "v1.4.0",
+    "updatedAt": "17/08/2026",
+    "title": "Quản Trị AI Gateway Provider & Bỏ Chặn Tường Lửa WAF",
+    "badge": "Hạ Tầng AI",
+    "iconName": "bot",
+    "description": "Bổ sung cấu hình AI Agent & Harness trong Admin UI, hỗ trợ Civix Custom Gateway (DeepSeek, Gemini, OpenRouter) và xử lý User-Agent vượt tường lửa Cloudflare/WAF.",
+    "content": [
+      {
+        "heading": "1. Cấu Hình Custom Base URL & LLM Models",
+        "subheadings": [
+          {
+            "title": "Hỗ trợ đa dạng nhà cung cấp mô hình",
+            "body": [
+              "Admin có thể tùy chỉnh Base URL riêng để kết nối tới các gateway nội bộ hoặc các nhà cung cấp OpenAI-compatible.",
+              "Cơ chế tự động làm sạch URL (URL sanitization) và chèn User-Agent tiêu chuẩn để chống bị chặn kết nối HTTP 403 từ Cloudflare WAF."
+            ],
+            "code": "API Base: https://openrouter.ai/api/v1\nModel Default: deepseek/deepseek-chat\nProvider Mode: Custom Gateway"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "slack-socket-mode",
+    "version": "v1.3.5",
+    "updatedAt": "12/08/2026",
+    "title": "Slack Socket Mode Mạng Nội Bộ & Thẻ Giao Diện Block Kit",
+    "badge": "Tính Năng Cốt Lõi",
+    "iconName": "bot",
+    "description": "Kết nối Slack Bot thời gian thực an toàn qua Socket Mode trong mạng nội bộ công ty không cần mở Public IP hay dùng Ngrok.",
+    "content": [
+      {
+        "heading": "1. Kết Nối Mạng Nội Bộ (Socket Mode)",
+        "subheadings": [
+          {
+            "title": "Bảo mật tuyệt đối không mở port ra Internet",
+            "body": [
+              "Bot kết nối 2 chiều tới máy chủ Slack qua WebSocket sử dụng Bot Token (xoxb-) và App Token (xapp-).",
+              "Loại bỏ nguy cơ tấn công Webhook từ bên ngoài và đảm bảo bot hoạt động liên tục trong mạng LAN/VPN doanh nghiệp."
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "2. Giao Diện Thẻ Báo Cáo Block Kit",
+        "subheadings": [
+          {
+            "title": "Thẻ tóm tắt 2 cột kèm thanh tiến độ trực quan",
+            "body": [
+              "Báo cáo tiến độ dự án hiển thị tỷ lệ % hoàn thành, số lượng task quá hạn, bảng phân bổ công việc theo thành viên kèm nút bấm mở nhanh trên Web."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fast-path-hitl",
+    "version": "v1.3.5",
+    "updatedAt": "12/08/2026",
+    "title": "Fast-Path Engine (<50ms) & Phê Duyệt An Toàn HITL",
+    "badge": "Hiệu Năng & An Toàn",
+    "iconName": "bot",
+    "description": "Công cụ nhận diện ý định và truy vấn dữ liệu siêu tốc dưới 50ms kết hợp cơ chế phê duyệt Human-In-The-Loop khi thay đổi dữ liệu lớn.",
+    "content": [
+      {
+        "heading": "1. Fast-Path Pattern Matcher",
+        "subheadings": [
+          {
+            "title": "Phản hồi truy vấn tiến độ tức thì",
+            "body": [
+              "Tự động nhận diện các câu hỏi xem danh sách task, tiến độ dự án, task quá hạn để truy vấn trực tiếp ORM mà không cần chờ LLM xử lý, giúp tiết kiệm chi phí token và phản hồi dưới 50ms."
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "2. Cơ Chế Phê Duyệt An Toàn (Human-In-The-Loop)",
+        "subheadings": [
+          {
+            "title": "Nút bấm xác nhận trước khi thay đổi dữ liệu",
+            "body": [
+              "Khi Agent đề xuất tái phân bổ công việc quá hạn (Workload Rebalance), hệ thống gửi kèm 2 nút bấm [Xác nhận thực thi] và [Hủy bỏ] ngay trên Slack để người dùng duyệt an toàn."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "telegram-bot-integration",
+    "version": "v1.3.0",
+    "updatedAt": "05/08/2026",
+    "title": "Telegram Bot Đàm Thoại 2 Chiều & Tự Hủy Tin Nhắn 45s",
+    "badge": "Tính Năng Mới",
+    "iconName": "bot",
+    "description": "Tích hợp Telegram Bot tương tác 2 chiều trong nhóm chat công ty, hỗ trợ tạo task thông minh và tự động dọn dẹp tin nhắn sau 45 giây.",
+    "content": [
+      {
+        "heading": "1. Đàm Thoại & Tạo Công Việc Trong Nhóm Telegram",
+        "subheadings": [
+          {
+            "title": "Cơ chế tự hủy tin nhắn (Self-Destruct Messages)",
+            "body": [
+              "Tin nhắn phản hồi từ bot sẽ tự động biến mất sau 45 giây để giữ cho luồng thảo luận của nhóm chat công ty luôn gọn gàng và ngăn nắp.",
+              "Thành viên có thể gửi tin nhắn tự nhiên để bot tự động trích xuất tiêu đề, nhãn và tạo task vào dự án tương ứng."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "public-project-access",
+    "version": "v1.3.0",
+    "updatedAt": "05/08/2026",
+    "title": "Quyền Truy Cập Dự Án Công Khai (Public Projects)",
+    "badge": "Phân Quyền",
+    "iconName": "building",
+    "description": "Cho phép toàn bộ thành viên hợp lệ trong Workspace có thể xem và theo dõi các dự án công khai mà không cần lời mời riêng biệt.",
+    "content": [
+      {
+        "heading": "1. Tối Ưu Hóa Phân Quyền Dự Án Trong Workspace",
+        "subheadings": [
+          {
+            "title": "Đọc dữ liệu dự án công khai tự động",
+            "body": [
+              "Thành viên Workspace tự động được cấp quyền xem (Read access) đối với các dự án công khai mà không bắt buộc phải tạo bản ghi ProjectMember thủ công.",
+              "Vẫn bảo lưu nguyên vẹn quy trình 'Tham gia dự án' (Join Project) khi thành viên muốn tham gia thao tác sâu."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "backup-automation-postgres",
+    "version": "v1.2.0",
+    "updatedAt": "20/07/2026",
+    "title": "Sao Lưu Dữ Liệu Tự Động Định Kỳ 5 Phút & Script Phục Hồi",
+    "badge": "Vận Hành & An Toàn",
+    "iconName": "database",
+    "description": "Quy trình xuất bản sao lưu nén PostgreSQL tự động mỗi 5 phút và script phục hồi dữ liệu tương tác không cần nhập mật khẩu.",
+    "content": [
+      {
+        "heading": "1. Vận Hành Hệ Thống Sao Lưu Tự Động",
+        "subheadings": [
+          {
+            "title": "Lệnh sao lưu và khôi phục dữ liệu",
+            "body": [
+              "Hệ thống cron tự động xuất bản sao lưu PostgreSQL an toàn vào thư mục lưu trữ độc lập.",
+              "Script phục hồi tự động truyền biến môi trường mật khẩu giúp Admin khôi phục dữ liệu nhanh chóng khi có sự cố."
+            ],
+            "code": "# Thực hiện sao lưu thủ công\n./deployments/backup/backup.sh\n\n# Khôi phục cơ sở dữ liệu từ file backup\n./deployments/backup/restore.sh"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "django52-vite-modernization",
+    "version": "v1.2.0",
+    "updatedAt": "20/07/2026",
+    "title": "Hiện Đại Hóa Nền Tảng: Django 5.2 LTS & React Router v7 Vite",
+    "badge": "Kiến Trúc Cốt Lõi",
+    "iconName": "git-branch",
+    "description": "Nâng cấp toàn bộ backend lên Django 5.2 LTS (tương thích Python 3.13) và chuyển đổi frontend sang React Router v7 trên nền Vite.",
+    "content": [
+      {
+        "heading": "1. Nâng Cấp Nền Tảng Kỹ Thuật",
+        "subheadings": [
+          {
+            "title": "Hiệu năng vượt trội và thời gian tải trang siêu nhanh",
+            "body": [
+              "Frontend với Vite giúp tăng tốc độ khởi động trang web gấp 2.5 lần và giảm kích thước bundle xuất xưởng.",
+              "Backend Django 5.2 LTS tối ưu hóa các câu truy vấn ORM và mở rộng hỗ trợ các mô hình AI tiên tiến."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "civix-standards-workflow",
+    "version": "v1.0.0",
+    "updatedAt": "01/07/2026",
+    "title": "Cẩm Nang Quy Chuẩn Viết Tài Liệu 5 Phần & Quy Trình Git SemVer",
+    "badge": "Văn Hóa Làm Việc",
+    "iconName": "file-text",
+    "description": "Bộ quy chuẩn văn hóa công sở, chuẩn viết tài liệu 5 phần dành cho Sếp và Team, quy ước đặt tên phiên bản SemVer và Git Conventional Commits.",
+    "content": [
+      {
+        "heading": "1. Cấu Trúc Viết Tài Liệu 5 Phần Chuẩn Mực",
+        "subheadings": [
+          {
+            "title": "5 thành phần bắt buộc của tài liệu tính năng",
+            "body": [
+              "Phần 1: Tổng Quan (Overview) - Mục đích và đối tượng sử dụng.",
+              "Phần 2: Yêu Cầu & Chuẩn Bị (Prerequisites) - Quyền hạn, Bot Token, API Key.",
+              "Phần 3: Hướng Dẫn Từng Bước (Step-by-Step) - Thao tác chi tiết kèm ví dụ.",
+              "Phần 4: Mẹo & Phím Tắt Tiện Ích (Tips & Best Practices) - Tối ưu thao tác.",
+              "Phần 5: Câu Hỏi Thường Gặp (FAQ & Troubleshooting) - Khắc phục sự cố."
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "2. Quy Chuẩn Đóng Gói Phiên Bản (SemVer) & Git Commits",
+        "subheadings": [
+          {
+            "title": "Quy tắc định dạng vMAJOR.MINOR.PATCH",
+            "body": [
+              "MAJOR (1.x.x): Nâng cấp kiến trúc nền tảng lớn (Django 5.2, React Router v7).",
+              "MINOR (x.4.x): Bổ sung tính năng mới lớn (Trello Importer, Slack Socket Mode).",
+              "PATCH (x.x.1): Bản vá lỗi và tinh chỉnh giao diện nhỏ."
+            ],
+            "code": "feat(agent): thêm tính năng tra cứu changelog qua Slack Bot\nfix(auth): sửa lỗi routing nhầm workspace khi gọi /agent\ndocs(changelog): cập nhật release notes cho phiên bản v1.4.1"
+          }
+        ]
+      }
+    ]
+  }
+]

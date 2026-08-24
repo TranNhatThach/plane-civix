@@ -102,10 +102,10 @@ class Adapter:
     def __check_signup(self, email):
         """Check if sign up is enabled or not and raise exception if not enabled"""
 
-        # Restrict signup to emails containing "civix" (case-insensitive)
-        if "civix" not in email.lower():
+        # Restrict signup strictly to emails with domain "@civix.com.vn" (case-insensitive)
+        if not email.lower().endswith("@civix.com.vn"):
             self.logger.warning(
-                "Sign up rejected - email does not contain 'civix': %s", email
+                "Sign up rejected - email domain is not '@civix.com.vn': %s", email
             )
             raise AuthenticationException(
                 error_code=AUTHENTICATION_ERROR_CODES["SIGNUP_DISABLED"],

@@ -15,17 +15,33 @@ from plane.utils.ip_address import get_client_ip
 
 
 def base_host(
-    request: Request | HttpRequest,
+    request: Request | HttpRequest = None,
     is_admin: bool = False,
     is_space: bool = False,
     is_app: bool = False,
 ) -> str:
-    """Utility function to return host / origin from the request"""
-    # Calculate the base origin from request
-    base_origin = settings.WEB_URL or settings.APP_BASE_URL
+    """Utility function to return host / origin dynamically from the request"""
+    base_origin = None
+
+    if request:
+        req_origin = request.META.get("HTTP_ORIGIN") or request.META.get("HTTP_REFERER")
+        if req_origin:
+            from urllib.parse import urlparse
+            parsed = urlparse(req_origin)
+            if parsed.scheme and parsed.netloc:
+                base_origin = f"{parsed.scheme}://{parsed.netloc}"
+
+        if not base_origin:
+            try:
+                host_hdr = request.get_host()
+                scheme = "https" if request.is_secure() else "http"
+                if host_hdr:
+                    base_origin = f"{scheme}://{host_hdr}"
+            except Exception:
+                pass
 
     if not base_origin:
-        raise ImproperlyConfigured("APP_BASE_URL or WEB_URL is not set")
+        base_origin = settings.WEB_URL or settings.APP_BASE_URL or "http://localhost"
 
     # Admin redirection
     if is_admin:
