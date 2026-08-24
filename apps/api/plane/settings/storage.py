@@ -23,44 +23,48 @@ class S3Storage(S3Boto3Storage):
     """S3 storage class to generate presigned URLs for S3 objects"""
 
     def __init__(self, request=None):
+        self.request = request
         # Get the AWS credentials and bucket name from the environment
         self.aws_access_key_id = os.environ.get("AWS_ACCESS_KEY_ID")
         # Use the AWS_SECRET_ACCESS_KEY environment variable for the secret key
         self.aws_secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
         # Use the AWS_S3_BUCKET_NAME environment variable for the bucket name
-        self.aws_storage_bucket_name = os.environ.get("AWS_S3_BUCKET_NAME")
+        self.aws_storage_bucket_name = os.environ.get("AWS_S3_BUCKET_NAME", "uploads")
         # Use the AWS_REGION environment variable for the region
         self.aws_region = os.environ.get("AWS_REGION")
         # Use the AWS_S3_ENDPOINT_URL environment variable for the endpoint URL
-        self.aws_s3_endpoint_url = os.environ.get("AWS_S3_ENDPOINT_URL") or os.environ.get("MINIO_ENDPOINT_URL")
+        self.aws_s3_endpoint_url = os.environ.get("AWS_S3_ENDPOINT_URL") or os.environ.get("MINIO_ENDPOINT_URL") or "http://plane-minio:9000"
         # Use the SIGNED_URL_EXPIRATION environment variable for the expiration time (default: 3600 seconds)
         self.signed_url_expiration = int(os.environ.get("SIGNED_URL_EXPIRATION", "3600"))
 
-        if os.environ.get("USE_MINIO") == "1":
-            # Determine protocol based on environment variable
-            if os.environ.get("MINIO_ENDPOINT_SSL") == "1":
-                endpoint_protocol = "https"
-            else:
-                endpoint_protocol = request.scheme if request else "http"
-            # Create an S3 client for MinIO
-            self.s3_client = boto3.client(
-                "s3",
-                aws_access_key_id=self.aws_access_key_id,
-                aws_secret_access_key=self.aws_secret_access_key,
-                region_name=self.aws_region,
-                endpoint_url=(f"{endpoint_protocol}://{request.get_host()}" if request else self.aws_s3_endpoint_url),
-                config=boto3.session.Config(signature_version="s3v4"),
-            )
-        else:
-            # Create an S3 client
-            self.s3_client = boto3.client(
-                "s3",
-                aws_access_key_id=self.aws_access_key_id,
-                aws_secret_access_key=self.aws_secret_access_key,
-                region_name=self.aws_region,
-                endpoint_url=self.aws_s3_endpoint_url,
-                config=boto3.session.Config(signature_version="s3v4"),
-            )
+        # Create an S3 client pointing to internal S3 / MinIO endpoint
+        self.s3_client = boto3.client(
+            "s3",
+            aws_access_key_id=self.aws_access_key_id,
+            aws_secret_access_key=self.aws_secret_access_key,
+            region_name=self.aws_region,
+            endpoint_url=self.aws_s3_endpoint_url,
+            config=boto3.session.Config(signature_version="s3v4"),
+        )
+
+    def _get_public_minio_url(self):
+        """Helper to get public-facing URL for the browser to upload or view media"""
+        public_url = os.environ.get("MEDIA_URL") or os.environ.get("PUBLIC_MINIO_URL")
+        if public_url:
+            return public_url.rstrip("/")
+
+        if self.request:
+            try:
+                from plane.utils.host import base_host
+
+                req_host = base_host(self.request)
+                if req_host:
+                    return req_host.rstrip("/")
+            except Exception:
+                pass
+
+        base = getattr(settings, "WEB_URL", None) or getattr(settings, "APP_BASE_URL", None) or "http://localhost"
+        return str(base).rstrip("/")
 
     def generate_presigned_post(self, object_name, file_type, file_size, expiration=None):
         """Generate a presigned URL to upload an S3 object"""
@@ -96,14 +100,18 @@ class S3Storage(S3Boto3Storage):
             print(f"Error generating presigned POST URL: {e}")
             return None
 
-        public_minio_url = (
-            os.environ.get("MEDIA_URL")
-            or os.environ.get("PUBLIC_MINIO_URL")
-            or "http://localhost:9000"
-        ).rstrip("/")
+        public_minio_url = self._get_public_minio_url()
 
         if response and isinstance(response, dict) and "url" in response:
-            response["url"] = response["url"].replace("http://plane-minio:9000", public_minio_url)
+            internal_candidates = [
+                "http://plane-minio:9000",
+                self.aws_s3_endpoint_url,
+                "http://localhost:9000",
+            ]
+            for internal_url in internal_candidates:
+                if internal_url and internal_url in response["url"]:
+                    response["url"] = response["url"].replace(internal_url, public_minio_url)
+                    break
 
         return response
 
@@ -145,14 +153,18 @@ class S3Storage(S3Boto3Storage):
             log_exception(e)
             return None
 
-        public_minio_url = (
-            os.environ.get("MEDIA_URL")
-            or os.environ.get("PUBLIC_MINIO_URL")
-            or "http://localhost:9000"
-        ).rstrip("/")
+        public_minio_url = self._get_public_minio_url()
 
         if response and isinstance(response, str):
-            response = response.replace("http://plane-minio:9000", public_minio_url)
+            internal_candidates = [
+                "http://plane-minio:9000",
+                self.aws_s3_endpoint_url,
+                "http://localhost:9000",
+            ]
+            for internal_url in internal_candidates:
+                if internal_url and internal_url in response:
+                    response = response.replace(internal_url, public_minio_url)
+                    break
 
         # The response contains the presigned URL
         return response
