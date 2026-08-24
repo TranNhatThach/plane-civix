@@ -21,17 +21,27 @@ export interface IChangelogSectionGroup {
   items: IChangelogSectionDetail[];
 }
 
+export interface IChangelogItem {
+  type: "feature" | "fix" | "improvement" | "agent" | "security";
+  title: string;
+  description?: string;
+  issueKey?: string;
+}
+
 export interface IReleaseChangelog {
   id: string;
   version: string;
   title: string;
   formattedDate: string; // e.g. "August 24, 2026"
   shortDate: string; // e.g. "24 Aug, 2026"
+  releaseDate?: string;
   category: "Cloud" | "Self-hosted" | "Mobile";
   badgeText?: string;
   isLatest?: boolean;
   summary: string;
   heroBannerTitle?: string;
+  highlights?: string[];
+  items?: IChangelogItem[];
   sections: IChangelogSectionGroup[];
 }
 

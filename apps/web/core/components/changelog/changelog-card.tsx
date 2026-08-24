@@ -48,6 +48,20 @@ const TYPE_CONFIG = {
 export function ChangelogCard({ release }: Props) {
   const [copiedLink, setCopiedLink] = useState(false);
   const releaseAnchorId = `release-${release.version.replace(/\./g, "-")}`;
+  const displayDate = release.releaseDate || release.formattedDate || release.shortDate;
+  const items: IChangelogItem[] =
+    release.items ||
+    release.sections.flatMap((s) =>
+      s.items.map((i) => ({
+        type: (s.id === "bug-fixes"
+          ? "fix"
+          : s.id === "whats-new"
+            ? "feature"
+            : "improvement") as IChangelogItem["type"],
+        title: i.title,
+        description: i.body.join(" "),
+      }))
+    );
 
   const handleCopyLink = () => {
     const url = `${window.location.origin}/changelog#${releaseAnchorId}`;
@@ -76,7 +90,7 @@ export function ChangelogCard({ release }: Props) {
           )}
           <span className="text-xs text-custom-text-300 inline-flex items-center gap-1.5 font-medium">
             <Calendar className="h-3.5 w-3.5" />
-            {release.releaseDate}
+            {displayDate}
           </span>
         </div>
 
@@ -127,37 +141,43 @@ export function ChangelogCard({ release }: Props) {
       )}
 
       {/* Detailed Items */}
-      <div className="space-y-3">
-        <div className="text-xs text-custom-text-300 tracking-wider mb-2 font-semibold uppercase">
-          Chi tiết thay đổi & bản vá ({release.items.length})
-        </div>
-        {release.items.map((item) => {
-          const cfg = TYPE_CONFIG[item.type] || TYPE_CONFIG.improvement;
-          const Icon = cfg.icon;
+      {items.length > 0 && (
+        <div className="space-y-3">
+          <div className="text-xs text-custom-text-300 tracking-wider mb-2 font-semibold uppercase">
+            Chi tiết thay đổi & bản vá ({items.length})
+          </div>
+          {items.map((item) => {
+            const cfg = TYPE_CONFIG[item.type] || TYPE_CONFIG.improvement;
+            const Icon = cfg.icon;
 
-          return (
-            <div
-              key={`${release.version}-${item.type}-${item.title}`}
-              className="border-custom-border-200/60 bg-custom-background-90/50 hover:bg-custom-background-90 hover:border-custom-border-200 flex items-start gap-3.5 rounded-xl border p-3.5 transition-colors"
-            >
-              <div className={`mt-0.5 flex shrink-0 items-center justify-center rounded-lg border p-2 ${cfg.badgeBg}`}>
-                <Icon className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <span className="text-xs sm:text-sm text-custom-text-100 font-semibold">{item.title}</span>
-                  <span
-                    className={`inline-block rounded-md border px-2 py-0.5 text-[10px] font-semibold ${cfg.badgeBg}`}
-                  >
-                    {cfg.label}
-                  </span>
+            return (
+              <div
+                key={`${release.version}-${item.type}-${item.title}`}
+                className="border-custom-border-200/60 bg-custom-background-90/50 hover:bg-custom-background-90 hover:border-custom-border-200 flex items-start gap-3.5 rounded-xl border p-3.5 transition-colors"
+              >
+                <div
+                  className={`mt-0.5 flex shrink-0 items-center justify-center rounded-lg border p-2 ${cfg.badgeBg}`}
+                >
+                  <Icon className="h-4 w-4" />
                 </div>
-                {item.description && <p className="text-xs text-custom-text-300 leading-relaxed">{item.description}</p>}
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <span className="text-xs sm:text-sm text-custom-text-100 font-semibold">{item.title}</span>
+                    <span
+                      className={`inline-block rounded-md border px-2 py-0.5 text-[10px] font-semibold ${cfg.badgeBg}`}
+                    >
+                      {cfg.label}
+                    </span>
+                  </div>
+                  {item.description && (
+                    <p className="text-xs text-custom-text-300 leading-relaxed">{item.description}</p>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </article>
   );
 }
