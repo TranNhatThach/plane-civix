@@ -6,7 +6,7 @@
 
 import React, { useState } from "react";
 import { Sparkles, Bug, Zap, Bot, ShieldCheck, Tag, Calendar, CheckCircle2, Share2, Check } from "lucide-react";
-import type { IReleaseChangelog } from "@/data/civix-changelog.data";
+import type { IReleaseChangelog, IChangelogItem } from "@/data/civix-changelog.data";
 
 interface Props {
   release: IReleaseChangelog;
@@ -147,7 +147,7 @@ export function ChangelogCard({ release }: Props) {
             Chi tiết thay đổi & bản vá ({items.length})
           </div>
           {items.map((item) => {
-            const cfg = TYPE_CONFIG[item.type] || TYPE_CONFIG.improvement;
+            const cfg = TYPE_CONFIG[item.type as keyof typeof TYPE_CONFIG] || TYPE_CONFIG.improvement;
             const Icon = cfg.icon;
 
             return (
