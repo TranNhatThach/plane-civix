@@ -11,6 +11,9 @@ import boto3
 from botocore.exceptions import ClientError
 from urllib.parse import quote
 
+# Django imports
+from django.conf import settings
+
 # Module imports
 from plane.utils.exception_logger import log_exception
 from storages.backends.s3boto3 import S3Boto3Storage
