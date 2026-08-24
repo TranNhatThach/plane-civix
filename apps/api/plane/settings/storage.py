@@ -69,6 +69,23 @@ class S3Storage(S3Boto3Storage):
         base = getattr(settings, "WEB_URL", None) or getattr(settings, "APP_BASE_URL", None) or "http://localhost"
         return str(base).rstrip("/")
 
+    def _get_presigned_client(self):
+        """Get an S3 client configured with the public endpoint so SigV4 signatures match browser requests"""
+        if os.environ.get("USE_MINIO") == "1" or "minio" in (self.aws_s3_endpoint_url or ""):
+            public_url = self._get_public_minio_url()
+            return boto3.client(
+                "s3",
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                region_name=self.aws_region,
+                endpoint_url=public_url,
+                config=boto3.session.Config(
+                    signature_version="s3v4",
+                    s3={"addressing_style": "path"},
+                ),
+            )
+        return self.s3_client
+
     def generate_presigned_post(self, object_name, file_type, file_size, expiration=None):
         """Generate a presigned URL to upload an S3 object"""
         if expiration is None:
@@ -88,33 +105,19 @@ class S3Storage(S3Boto3Storage):
             fields["key"] = object_name
             conditions.append({"key": object_name})
 
-        # Generate the presigned POST URL
+        # Generate the presigned POST URL with the public presigned client
         try:
-            # Generate a presigned URL for the S3 object
-            response = self.s3_client.generate_presigned_post(
+            client = self._get_presigned_client()
+            response = client.generate_presigned_post(
                 Bucket=self.aws_storage_bucket_name,
                 Key=object_name,
                 Fields=fields,
                 Conditions=conditions,
                 ExpiresIn=expiration,
             )
-        # Handle errors
         except ClientError as e:
             print(f"Error generating presigned POST URL: {e}")
             return None
-
-        public_minio_url = self._get_public_minio_url()
-
-        if response and isinstance(response, dict) and "url" in response:
-            internal_candidates = [
-                "http://plane-minio:9000",
-                self.aws_s3_endpoint_url,
-                "http://localhost:9000",
-            ]
-            for internal_url in internal_candidates:
-                if internal_url and internal_url in response["url"]:
-                    response["url"] = response["url"].replace(internal_url, public_minio_url)
-                    break
 
         return response
 
@@ -142,7 +145,8 @@ class S3Storage(S3Boto3Storage):
             expiration = self.signed_url_expiration
         content_disposition = self._get_content_disposition(disposition, filename)
         try:
-            response = self.s3_client.generate_presigned_url(
+            client = self._get_presigned_client()
+            response = client.generate_presigned_url(
                 "get_object",
                 Params={
                     "Bucket": self.aws_storage_bucket_name,
@@ -155,19 +159,6 @@ class S3Storage(S3Boto3Storage):
         except ClientError as e:
             log_exception(e)
             return None
-
-        public_minio_url = self._get_public_minio_url()
-
-        if response and isinstance(response, str):
-            internal_candidates = [
-                "http://plane-minio:9000",
-                self.aws_s3_endpoint_url,
-                "http://localhost:9000",
-            ]
-            for internal_url in internal_candidates:
-                if internal_url and internal_url in response:
-                    response = response.replace(internal_url, public_minio_url)
-                    break
 
         # The response contains the presigned URL
         return response
