@@ -47,14 +47,73 @@ export interface IReleaseChangelog {
 
 export const CIVIX_CHANGELOG_RELEASES: IReleaseChangelog[] = [
   {
+    id: "user-notifications-email-preferences",
+    version: "v1.5.0",
+    title: "Instant @Mention/Assigned Notifications & User Email Preferences | Aug 26, 2026",
+    formattedDate: "August 26, 2026",
+    shortDate: "26 Aug, 2026",
+    category: "Self-hosted",
+    badgeText: "Bản Mới Nhất",
+    isLatest: true,
+    summary:
+      "Nâng cấp toàn diện cơ chế thông báo thời gian thực khi được nhắc tên (@mention) hoặc giao việc mới (assigned), kèm giao diện tùy chỉnh cài đặt email cho từng thành viên theo chuẩn Civix.",
+    heroBannerTitle: "Instant @Mention/Assigned Notifications & User Email Preferences | Aug 26, 2026",
+    items: [
+      {
+        type: "feature",
+        title: "Thông báo tức thì khi được tag (@mention) & giao việc mới",
+        description: "Gửi email realtime ngay khi có comment nhắc tên hoặc được phân công task mới.",
+        issueKey: "CIV-108",
+      },
+      {
+        type: "improvement",
+        title: "Ma trận cài đặt tùy chỉnh email người dùng",
+        description: "Trao toàn quyền cho mỗi thành viên bật tắt 4 nhóm thông báo theo nhu cầu cá nhân.",
+        issueKey: "CIV-109",
+      },
+      {
+        type: "security",
+        title: "Bộ lọc chống Spam tự gửi cho chính mình (Anti-Self-Spam)",
+        description: "Tự động chặn gửi email về chính hộp thư của người thực hiện thao tác.",
+      },
+    ],
+    sections: [
+      {
+        id: "whats-new",
+        heading: "What's new",
+        items: [
+          {
+            id: "instant-mention-assigned",
+            title: "Gửi email tức thì không độ trễ (Realtime Instant Notification)",
+            body: [
+              "Hệ thống dispatch email tức thì ngay khi phát hiện thẻ @username trong bình luận hoặc phần mô tả công việc, đồng thời kích hoạt gửi email ngay khi thành viên được phân công làm người phụ trách task mới (Assigned).",
+            ],
+            callout: {
+              type: "tip",
+              text: "Email gửi đi được thiết kế theo phong cách tối giản SaaS hiện đại, hiển thị trích dẫn nội dung bình luận, người tag, trạng thái task và có nút dẫn thẳng đến vị trí bình luận.",
+            },
+          },
+          {
+            id: "user-preferences-matrix",
+            title: "Ma trận cài đặt phân nhóm trực quan tại /settings/profile/notifications",
+            body: [
+              "Trao toàn quyền cho mỗi thành viên tự bật/tắt các loại thông báo muốn nhận về Email hoặc In-App.",
+              "Phân chia rõ ràng thành 4 nhóm: Thông Báo Tức Thì (@mention, assigned), Cập Nhật Tiến Độ & Bình Luận (comment, state change, properties), Cảnh Báo Hạn Chót (due dates & digest), và Bộ Lọc Chống Spam.",
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "v1-4-2",
     version: "v1.4.2",
     title: "MinIO S3 Dynamic Host Storage, @civix.com.vn Whitelist & SMTP | Aug 24, 2026",
     formattedDate: "August 24, 2026",
     shortDate: "24 Aug, 2026",
     category: "Self-hosted",
-    badgeText: "Bản Mới Nhất",
-    isLatest: true,
+    badgeText: "Vá Lỗi & Tối Ưu",
+    isLatest: false,
     summary:
       "Tối ưu hóa toàn diện hạ tầng lưu trữ S3/MinIO với cơ chế tự động phân giải tên miền công khai cho Presigned URLs, đồng thời thiết lập chính sách bảo mật chỉ cho phép đăng ký tài khoản mới bằng email @civix.com.vn và kích hoạt gửi mail SMTP.",
     heroBannerTitle: "MinIO S3 Dynamic Host Storage, @civix.com.vn Whitelist & SMTP | Aug 24, 2026",

@@ -1,247 +1,278 @@
 import React, { useState } from "react";
-import { ArrowLeft, Copy, Check, ChevronDown, Info, AlertTriangle, Lightbulb } from "lucide-react";
-import type { IReleaseChangelog } from "@/data/civix-changelog.data";
+import {
+  ArrowLeft,
+  Copy,
+  Check,
+  Zap,
+  Shield,
+  Server,
+  Bot,
+  Code,
+  Sparkles,
+  Calendar,
+  Tag,
+  Share2,
+  AlertTriangle,
+  Lightbulb,
+  Info,
+} from "lucide-react";
+import type { IDocSection, IDocCallout } from "@/data/civix-docs.data";
 
 interface IPlaneChangelogDetailProps {
-  release: IReleaseChangelog;
+  release: IDocSection;
   onBack: () => void;
 }
 
-export const PlaneChangelogDetail: React.FC<IPlaneChangelogDetailProps> = ({ release, onBack }) => {
+const getIconForDoc = (iconName?: string) => {
+  switch (iconName) {
+    case "zap":
+      return <Zap className="size-5 text-amber-500" />;
+    case "shield":
+      return <Shield className="size-5 text-emerald-500" />;
+    case "server":
+      return <Server className="size-5 text-blue-500" />;
+    case "bot":
+      return <Bot className="size-5 text-purple-500" />;
+    case "code":
+      return <Code className="size-5 text-cyan-500" />;
+    default:
+      return <Sparkles className="size-5 text-blue-500" />;
+  }
+};
+
+const CodeSnippet: React.FC<{ code: string }> = ({ code }) => {
   const [copied, setCopied] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState<string>(release.sections[0]?.id || "whats-new");
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative my-4 overflow-hidden rounded-xl border border-border-200/80 bg-surface-200/60 backdrop-blur-sm">
+      <div className="flex items-center justify-between border-b border-border-200/60 bg-surface-200/90 px-4 py-2 text-xs text-text-400 font-mono">
+        <div className="flex items-center gap-1.5">
+          <div className="size-2.5 rounded-full bg-red-500/80" />
+          <div className="size-2.5 rounded-full bg-amber-500/80" />
+          <div className="size-2.5 rounded-full bg-emerald-500/80" />
+          <span className="ml-2 text-[11px] text-text-400">Terminal / Code</span>
+        </div>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded hover:bg-surface-300 text-text-300 hover:text-text-100 transition-colors"
+        >
+          {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+          <span className="text-[11px]">{copied ? "Đã sao chép" : "Sao chép"}</span>
+        </button>
+      </div>
+      <pre className="p-4 text-xs font-mono text-text-100 overflow-x-auto leading-relaxed">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+};
+
+const CalloutBox: React.FC<{ callout: IDocCallout }> = ({ callout }) => {
+  const isTip = callout.type === "tip";
+  const isWarning = callout.type === "warning";
+
+  return (
+    <div
+      className={`my-4 flex items-start gap-3 rounded-xl border p-4 text-xs sm:text-sm leading-relaxed ${
+        isWarning
+          ? "border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+          : isTip
+            ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
+            : "border-blue-500/20 bg-blue-500/5 text-blue-600 dark:text-blue-400"
+      }`}
+    >
+      {isWarning ? (
+        <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+      ) : isTip ? (
+        <Lightbulb className="mt-0.5 size-4 shrink-0" />
+      ) : (
+        <Info className="mt-0.5 size-4 shrink-0" />
+      )}
+      <p className="flex-1 font-medium">{callout.text}</p>
+    </div>
+  );
+};
+
+export const PlaneChangelogDetail: React.FC<IPlaneChangelogDetailProps> = ({ release, onBack }) => {
+  const [copiedMd, setCopiedMd] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [activeHeadingIdx, setActiveHeadingIdx] = useState<number>(0);
 
   const handleCopyMarkdown = () => {
-    let md = `# ${release.title}\n**Date:** ${release.formattedDate}\n**Category:** ${release.category}\n\n${release.summary}\n\n`;
-    release.sections.forEach((sec) => {
-      md += `## ${sec.heading}\n\n`;
-      sec.items.forEach((item) => {
-        md += `### ${item.title}\n\n`;
-        item.body.forEach((b) => {
+    let md = `# ${release.title}\n\n**Phiên bản:** ${release.version || "N/A"} | **Ngày cập nhật:** ${release.updatedAt || "N/A"}\n\n${release.description}\n\n---\n\n`;
+
+    release.content.forEach((block) => {
+      md += `## ${block.heading}\n\n`;
+      block.subheadings?.forEach((sub) => {
+        md += `### ${sub.title}\n\n`;
+        sub.body.forEach((b) => {
           md += `${b}\n\n`;
         });
-        if (item.code) {
-          md += "```\n" + item.code + "\n```\n\n";
+        if (sub.callout) {
+          md += `> [!${sub.callout.type.toUpperCase()}]\n> ${sub.callout.text}\n\n`;
+        }
+        if (sub.code) {
+          md += `\`\`\`bash\n${sub.code}\n\`\`\`\n\n`;
         }
       });
     });
 
     navigator.clipboard.writeText(md);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedMd(true);
+    setTimeout(() => setCopiedMd(false), 2000);
   };
 
-  const handleShare = (platform: "twitter" | "linkedin" | "reddit" | "hackernews") => {
-    const url = encodeURIComponent(window.location.href);
-    const title = encodeURIComponent(release.title);
-
-    let shareUrl = "";
-    if (platform === "twitter") {
-      shareUrl = `https://twitter.com/intent/tweet?text=${title}&url=${url}`;
-    } else if (platform === "linkedin") {
-      shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
-    } else if (platform === "reddit") {
-      shareUrl = `https://reddit.com/submit?url=${url}&title=${title}`;
-    } else if (platform === "hackernews") {
-      shareUrl = `https://news.ycombinator.com/submitlink?u=${url}&t=${title}`;
-    }
-    window.open(shareUrl, "_blank", "noopener,noreferrer");
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-8">
-      <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
-        {/* Left Sticky Sidebar (Exact layout as Screenshot 3) */}
+    <div className="relative mx-auto w-full max-w-6xl px-4 py-10 sm:px-8">
+      {/* Ambient background glow */}
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-80 w-full max-w-4xl bg-gradient-to-b from-blue-500/10 via-indigo-500/5 to-transparent blur-3xl" />
+
+      <div className="relative grid grid-cols-1 gap-12 lg:grid-cols-12">
+        {/* Left Sticky Sidebar (Table of Contents & Quick Actions) */}
         <aside className="lg:col-span-3">
-          <div className="sticky top-24 space-y-8">
+          <div className="sticky top-24 space-y-6">
             {/* Back button */}
             <button
               type="button"
               onClick={onBack}
-              className="group text-sm text-custom-text-200 hover:text-custom-text-100 inline-flex items-center gap-2 font-medium transition-colors"
+              className="group inline-flex items-center gap-2 text-xs font-semibold text-text-300 hover:text-text-100 transition-colors"
             >
-              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              <span>Back to Changelog</span>
+              <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" />
+              <span>Quay lại danh sách</span>
             </button>
 
-            {/* Copy as markdown button */}
-            <div className="relative">
+            {/* Release Meta Card */}
+            <div className="p-4 rounded-xl border border-border-200/80 bg-surface-100/70 backdrop-blur-sm space-y-3 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-text-100 px-2.5 py-0.5 rounded-md bg-surface-200 border border-border-200">
+                  {release.version}
+                </span>
+                <span className="text-xs text-text-400 flex items-center gap-1 font-medium">
+                  <Calendar className="size-3" />
+                  {release.updatedAt}
+                </span>
+              </div>
+              <div className="text-xs text-text-300 font-medium">
+                Mã định danh: <span className="font-mono text-text-200">{release.id}</span>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="space-y-2">
               <button
                 type="button"
                 onClick={handleCopyMarkdown}
-                className="border-custom-border-200 bg-custom-background-100 text-xs text-custom-text-200 shadow-xs hover:bg-custom-background-90 hover:text-custom-text-100 flex w-full items-center justify-between rounded-lg border px-3.5 py-2 font-medium transition-all"
+                className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl border border-border-200/80 bg-surface-100/60 hover:bg-surface-200/80 text-xs font-medium text-text-200 hover:text-text-100 transition-all shadow-xs"
               >
                 <div className="flex items-center gap-2">
-                  {copied ? <Check className="text-emerald-500 h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                  <span>{copied ? "Copied to clipboard!" : "Copy as markdown"}</span>
+                  {copiedMd ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
+                  <span>{copiedMd ? "Đã copy Markdown" : "Sao chép Markdown"}</span>
                 </div>
-                <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl border border-border-200/80 bg-surface-100/60 hover:bg-surface-200/80 text-xs font-medium text-text-200 hover:text-text-100 transition-all shadow-xs"
+              >
+                <div className="flex items-center gap-2">
+                  {copiedLink ? <Check className="size-3.5 text-emerald-500" /> : <Share2 className="size-3.5" />}
+                  <span>{copiedLink ? "Đã copy liên kết" : "Chia sẻ tài liệu"}</span>
+                </div>
               </button>
             </div>
 
             {/* Table of Contents */}
-            <div className="space-y-3">
-              <h4 className="text-xs tracking-wider text-custom-text-300 font-bold uppercase">Table of content</h4>
-              <nav className="text-xs sm:text-sm space-y-4">
-                {release.sections.map((sec) => (
-                  <div key={sec.id} className="space-y-2">
-                    <a
-                      href={`#${sec.id}`}
-                      onClick={() => setActiveSectionId(sec.id)}
-                      className={`block font-medium transition-colors ${
-                        activeSectionId === sec.id
-                          ? "font-semibold text-[#006fee]"
-                          : "text-custom-text-200 hover:text-custom-text-100"
-                      }`}
-                    >
-                      {sec.heading}
-                    </a>
-
-                    {/* Sub-items */}
-                    <div className="border-custom-border-200/80 ml-3 space-y-1.5 border-l pl-3">
-                      {sec.items.map((item) => (
-                        <a
-                          key={item.id}
-                          href={`#${item.id}`}
-                          className="text-xs text-custom-text-300 hover:text-custom-text-100 line-clamp-1 block transition-colors"
-                        >
-                          {item.title}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
+            <div className="space-y-3 pt-2">
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-400">Mục lục tài liệu</h4>
+              <nav className="space-y-1.5 text-xs">
+                {release.content.map((block, idx) => (
+                  <a
+                    key={idx}
+                    href={`#heading-${idx}`}
+                    onClick={() => setActiveHeadingIdx(idx)}
+                    className={`block py-1 px-2.5 rounded-lg transition-colors leading-relaxed ${
+                      activeHeadingIdx === idx
+                        ? "bg-blue-500/10 text-blue-500 font-semibold border-l-2 border-blue-500"
+                        : "text-text-300 hover:text-text-100 hover:bg-surface-200/60"
+                    }`}
+                  >
+                    {block.heading}
+                  </a>
                 ))}
               </nav>
-            </div>
-
-            {/* Share Links */}
-            <div className="border-custom-border-200/60 space-y-2.5 border-t pt-4">
-              <h4 className="text-xs text-custom-text-300 font-semibold">Share</h4>
-              <div className="text-custom-text-300 flex items-center gap-3">
-                {/* LinkedIn */}
-                <button
-                  type="button"
-                  onClick={() => handleShare("linkedin")}
-                  aria-label="Share on LinkedIn"
-                  className="hover:bg-custom-background-90 hover:text-custom-text-100 rounded p-1.5 transition-colors"
-                >
-                  <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76a1.45 1.45 0 0 0 0-2.9 1.45 1.45 0 0 0 0 2.9m1.4 9.74v-8.37H5.06v8.37z" />
-                  </svg>
-                </button>
-
-                {/* X / Twitter */}
-                <button
-                  type="button"
-                  onClick={() => handleShare("twitter")}
-                  aria-label="Share on X (Twitter)"
-                  className="hover:bg-custom-background-90 hover:text-custom-text-100 rounded p-1.5 transition-colors"
-                >
-                  <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                </button>
-
-                {/* Reddit */}
-                <button
-                  type="button"
-                  onClick={() => handleShare("reddit")}
-                  aria-label="Share on Reddit"
-                  className="hover:bg-custom-background-90 hover:text-custom-text-100 rounded p-1.5 transition-colors"
-                >
-                  <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm5.01 4.744c.688 0 1.25.56 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.11 3.11 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 14c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.56 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
-                  </svg>
-                </button>
-
-                {/* Hacker News */}
-                <button
-                  type="button"
-                  onClick={() => handleShare("hackernews")}
-                  aria-label="Share on Hacker News"
-                  className="hover:bg-custom-background-90 hover:text-custom-text-100 rounded p-1.5 transition-colors"
-                >
-                  <span className="flex h-4 w-4 items-center justify-center rounded-xs bg-[#ff6600] text-[10px] leading-none font-bold text-white">
-                    Y
-                  </span>
-                </button>
-              </div>
             </div>
           </div>
         </aside>
 
-        {/* Right Main Content Area (Exact layout from Screenshot 3) */}
-        <main className="max-w-3xl lg:col-span-9">
-          {/* Category Tag */}
-          <div className="mb-2">
-            <span className="text-xs tracking-wider font-bold text-[#006fee] uppercase">{release.category}</span>
+        {/* Right Main Content Area */}
+        <main className="max-w-3xl lg:col-span-9 space-y-8">
+          {/* Header Title Section */}
+          <div className="space-y-4 border-b border-border-200/70 pb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-surface-200 border border-border-200/80 shadow-xs">
+                {getIconForDoc(release.iconName)}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-blue-500 uppercase tracking-wider">
+                    {release.version}
+                  </span>
+                  {release.badge && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                      {release.badge}
+                    </span>
+                  )}
+                </div>
+                <time className="text-xs text-text-400 font-medium">Cập nhật ngày {release.updatedAt}</time>
+              </div>
+            </div>
+
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-100 leading-tight">
+              {release.title}
+            </h1>
+
+            <p className="text-sm sm:text-base text-text-300 leading-relaxed font-normal">{release.description}</p>
           </div>
 
-          {/* Post Title */}
-          <h1 className="text-3xl sm:text-4xl text-custom-text-100 mb-3 leading-tight font-bold tracking-tight">
-            {release.title}
-          </h1>
-
-          {/* Date */}
-          <time className="text-sm text-custom-text-300 mb-8 block font-medium">{release.shortDate}</time>
-
-          {/* Summary Excerpt */}
-          <p className="text-base text-custom-text-200 border-custom-border-200/80 mb-8 border-b pb-6 leading-relaxed">
-            {release.summary}
-          </p>
-
-          {/* Sections Render */}
+          {/* Detailed Content Blocks */}
           <div className="space-y-12">
-            {release.sections.map((section) => (
-              <section key={section.id} id={section.id} className="scroll-mt-24 space-y-8">
-                <h2 className="text-2xl sm:text-3xl text-custom-text-100 border-custom-border-200/60 border-b pb-3 font-bold tracking-tight">
-                  {section.heading}
+            {release.content.map((block, bIdx) => (
+              <section key={bIdx} id={`heading-${bIdx}`} className="scroll-mt-24 space-y-6">
+                <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-text-100 border-b border-border-200/60 pb-2.5 flex items-center gap-2.5">
+                  <span className="flex size-2 rounded-full bg-blue-500" />
+                  <span>{block.heading}</span>
                 </h2>
 
-                <div className="space-y-10">
-                  {section.items.map((item) => (
-                    <div key={item.id} id={item.id} className="scroll-mt-24 space-y-3.5">
-                      <h3 className="text-lg sm:text-xl text-custom-text-100 font-semibold">{item.title}</h3>
+                <div className="space-y-8 pl-1">
+                  {block.subheadings?.map((sub, sIdx) => (
+                    <div key={sIdx} className="space-y-3">
+                      <h3 className="text-sm sm:text-base font-bold text-text-200">{sub.title}</h3>
 
-                      <div className="text-sm sm:text-base text-custom-text-200 space-y-3 leading-relaxed">
-                        {item.body.map((paragraph) => (
-                          <p key={`${item.id}-${paragraph.slice(0, 25)}`}>{paragraph}</p>
+                      <div className="space-y-2 text-xs sm:text-sm text-text-400 leading-relaxed">
+                        {sub.body.map((paragraph, pIdx) => (
+                          <p key={pIdx}>{paragraph}</p>
                         ))}
                       </div>
 
-                      {/* Code Snippet if present */}
-                      {item.code && (
-                        <div className="border-slate-800 text-slate-100 shadow-md my-4 overflow-hidden rounded-xl border bg-[#0b1324]">
-                          <div className="border-slate-800/80 bg-slate-900/60 text-xs font-mono text-slate-400 flex items-center justify-between border-b px-4 py-2">
-                            <span>Configuration / Command</span>
-                          </div>
-                          <pre className="text-xs sm:text-sm font-mono overflow-x-auto p-4">
-                            <code>{item.code}</code>
-                          </pre>
-                        </div>
-                      )}
+                      {/* Callout box */}
+                      {sub.callout && <CalloutBox callout={sub.callout} />}
 
-                      {/* Callout box if present */}
-                      {item.callout && (
-                        <div
-                          className={`text-xs sm:text-sm flex items-start gap-3 rounded-xl border p-4 leading-relaxed ${
-                            item.callout.type === "warning"
-                              ? "border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400"
-                              : item.callout.type === "tip"
-                                ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
-                                : "border-blue-500/20 bg-blue-500/5 text-blue-600 dark:text-blue-400"
-                          }`}
-                        >
-                          {item.callout.type === "warning" ? (
-                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                          ) : item.callout.type === "tip" ? (
-                            <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />
-                          ) : (
-                            <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                          )}
-                          <p>{item.callout.text}</p>
-                        </div>
-                      )}
+                      {/* Code snippet */}
+                      {sub.code && <CodeSnippet code={sub.code} />}
                     </div>
                   ))}
                 </div>
@@ -250,14 +281,14 @@ export const PlaneChangelogDetail: React.FC<IPlaneChangelogDetailProps> = ({ rel
           </div>
 
           {/* Bottom Back Button */}
-          <div className="border-custom-border-200/80 mt-16 border-t pt-8">
+          <div className="border-t border-border-200/80 pt-8 mt-16">
             <button
               type="button"
               onClick={onBack}
-              className="border-custom-border-200 bg-custom-background-100 text-sm text-custom-text-100 shadow-xs hover:bg-custom-background-90 inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 font-semibold transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl border border-border-200 bg-surface-100 hover:bg-surface-200 text-text-100 shadow-xs transition-all active:scale-95"
             >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to all release notes</span>
+              <ArrowLeft className="size-4" />
+              <span>Quay lại tất cả bản phát hành</span>
             </button>
           </div>
         </main>

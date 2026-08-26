@@ -10,10 +10,23 @@ import civixDocsRaw from "./civix-docs.json";
 // CÁC KHUÔN MẪU TÀI LIỆU (DOCUMENTATION SCHEMAS & TEMPLATES)
 // ============================================================================
 
-export type DocIconType = "bot" | "building" | "file-text" | "git-branch" | "database" | "help-circle";
+export type DocIconType =
+  | "bot"
+  | "building"
+  | "file-text"
+  | "git-branch"
+  | "database"
+  | "help-circle"
+  | "zap"
+  | "shield"
+  | "server"
+  | "code"
+  | "sparkles"
+  | "layers"
+  | string;
 
 export interface IDocCallout {
-  type: "tip" | "warning" | "note";
+  type: "tip" | "warning" | "note" | "info";
   text: string;
 }
 
@@ -35,7 +48,7 @@ export interface IDocSection {
   updatedAt?: string;
   title: string;
   badge?: string;
-  iconName: DocIconType;
+  iconName?: DocIconType;
   description: string;
   content: IDocContentBlock[];
 }

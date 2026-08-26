@@ -1,77 +1,63 @@
 import React from "react";
 import { Link } from "react-router";
+import { Sparkles, ArrowUpRight, BookOpen, Clock, Layers } from "lucide-react";
 
 export const PlaneChangelogHeader: React.FC = () => {
   return (
-    <header className="border-custom-border-200/80 bg-custom-background-100/95 sticky top-0 z-50 w-full border-b backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-8">
-        {/* Left: Brand Logo */}
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
-            {/* Plane Official Logo Mark */}
-            <svg
-              className="text-custom-text-100 h-6 w-6"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M3.5 4.5C3.5 3.94772 3.94772 3.5 4.5 3.5H9.5C10.0523 3.5 10.5 3.94772 10.5 4.5V19.5C10.5 20.0523 10.0523 20.5 9.5 20.5H4.5C3.94772 20.5 3.5 20.0523 3.5 19.5V4.5Z" />
-              <path d="M13.5 4.5C13.5 3.94772 13.9477 3.5 14.5 3.5H19.5C20.0523 3.5 20.5 3.94772 20.5 4.5V13.5C20.5 14.0523 20.0523 14.5 19.5 14.5H14.5C13.9477 14.5 13.5 14.0523 13.5 13.5V4.5Z" />
-            </svg>
-            <span className="text-lg text-custom-text-100 font-bold tracking-tight">Plane</span>
+    <header className="sticky top-0 z-50 w-full border-b border-border-200/70 bg-surface-100/80 backdrop-blur-xl transition-all">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-8">
+        {/* Left: Brand Logo & Civix Badge */}
+        <div className="flex items-center gap-6">
+          <Link to="/changelog" className="group flex items-center gap-3 transition-opacity">
+            {/* Logo Mark */}
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-md shadow-blue-500/20 text-white">
+              <svg className="h-4.5 w-4.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3.5 4.5C3.5 3.94772 3.94772 3.5 4.5 3.5H9.5C10.0523 3.5 10.5 3.94772 10.5 4.5V19.5C10.5 20.0523 10.0523 20.5 9.5 20.5H4.5C3.94772 20.5 3.5 20.0523 3.5 19.5V4.5Z" />
+                <path d="M13.5 4.5C13.5 3.94772 13.9477 3.5 14.5 3.5H19.5C20.0523 3.5 20.5 3.94772 20.5 4.5V13.5C20.5 14.0523 20.0523 14.5 19.5 14.5H14.5C13.9477 14.5 13.5 14.0523 13.5 13.5V4.5Z" />
+              </svg>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-base font-bold tracking-tight text-text-100">Civix</span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 tracking-wide">
+                Changelog
+              </span>
+            </div>
           </Link>
 
           {/* Navigation Links */}
-          <nav className="hidden items-center gap-6 md:flex">
+          <nav className="hidden items-center gap-1 sm:flex pl-4 border-l border-border-200/60">
             <Link
-              to="/civix"
-              className="text-sm text-custom-text-200 hover:text-custom-text-100 font-medium transition-colors"
+              to="/changelog"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-surface-200 text-text-100 transition-colors"
             >
-              Product
+              <Clock className="size-3.5" />
+              <span>Nhật ký phát hành</span>
             </Link>
-            <Link
-              to="/civix"
-              className="text-sm text-custom-text-200 hover:text-custom-text-100 font-medium transition-colors"
+            <a
+              href="#docs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-text-300 hover:text-text-100 hover:bg-surface-200/60 transition-colors"
             >
-              Solutions
-            </Link>
-            <Link to="/changelog" className="text-sm text-custom-primary-100 font-semibold transition-colors">
-              Resources
-            </Link>
-            <Link
-              to="/civix"
-              className="text-sm text-custom-text-200 hover:text-custom-text-100 font-medium transition-colors"
-            >
-              Pricing
-            </Link>
-            <Link
-              to="/god-mode"
-              className="text-sm text-custom-text-200 hover:text-custom-text-100 font-medium transition-colors"
-            >
-              Self-host Plane
-            </Link>
+              <BookOpen className="size-3.5" />
+              <span>Tài liệu kỹ thuật</span>
+            </a>
           </nav>
         </div>
 
         {/* Right CTA Links */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Link
-            to="/civix"
-            className="text-sm text-custom-text-200 hover:text-custom-text-100 hidden font-medium transition-colors sm:block"
+            to="/"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-text-300 hover:text-text-100 transition-colors"
           >
-            Contact sales
+            <Layers className="size-3.5" />
+            <span>Không gian làm việc</span>
           </Link>
           <Link
             to="/"
-            className="text-sm text-custom-text-200 hover:text-custom-text-100 font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-text-100 text-surface-100 shadow-sm hover:opacity-90 active:scale-95 transition-all"
           >
-            Login
-          </Link>
-          <Link
-            to="/"
-            className="bg-custom-text-100 text-xs sm:text-sm text-custom-background-100 shadow-sm inline-flex items-center justify-center rounded-lg px-4 py-2 font-semibold transition-all hover:opacity-90 active:scale-95"
-          >
-            Get started free
+            <span>Mở Ứng Dụng</span>
+            <ArrowUpRight className="size-3.5" />
           </Link>
         </div>
       </div>
