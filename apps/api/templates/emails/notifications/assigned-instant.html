@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>You have been assigned to {{ issue.issue_identifier }}</title>
+  <style type="text/css">
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #0f172a;
+      color: #334155;
+    }
+    .wrapper {
+      width: 100%;
+      table-layout: fixed;
+      background-color: #0f172a;
+      padding: 30px 10px;
+    }
+    .main-card {
+      max-width: 580px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      padding: 24px 28px;
+      border-bottom: 1px solid #334155;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-radius: 9999px;
+      background-color: #10b981;
+      color: #ffffff;
+    }
+    .body-content {
+      padding: 28px;
+    }
+    .task-box {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      margin-bottom: 24px;
+      font-size: 13px;
+    }
+    .meta-table td {
+      padding: 8px 0;
+      color: #64748b;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .meta-table .label {
+      font-weight: 600;
+      color: #475569;
+      width: 120px;
+    }
+    .btn-action {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #10b981;
+      color: #ffffff !important;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .footer {
+      background-color: #f1f5f9;
+      padding: 18px 28px;
+      font-size: 12px;
+      color: #64748b;
+      text-align: center;
+      border-top: 1px solid #e2e8f0;
+    }
+    .footer a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="main-card">
+      <!-- Header -->
+      <div class="header">
+        <table width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td>
+              <span style="font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">Civix <span style="color: #34d399;">Plane</span></span>
+            </td>
+            <td align="right">
+              <span class="badge">🎯 Giao việc mới</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Content -->
+      <div class="body-content">
+        <h2 style="margin: 0 0 12px 0; font-size: 18px; color: #0f172a; font-weight: 700;">
+          {{ actor_name }} đã gán bạn vào task mới
+        </h2>
+        <p style="margin: 0; font-size: 14px; color: #475569; line-height: 1.5;">
+          Bạn vừa được phân công phụ trách công việc 
+          <a href="{{ issue.issue_url }}" style="color: #059669; font-weight: 600; text-decoration: none;">{{ issue.issue_identifier }}: {{ issue.name }}</a>.
+        </p>
+
+        <!-- Issue Metadata -->
+        <table class="meta-table">
+          <tr>
+            <td class="label">📁 Dự án:</td>
+            <td><strong>{{ project_name }}</strong> ({{ workspace_slug }})</td>
+          </tr>
+          <tr>
+            <td class="label">📊 Trạng thái:</td>
+            <td><span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background: #e2e8f0; color: #334155; font-size: 12px;">{{ issue.state_name }}</span></td>
+          </tr>
+          <tr>
+            <td class="label">⚡ Mức ưu tiên:</td>
+            <td><strong>{{ issue.priority|default:"None" }}</strong></td>
+          </tr>
+          <tr>
+            <td class="label">📅 Hạn chót:</td>
+            <td><strong>{{ issue.target_date|default:"Chưa đặt" }}</strong></td>
+          </tr>
+          <tr>
+            <td class="label">👤 Người giao:</td>
+            <td>{{ actor_name }}</td>
+          </tr>
+        </table>
+
+        <!-- Primary CTA Button -->
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="{{ issue.issue_url }}" class="btn-action" target="_blank">
+            👉 Mở Task & Bắt Đầu Xử Lý
+          </a>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p style="margin: 0 0 6px 0;">
+          Email này được gửi tự động từ hệ thống quản lý công việc Civix.
+        </p>
+        <p style="margin: 0;">
+          Bạn có thể thay đổi tùy chọn nhận email tại <a href="{{ user_preference_url }}">Cài đặt thông báo</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

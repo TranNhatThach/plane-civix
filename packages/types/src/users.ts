@@ -187,6 +187,12 @@ export interface IUserEmailNotificationSettings {
   comment: boolean;
   mention: boolean;
   issue_completed: boolean;
+  email_assigned?: boolean;
+  email_due_date?: boolean;
+  email_digest?: boolean;
+  email_instant_mention?: boolean;
+  email_instant_assigned?: boolean;
+  notify_self_actions?: boolean;
 }
 
 export type TProfileViews = "assigned" | "created" | "subscribed";

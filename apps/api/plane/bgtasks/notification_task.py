@@ -316,7 +316,7 @@ def notifications(
                 else:
                     sender = "in_app:issue_activities:subscribed"
 
-                preference = UserNotificationPreference.objects.get(user_id=subscriber)
+                preference, _ = UserNotificationPreference.objects.get_or_create(user_id=subscriber)
 
                 for issue_activity in issue_activities_created:
                     # If activity done in blocking then blocked by email should not go
@@ -329,11 +329,11 @@ def notifications(
 
                     # Check if the value should be sent or not
                     send_email = False
-                    if issue_activity.get("field") == "state" and preference.state_change:
+                    if issue_activity.get("field") == "state" and getattr(preference, "state_change", True):
                         send_email = True
                     elif (
                         issue_activity.get("field") == "state"
-                        and preference.issue_completed
+                        and getattr(preference, "issue_completed", True)
                         and State.objects.filter(
                             project_id=project_id,
                             pk=issue_activity.get("new_identifier"),
@@ -341,9 +341,21 @@ def notifications(
                         ).exists()
                     ):
                         send_email = True
-                    elif issue_activity.get("field") == "comment" and preference.comment:
+                    elif issue_activity.get("field") == "comment" and getattr(preference, "comment", True):
                         send_email = True
-                    elif preference.property_change:
+                    elif issue_activity.get("field") == "assignees" and getattr(preference, "email_assigned", True):
+                        send_email = True
+                        if getattr(preference, "email_instant_assigned", True) and subscriber in issue_assignees:
+                            try:
+                                from plane.bgtasks.email_notification_task import send_instant_assigned_email
+                                send_instant_assigned_email.delay(
+                                    issue_id=str(issue_id),
+                                    actor_id=str(actor_id),
+                                    receiver_id=str(subscriber),
+                                )
+                            except Exception:
+                                pass
+                    elif getattr(preference, "property_change", True):
                         send_email = True
                     else:
                         send_email = False
@@ -463,8 +475,31 @@ def notifications(
             actor = User.objects.get(pk=actor_id)
 
             for mention_id in comment_mentions:
-                if mention_id != actor_id:
-                    preference = UserNotificationPreference.objects.get(user_id=mention_id)
+                if str(mention_id) != str(actor_id):
+                    preference, _ = UserNotificationPreference.objects.get_or_create(user_id=mention_id)
+                    if str(mention_id) == str(actor_id) and not getattr(preference, "notify_self_actions", False):
+                        continue
+
+                    # Instant real-time mention email dispatch
+                    if getattr(preference, "mention", True) and getattr(preference, "email_instant_mention", True):
+                        comment_body = ""
+                        for act in issue_activities_created:
+                            if act.get("issue_comment"):
+                                cm = IssueComment.objects.filter(id=act.get("issue_comment")).first()
+                                if cm:
+                                    comment_body = cm.comment_html or cm.comment_stripped or ""
+                                    break
+                        try:
+                            from plane.bgtasks.email_notification_task import send_instant_mention_email
+                            send_instant_mention_email.delay(
+                                issue_id=str(issue_id),
+                                actor_id=str(actor_id),
+                                receiver_id=str(mention_id),
+                                comment_text=comment_body,
+                            )
+                        except Exception:
+                            pass
+
                     for issue_activity in issue_activities_created:
                         notification = create_mention_notification(
                             project=project,
@@ -477,7 +512,7 @@ def notifications(
                         )
 
                         # check for email notifications
-                        if preference.mention:
+                        if getattr(preference, "mention", True) and not getattr(preference, "email_instant_mention", False):
                             bulk_email_logs.append(
                                 EmailNotificationLog(
                                     triggered_by_id=actor_id,
@@ -520,8 +555,24 @@ def notifications(
                         bulk_notifications.append(notification)
 
             for mention_id in new_mentions:
-                if mention_id != actor_id:
-                    preference = UserNotificationPreference.objects.get(user_id=mention_id)
+                if str(mention_id) != str(actor_id):
+                    preference, _ = UserNotificationPreference.objects.get_or_create(user_id=mention_id)
+                    if str(mention_id) == str(actor_id) and not getattr(preference, "notify_self_actions", False):
+                        continue
+
+                    # Instant real-time mention email dispatch
+                    if getattr(preference, "mention", True) and getattr(preference, "email_instant_mention", True):
+                        try:
+                            from plane.bgtasks.email_notification_task import send_instant_mention_email
+                            send_instant_mention_email.delay(
+                                issue_id=str(issue_id),
+                                actor_id=str(actor_id),
+                                receiver_id=str(mention_id),
+                                comment_text=f"Bạn vừa được nhắc tên trong phần mô tả của task <strong>{issue.name}</strong>.",
+                            )
+                        except Exception:
+                            pass
+
                     if (
                         last_activity is not None
                         and last_activity.field == "description"
@@ -569,7 +620,7 @@ def notifications(
                                 },
                             )
                         )
-                        if preference.mention:
+                        if getattr(preference, "mention", True) and not getattr(preference, "email_instant_mention", False):
                             bulk_email_logs.append(
                                 EmailNotificationLog(
                                     triggered_by_id=actor_id,

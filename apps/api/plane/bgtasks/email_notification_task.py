@@ -304,3 +304,153 @@ def send_email_notification(issue_id, notification_data, receiver_id, email_noti
         log_exception(e)
         release_lock(lock_id=lock_id)
         return
+
+
+@shared_task
+def send_instant_mention_email(issue_id, actor_id, receiver_id, comment_text=""):
+    """Send immediate real-time email notification when a user is @mentioned."""
+    lock_id = f"instant_mention_{issue_id}_{actor_id}_{receiver_id}_{timezone.now().minute}"
+    if not acquire_lock(lock_id=lock_id, expire_time=60):
+        logging.getLogger("plane.worker").info("Duplicate instant mention email lock exists, skipping")
+        return
+
+    try:
+        issue = Issue.objects.select_related("project", "project__workspace", "state").get(pk=issue_id)
+        actor = User.objects.get(pk=actor_id)
+        receiver = User.objects.get(pk=receiver_id)
+
+        # Do not send email if receiver is the actor
+        if str(actor_id) == str(receiver_id):
+            release_lock(lock_id=lock_id)
+            return
+
+        EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_USE_TLS, EMAIL_USE_SSL, EMAIL_FROM, base_api = (
+            get_email_configuration()
+        )
+
+        if not EMAIL_HOST or not EMAIL_FROM:
+            logging.getLogger("plane.worker").warning("Email configuration missing, skipping instant mention email")
+            release_lock(lock_id=lock_id)
+            return
+
+        actor_name = f"{actor.first_name} {actor.last_name}".strip() or actor.display_name or actor.email
+        subject = f"🔔 [{issue.project.identifier}-{issue.sequence_id}] {actor_name} đã nhắc tên bạn: {remove_unwanted_characters(issue.name)}"
+
+        context = {
+            "actor_name": actor_name,
+            "issue": {
+                "issue_identifier": f"{str(issue.project.identifier)}-{str(issue.sequence_id)}",
+                "name": issue.name,
+                "issue_url": f"{base_api}/{str(issue.project.workspace.slug)}/projects/{str(issue.project.id)}/issues/{str(issue.id)}",
+                "state_name": issue.state.name if issue.state else "None",
+            },
+            "comment_text": comment_text or f"Bạn vừa được nhắc tên trong task <strong>{issue.name}</strong>.",
+            "project_name": issue.project.name,
+            "workspace_slug": issue.project.workspace.slug,
+            "user_preference_url": f"{base_api}/settings/profile/notifications/",
+        }
+
+        html_content = render_to_string("emails/notifications/mention-instant.html", context)
+        text_content = generate_plain_text_from_html(html_content)
+
+        connection = get_connection(
+            host=EMAIL_HOST,
+            port=int(EMAIL_PORT),
+            username=EMAIL_HOST_USER,
+            password=EMAIL_HOST_PASSWORD,
+            use_tls=EMAIL_USE_TLS == "1",
+            use_ssl=EMAIL_USE_SSL == "1",
+        )
+
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=EMAIL_FROM,
+            to=[receiver.email],
+            connection=connection,
+        )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+        logging.getLogger("plane.worker").info(f"Instant mention email sent successfully to {receiver.email}")
+    except (Issue.DoesNotExist, User.DoesNotExist):
+        pass
+    except Exception as e:
+        log_exception(e)
+    finally:
+        release_lock(lock_id=lock_id)
+
+
+@shared_task
+def send_instant_assigned_email(issue_id, actor_id, receiver_id):
+    """Send immediate real-time email notification when a user is assigned to an issue."""
+    lock_id = f"instant_assigned_{issue_id}_{actor_id}_{receiver_id}_{timezone.now().minute}"
+    if not acquire_lock(lock_id=lock_id, expire_time=60):
+        logging.getLogger("plane.worker").info("Duplicate instant assign email lock exists, skipping")
+        return
+
+    try:
+        issue = Issue.objects.select_related("project", "project__workspace", "state").get(pk=issue_id)
+        actor = User.objects.get(pk=actor_id)
+        receiver = User.objects.get(pk=receiver_id)
+
+        # Do not send email if receiver is the actor
+        if str(actor_id) == str(receiver_id):
+            release_lock(lock_id=lock_id)
+            return
+
+        EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_USE_TLS, EMAIL_USE_SSL, EMAIL_FROM, base_api = (
+            get_email_configuration()
+        )
+
+        if not EMAIL_HOST or not EMAIL_FROM:
+            logging.getLogger("plane.worker").warning("Email configuration missing, skipping instant assign email")
+            release_lock(lock_id=lock_id)
+            return
+
+        actor_name = f"{actor.first_name} {actor.last_name}".strip() or actor.display_name or actor.email
+        subject = f"🎯 [{issue.project.identifier}-{issue.sequence_id}] Bạn được giao việc mới: {remove_unwanted_characters(issue.name)}"
+
+        context = {
+            "actor_name": actor_name,
+            "issue": {
+                "issue_identifier": f"{str(issue.project.identifier)}-{str(issue.sequence_id)}",
+                "name": issue.name,
+                "issue_url": f"{base_api}/{str(issue.project.workspace.slug)}/projects/{str(issue.project.id)}/issues/{str(issue.id)}",
+                "state_name": issue.state.name if issue.state else "None",
+                "priority": issue.priority.capitalize() if issue.priority else "None",
+                "target_date": issue.target_date.strftime("%d/%m/%Y") if issue.target_date else "Chưa đặt",
+            },
+            "project_name": issue.project.name,
+            "workspace_slug": issue.project.workspace.slug,
+            "user_preference_url": f"{base_api}/settings/profile/notifications/",
+        }
+
+        html_content = render_to_string("emails/notifications/assigned-instant.html", context)
+        text_content = generate_plain_text_from_html(html_content)
+
+        connection = get_connection(
+            host=EMAIL_HOST,
+            port=int(EMAIL_PORT),
+            username=EMAIL_HOST_USER,
+            password=EMAIL_HOST_PASSWORD,
+            use_tls=EMAIL_USE_TLS == "1",
+            use_ssl=EMAIL_USE_SSL == "1",
+        )
+
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=EMAIL_FROM,
+            to=[receiver.email],
+            connection=connection,
+        )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+        logging.getLogger("plane.worker").info(f"Instant assign email sent successfully to {receiver.email}")
+    except (Issue.DoesNotExist, User.DoesNotExist):
+        pass
+    except Exception as e:
+        log_exception(e)
+    finally:
+        release_lock(lock_id=lock_id)
+

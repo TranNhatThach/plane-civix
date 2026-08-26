@@ -1,10 +1,53 @@
 [
   {
+    "id": "user-notifications-email-preferences",
+    "version": "v1.5.0",
+    "updatedAt": "26/08/2026",
+    "title": "Hệ Thống Thông Báo & Cài Đặt Email Tùy Chỉnh Cá Nhân Hóa (Notification & Email Preferences)",
+    "badge": "Bản Mới Nhất",
+    "iconName": "zap",
+    "description": "Nâng cấp toàn diện cơ chế thông báo thời gian thực khi được nhắc tên (@mention) hoặc giao việc mới (assigned), kèm giao diện tùy chỉnh cài đặt email cho từng thành viên theo chuẩn Civix.",
+    "content": [
+      {
+        "heading": "1. Thông Báo Tức Thì Khi Được Tag (@Mention) & Giao Việc Mới",
+        "subheadings": [
+          {
+            "title": "Gửi email tức thì không độ trễ (Realtime Instant Notification)",
+            "body": [
+              "Trước đây hệ thống gom toàn bộ hoạt động trong 5 phút mới gửi một lượt, dẫn đến việc bỏ lỡ các thông báo thảo luận gấp khi được đồng nghiệp tag tên.",
+              "Phiên bản v1.5.0 bổ sung cơ chế dispatch tức thì ngay khi phát hiện thẻ @username trong bình luận hoặc phần mô tả công việc, đồng thời kích hoạt gửi email ngay khi thành viên được phân công làm người phụ trách task mới (Assigned)."
+            ],
+            "callout": {
+              "type": "tip",
+              "text": "Email gửi đi được thiết kế theo phong cách hiện đại, hiển thị trích dẫn nội dung bình luận, người tag, trạng thái task và có nút dẫn thẳng đến vị trí bình luận."
+            }
+          }
+        ]
+      },
+      {
+        "heading": "2. Cổng Cài Đặt Tùy Chỉnh Thông Báo Cá Nhân Hóa",
+        "subheadings": [
+          {
+            "title": "Ma trận cài đặt phân nhóm trực quan tại /settings/profile/notifications",
+            "body": [
+              "Trao toàn quyền cho mỗi thành viên tự bật/tắt các loại thông báo muốn nhận về Email hoặc In-App.",
+              "Phân chia rõ ràng thành 4 nhóm: ⚡ Thông Báo Tức Thì (@mention, assigned), 📦 Cập Nhật Tiến Độ & Bình Luận (comment, state change, properties), ⏰ Cảnh Báo Hạn Chót (due dates & digest), và 🛡️ Bộ Lọc Chống Spam."
+            ],
+            "callout": {
+              "type": "info",
+              "text": "Hệ thống tự động kích hoạt bộ lọc Anti-Spam: Không gửi email cho các thao tác do chính bạn tự thực hiện để giữ hộp thư luôn sạch sẽ."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "storage-upload-domain-whitelist",
     "version": "v1.4.2",
     "updatedAt": "24/08/2026",
     "title": "Khắc Phục Tải File Lên (MinIO Dynamic Host) & Siết Chặt Đăng Ký @civix.com.vn",
-    "badge": "Bản Mới Nhất",
+    "badge": "Vá Lỗi & Tối Ưu",
     "iconName": "server",
     "description": "Tối ưu hóa toàn diện hạ tầng lưu trữ S3/MinIO với cơ chế tự động phân giải tên miền công khai cho Presigned URLs, đồng thời thiết lập chính sách bảo mật chỉ cho phép đăng ký tài khoản mới bằng email @civix.com.vn.",
     "content": [

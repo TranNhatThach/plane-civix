@@ -75,6 +75,12 @@ def get_default_preference():
         "state": {"email": True},
         "comment": {"email": True},
         "mentions": {"email": True},
+        "email_assigned": {"email": True},
+        "email_due_date": {"email": True},
+        "email_digest": {"email": False},
+        "email_instant_mention": {"email": True},
+        "email_instant_assigned": {"email": True},
+        "notify_self_actions": {"email": False},
     }
 
 
@@ -106,6 +112,12 @@ class UserNotificationPreference(BaseModel):
     comment = models.BooleanField(default=True)
     mention = models.BooleanField(default=True)
     issue_completed = models.BooleanField(default=True)
+    email_assigned = models.BooleanField(default=True)
+    email_due_date = models.BooleanField(default=True)
+    email_digest = models.BooleanField(default=False)
+    email_instant_mention = models.BooleanField(default=True)
+    email_instant_assigned = models.BooleanField(default=True)
+    notify_self_actions = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "UserNotificationPreference"
