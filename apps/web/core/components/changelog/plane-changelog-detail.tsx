@@ -135,6 +135,15 @@ export const PlaneChangelogDetail: React.FC<IPlaneChangelogDetailProps> = ({ rel
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  const scrollToHeading = (idx: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    setActiveHeadingIdx(idx);
+    const el = document.getElementById(`heading-${idx}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <div className="relative mx-auto w-full max-w-6xl px-4 py-10 sm:px-8">
       {/* Ambient background glow */}
@@ -203,7 +212,7 @@ export const PlaneChangelogDetail: React.FC<IPlaneChangelogDetailProps> = ({ rel
                   <a
                     key={idx}
                     href={`#heading-${idx}`}
-                    onClick={() => setActiveHeadingIdx(idx)}
+                    onClick={(e) => scrollToHeading(idx, e)}
                     className={`block py-1 px-2.5 rounded-lg transition-colors leading-relaxed ${
                       activeHeadingIdx === idx
                         ? "bg-blue-500/10 text-blue-500 font-semibold border-l-2 border-blue-500"

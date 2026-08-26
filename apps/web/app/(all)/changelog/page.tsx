@@ -8,6 +8,7 @@ export default function ChangelogPage() {
   const releaseParam = searchParams.get("release");
 
   const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(releaseParam || null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Sync state with URL parameter
   useEffect(() => {
@@ -21,19 +22,24 @@ export default function ChangelogPage() {
   const handleSelectRelease = (releaseId: string) => {
     setSelectedReleaseId(releaseId);
     setSearchParams({ release: releaseId });
+    containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleBackToTimeline = () => {
     setSelectedReleaseId(null);
     setSearchParams({});
+    containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const currentRelease = CIVIX_DOCS_SECTIONS.find((r) => r.id === selectedReleaseId);
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col bg-surface-100/30 text-text-100 selection:bg-blue-500/20 selection:text-blue-500">
+    <div
+      ref={containerRef}
+      className="relative flex h-full w-full flex-col overflow-y-auto vertical-scrollbar bg-surface-100/30 text-text-100 selection:bg-blue-500/20 selection:text-blue-500"
+    >
       {/* Official Top Navigation Bar */}
       <PlaneChangelogHeader />
 
