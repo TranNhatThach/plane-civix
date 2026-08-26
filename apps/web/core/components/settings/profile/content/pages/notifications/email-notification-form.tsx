@@ -32,6 +32,20 @@ type Props = {
   data: IUserEmailNotificationSettings;
 };
 
+const DEFAULT_EMAIL_NOTIFICATION_SETTINGS: IUserEmailNotificationSettings = {
+  property_change: true,
+  state_change: true,
+  comment: true,
+  mention: true,
+  issue_completed: true,
+  email_assigned: true,
+  email_due_date: true,
+  email_digest: false,
+  email_instant_mention: true,
+  email_instant_assigned: true,
+  notify_self_actions: false,
+};
+
 const userService = new UserService();
 
 export const NotificationsProfileSettingsForm = observer(function NotificationsProfileSettingsForm(props: Props) {
@@ -40,17 +54,7 @@ export const NotificationsProfileSettingsForm = observer(function NotificationsP
 
   const { control, reset } = useForm<IUserEmailNotificationSettings>({
     defaultValues: {
-      property_change: true,
-      state_change: true,
-      comment: true,
-      mention: true,
-      issue_completed: true,
-      email_assigned: true,
-      email_due_date: true,
-      email_digest: false,
-      email_instant_mention: true,
-      email_instant_assigned: true,
-      notify_self_actions: false,
+      ...DEFAULT_EMAIL_NOTIFICATION_SETTINGS,
       ...data,
     },
   });
@@ -76,17 +80,7 @@ export const NotificationsProfileSettingsForm = observer(function NotificationsP
 
   useEffect(() => {
     reset({
-      property_change: true,
-      state_change: true,
-      comment: true,
-      mention: true,
-      issue_completed: true,
-      email_assigned: true,
-      email_due_date: true,
-      email_digest: false,
-      email_instant_mention: true,
-      email_instant_assigned: true,
-      notify_self_actions: false,
+      ...DEFAULT_EMAIL_NOTIFICATION_SETTINGS,
       ...data,
     });
   }, [reset, data]);
