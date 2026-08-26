@@ -36,13 +36,15 @@ const InstanceWrapper = observer(function InstanceWrapper(props: TInstanceWrappe
       </div>
     );
 
-  if (instanceSWRError) return <MaintenanceView />;
+  const isPublicDocsRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/changelog");
+
+  if (instanceSWRError && !isPublicDocsRoute) return <MaintenanceView />;
 
   // something went wrong while in the request
   if (error && error?.status === "error") return <>{children}</>;
 
   // instance is not ready and setup is not done
-  if (instance?.is_setup_done === false) return <InstanceNotReady />;
+  if (instance?.is_setup_done === false && !isPublicDocsRoute) return <InstanceNotReady />;
 
   return <>{children}</>;
 });
