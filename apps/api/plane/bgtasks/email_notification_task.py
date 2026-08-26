@@ -306,6 +306,33 @@ def send_email_notification(issue_id, notification_data, receiver_id, email_noti
         return
 
 
+def get_base_web_url(issue_id=None):
+    """
+    Dynamically resolve the web URL so links inside emails are never hardcoded.
+    Checks:
+    1. Redis cached URL for the active issue (set by the request origin).
+    2. Django settings WEB_URL / APP_BASE_URL (configured in .env / production).
+    3. Fallback to http://localhost:3000 for local development.
+    """
+    if issue_id:
+        try:
+            ri = redis_instance()
+            cached_url = ri.get(str(issue_id))
+            if cached_url:
+                return cached_url.decode().rstrip("/")
+        except Exception:
+            pass
+    from django.conf import settings as django_settings
+    url = (
+        getattr(django_settings, "WEB_URL", None)
+        or getattr(django_settings, "APP_BASE_URL", None)
+        or os.environ.get("WEB_URL")
+        or os.environ.get("APP_BASE_URL")
+        or "http://localhost:3000"
+    )
+    return str(url).rstrip("/")
+
+
 @shared_task
 def send_instant_mention_email(issue_id, actor_id, receiver_id, comment_text=""):
     """Send immediate real-time email notification when a user is @mentioned."""
@@ -324,15 +351,22 @@ def send_instant_mention_email(issue_id, actor_id, receiver_id, comment_text="")
             release_lock(lock_id=lock_id)
             return
 
-        EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_USE_TLS, EMAIL_USE_SSL, EMAIL_FROM, base_api = (
-            get_email_configuration()
-        )
+        (
+            EMAIL_HOST,
+            EMAIL_HOST_USER,
+            EMAIL_HOST_PASSWORD,
+            EMAIL_PORT,
+            EMAIL_USE_TLS,
+            EMAIL_USE_SSL,
+            EMAIL_FROM,
+        ) = get_email_configuration()
 
         if not EMAIL_HOST or not EMAIL_FROM:
             logging.getLogger("plane.worker").warning("Email configuration missing, skipping instant mention email")
             release_lock(lock_id=lock_id)
             return
 
+        base_api = get_base_web_url(issue_id=issue_id)
         actor_name = f"{actor.first_name} {actor.last_name}".strip() or actor.display_name or actor.email
         subject = f"[{issue.project.identifier}-{issue.sequence_id}] {actor_name} đã nhắc tên bạn trong: {remove_unwanted_characters(issue.name)}"
 
@@ -398,15 +432,22 @@ def send_instant_assigned_email(issue_id, actor_id, receiver_id):
             release_lock(lock_id=lock_id)
             return
 
-        EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_USE_TLS, EMAIL_USE_SSL, EMAIL_FROM, base_api = (
-            get_email_configuration()
-        )
+        (
+            EMAIL_HOST,
+            EMAIL_HOST_USER,
+            EMAIL_HOST_PASSWORD,
+            EMAIL_PORT,
+            EMAIL_USE_TLS,
+            EMAIL_USE_SSL,
+            EMAIL_FROM,
+        ) = get_email_configuration()
 
         if not EMAIL_HOST or not EMAIL_FROM:
             logging.getLogger("plane.worker").warning("Email configuration missing, skipping instant assign email")
             release_lock(lock_id=lock_id)
             return
 
+        base_api = get_base_web_url(issue_id=issue_id)
         actor_name = f"{actor.first_name} {actor.last_name}".strip() or actor.display_name or actor.email
         subject = f"[{issue.project.identifier}-{issue.sequence_id}] Bạn được phân công công việc: {remove_unwanted_characters(issue.name)}"
 
@@ -453,4 +494,5 @@ def send_instant_assigned_email(issue_id, actor_id, receiver_id):
         log_exception(e)
     finally:
         release_lock(lock_id=lock_id)
+
 
