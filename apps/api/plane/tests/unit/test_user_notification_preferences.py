@@ -204,5 +204,5 @@ class TestUserNotificationPreferences:
         call_kwargs = mock_email_class.call_args[1]
         assert call_kwargs["to"] == [assignee.email]
         assert "CIV-103" in call_kwargs["subject"]
-        assert "Bạn được giao việc mới" in call_kwargs["subject"]
+        assert "Bạn được phân công công việc" in call_kwargs["subject"]
         mock_msg.send.assert_called_once()

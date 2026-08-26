@@ -334,7 +334,7 @@ def send_instant_mention_email(issue_id, actor_id, receiver_id, comment_text="")
             return
 
         actor_name = f"{actor.first_name} {actor.last_name}".strip() or actor.display_name or actor.email
-        subject = f"🔔 [{issue.project.identifier}-{issue.sequence_id}] {actor_name} đã nhắc tên bạn: {remove_unwanted_characters(issue.name)}"
+        subject = f"[{issue.project.identifier}-{issue.sequence_id}] {actor_name} đã nhắc tên bạn trong: {remove_unwanted_characters(issue.name)}"
 
         context = {
             "actor_name": actor_name,
@@ -344,7 +344,7 @@ def send_instant_mention_email(issue_id, actor_id, receiver_id, comment_text="")
                 "issue_url": f"{base_api}/{str(issue.project.workspace.slug)}/projects/{str(issue.project.id)}/issues/{str(issue.id)}",
                 "state_name": issue.state.name if issue.state else "None",
             },
-            "comment_text": comment_text or f"Bạn vừa được nhắc tên trong task <strong>{issue.name}</strong>.",
+            "comment_text": comment_text or f"Bạn vừa được nhắc tên trong công việc <strong>{issue.name}</strong>.",
             "project_name": issue.project.name,
             "workspace_slug": issue.project.workspace.slug,
             "user_preference_url": f"{base_api}/settings/profile/notifications/",
@@ -408,7 +408,7 @@ def send_instant_assigned_email(issue_id, actor_id, receiver_id):
             return
 
         actor_name = f"{actor.first_name} {actor.last_name}".strip() or actor.display_name or actor.email
-        subject = f"🎯 [{issue.project.identifier}-{issue.sequence_id}] Bạn được giao việc mới: {remove_unwanted_characters(issue.name)}"
+        subject = f"[{issue.project.identifier}-{issue.sequence_id}] Bạn được phân công công việc: {remove_unwanted_characters(issue.name)}"
 
         context = {
             "actor_name": actor_name,
