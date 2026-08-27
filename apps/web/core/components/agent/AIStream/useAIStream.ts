@@ -145,9 +145,7 @@ export function useAIStream() {
                   accumulatedText += data.content;
                   setMessages((prev) =>
                     prev.map((msg) =>
-                      msg.id === assistantMsgId
-                        ? { ...msg, content: accumulatedText, metadata: responseMeta }
-                        : msg
+                      msg.id === assistantMsgId ? { ...msg, content: accumulatedText, metadata: responseMeta } : msg
                     )
                   );
                 }
@@ -165,9 +163,7 @@ export function useAIStream() {
         for (let i = 0; i < fallbackText.length; i++) {
           currentText += fallbackText[i];
           setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMsgId ? { ...msg, content: currentText } : msg
-            )
+            prev.map((msg) => (msg.id === assistantMsgId ? { ...msg, content: currentText } : msg))
           );
           await new Promise((r) => setTimeout(r, 18));
         }

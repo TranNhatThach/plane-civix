@@ -21,8 +21,6 @@ import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 // local imports
 import { StarUsOnGitHubLink } from "@/app/(all)/[workspaceSlug]/(projects)/star-us-link";
 
-
-
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
   const { workspaceSlug } = useParams();
@@ -64,8 +62,6 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
       {/* Additional Actions */}
       <div className="flex flex-1 shrink-0 items-center justify-end gap-1">
         <Tooltip tooltipContent="Inbox" position="bottom">
-
-
           <AppSidebarItem
             variant="link"
             item={{

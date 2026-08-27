@@ -80,9 +80,7 @@ function main(): void {
     process.exit(1);
   }
 
-  const jsonFiles = (fs.readdirSync(localesDir) as string[])
-    .filter((file) => file.endsWith(".json"))
-    .sort();
+  const jsonFiles = (fs.readdirSync(localesDir) as string[]).filter((file) => file.endsWith(".json")).toSorted();
 
   if (jsonFiles.length === 0) {
     console.error(`Error: No JSON files found in ${localesDir}`);
@@ -132,7 +130,7 @@ function main(): void {
   }
 
   // Detect path conflicts
-  const sortedKeys = Array.from(allKeys).sort();
+  const sortedKeys = Array.from(allKeys).toSorted();
   const pathConflicts = detectPathConflicts(sortedKeys);
 
   if (pathConflicts.length > 0) {
@@ -175,15 +173,13 @@ ${keyLines}
       .readdirSync(allLocalesRootDir, { withFileTypes: true })
       .filter((dirent) => dirent.isDirectory())
       .map((dirent) => dirent.name)
-      .sort();
+      .toSorted();
 
     const mapEntries: string[] = [];
 
     for (const lang of langDirs) {
       const langDirPath = path.join(allLocalesRootDir, lang);
-      const nsFiles = (fs.readdirSync(langDirPath) as string[])
-        .filter((file) => file.endsWith(".json"))
-        .sort();
+      const nsFiles = (fs.readdirSync(langDirPath) as string[]).filter((file) => file.endsWith(".json")).toSorted();
 
       const nsEntries: string[] = [];
       for (const file of nsFiles) {

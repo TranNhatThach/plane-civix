@@ -56,7 +56,9 @@ export class IntegrationService extends APIService {
 
   async getAppIntegrationsList(): Promise<IAppIntegration[]> {
     return this.get(`/api/integrations/`)
-      .then((response) => (Array.isArray(response?.data) && response.data.length > 0 ? response.data : DEFAULT_APP_INTEGRATIONS))
+      .then((response) =>
+        Array.isArray(response?.data) && response.data.length > 0 ? response.data : DEFAULT_APP_INTEGRATIONS
+      )
       .catch(() => DEFAULT_APP_INTEGRATIONS);
   }
 

@@ -221,6 +221,7 @@ from .notification.base import (
     NotificationViewSet,
     UnreadNotificationEndpoint,
     UserNotificationPreferenceEndpoint,
+    UserNotificationTestEmailEndpoint,
 )
 
 from .exporter.base import ExportIssuesEndpoint

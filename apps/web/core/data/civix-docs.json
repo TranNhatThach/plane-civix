@@ -25,7 +25,7 @@
         ]
       },
       {
-        "heading": "2. Cổng Cài Đặt Tùy Chỉnh Thông Báo Cá Nhân Hóa",
+        "heading": "2. Cổng Cài Đặt Tùy Chỉnh Thông Báo Cá Nhân Hóa & Nút Test Email",
         "subheadings": [
           {
             "title": "Ma trận cài đặt phân nhóm trực quan tại /settings/profile/notifications",
@@ -36,6 +36,17 @@
             "callout": {
               "type": "info",
               "text": "Hệ thống tự động kích hoạt bộ lọc Anti-Spam: Không gửi email cho các thao tác do chính bạn tự thực hiện để giữ hộp thư luôn sạch sẽ."
+            }
+          },
+          {
+            "title": "Nút kiểm tra gửi Email thử nghiệm (Test Email Delivery)",
+            "body": [
+              "Tích hợp nút 'Gửi email thử nghiệm' ngay đầu trang cài đặt thông báo, cho phép người dùng click để hệ thống lập tức phát lệnh gửi 1 email mẫu tới chính hòm thư của họ.",
+              "Giúp kiểm tra tức thì trạng thái kết nối SMTP, độ trễ và khả năng nhận email thông báo thực tế mà không cần chờ có task hoặc comment mới."
+            ],
+            "callout": {
+              "type": "tip",
+              "text": "Endpoint API /api/users/me/notification-preferences/test-email/ tự động kiểm tra cấu hình SMTP và trả về thông báo xác nhận kèm email người nhận."
             }
           }
         ]

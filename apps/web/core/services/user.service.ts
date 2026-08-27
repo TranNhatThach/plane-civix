@@ -145,6 +145,14 @@ export class UserService extends APIService {
       });
   }
 
+  async sendTestEmailNotification(email?: string): Promise<{ message: string; email: string }> {
+    return this.post("/api/users/me/notification-preferences/test-email/", { email })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data || error;
+      });
+  }
+
   async changePassword(token: string, data: { old_password?: string; new_password: string }): Promise<any> {
     return this.post(`/auth/change-password/`, data, {
       headers: {

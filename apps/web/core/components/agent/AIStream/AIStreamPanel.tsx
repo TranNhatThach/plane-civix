@@ -44,46 +44,40 @@ export const AIStreamPanel: React.FC<AIStreamPanelProps> = ({
   }, [messages, state]);
 
   return (
-    <div className="flex flex-col w-full h-full text-white font-sans overflow-hidden">
+    <div className="font-sans flex h-full w-full flex-col overflow-hidden text-white">
       {/* Header Bar */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-neutral-950/40">
+      <div className="bg-neutral-950/40 flex items-center justify-between border-b border-white/10 px-5 py-3.5">
         <AIStreamStatus state={state} />
 
         <button
           type="button"
           onClick={onClose}
           aria-label="Close panel"
-          className="size-7 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+          className="text-neutral-400 hover:bg-neutral-800 flex size-7 items-center justify-center rounded-full transition-colors hover:text-white"
         >
           <X className="size-4" />
         </button>
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-[200px] max-h-[360px] text-xs">
+      <div className="text-xs max-h-[360px] min-h-[200px] flex-1 space-y-4 overflow-y-auto px-5 py-4">
         {messages.map((msg) => (
-          <AIStreamMessage
-            key={msg.id}
-            message={msg}
-            onConfirmAction={(actionText) => onSubmit(actionText)}
-          />
+          <AIStreamMessage key={msg.id} message={msg} onConfirmAction={(actionText) => onSubmit(actionText)} />
         ))}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Suggestion Chips */}
       {messages.length <= 2 && state === "expanded" && (
-        <div className="px-5 py-2 border-t border-white/5 bg-neutral-950/20">
-          <div className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider mb-2">
-            Suggestions
-          </div>
+        <div className="bg-neutral-950/20 border-t border-white/5 px-5 py-2">
+          <div className="text-neutral-400 tracking-wider mb-2 text-[10px] font-semibold uppercase">Suggestions</div>
           <div className="flex flex-wrap gap-1.5">
             {suggestions.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => onSubmit(s.prompt)}
-                className="px-3 py-1.5 rounded-xl bg-neutral-900/80 hover:bg-indigo-600/30 hover:border-indigo-500/50 border border-white/10 text-neutral-300 hover:text-white text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                className="bg-neutral-900/80 hover:bg-indigo-600/30 hover:border-indigo-500/50 text-neutral-300 text-xs flex cursor-pointer items-center gap-1.5 rounded-xl border border-white/10 px-3 py-1.5 transition-all hover:text-white"
               >
                 <span>{s.icon || "✦"}</span>
                 <span>{s.label}</span>
@@ -94,7 +88,7 @@ export const AIStreamPanel: React.FC<AIStreamPanelProps> = ({
       )}
 
       {/* Input Footer */}
-      <div className="p-4 border-t border-white/10 bg-neutral-950/60">
+      <div className="bg-neutral-950/60 border-t border-white/10 p-4">
         <AIStreamInput
           input={input}
           setInput={setInput}

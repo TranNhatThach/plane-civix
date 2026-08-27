@@ -28,17 +28,17 @@ interface IPlaneChangelogTimelineProps {
 const getIconForDoc = (iconName?: string) => {
   switch (iconName) {
     case "zap":
-      return <Zap className="size-4 text-amber-500" />;
+      return <Zap className="text-amber-500 size-4" />;
     case "shield":
-      return <Shield className="size-4 text-emerald-500" />;
+      return <Shield className="text-emerald-500 size-4" />;
     case "server":
-      return <Server className="size-4 text-blue-500" />;
+      return <Server className="text-blue-500 size-4" />;
     case "bot":
-      return <Bot className="size-4 text-purple-500" />;
+      return <Bot className="text-purple-500 size-4" />;
     case "code":
-      return <Code className="size-4 text-cyan-500" />;
+      return <Code className="text-cyan-500 size-4" />;
     default:
-      return <Sparkles className="size-4 text-blue-500" />;
+      return <Sparkles className="text-blue-500 size-4" />;
   }
 };
 
@@ -61,24 +61,24 @@ const CodeSnippet: React.FC<{ code: string }> = ({ code }) => {
   };
 
   return (
-    <div className="relative my-4 overflow-hidden rounded-xl border border-border-200/80 bg-surface-200/60 backdrop-blur-sm">
-      <div className="flex items-center justify-between border-b border-border-200/60 bg-surface-200/90 px-4 py-2 text-xs text-text-400 font-mono">
+    <div className="border-border-200/80 bg-surface-200/60 relative my-4 overflow-hidden rounded-xl border backdrop-blur-sm">
+      <div className="border-border-200/60 bg-surface-200/90 text-xs text-text-400 font-mono flex items-center justify-between border-b px-4 py-2">
         <div className="flex items-center gap-1.5">
-          <div className="size-2.5 rounded-full bg-red-500/80" />
-          <div className="size-2.5 rounded-full bg-amber-500/80" />
-          <div className="size-2.5 rounded-full bg-emerald-500/80" />
-          <span className="ml-2 text-[11px] text-text-400">Terminal / Code</span>
+          <div className="bg-red-500/80 size-2.5 rounded-full" />
+          <div className="bg-amber-500/80 size-2.5 rounded-full" />
+          <div className="bg-emerald-500/80 size-2.5 rounded-full" />
+          <span className="text-text-400 ml-2 text-[11px]">Terminal / Code</span>
         </div>
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded hover:bg-surface-300 text-text-300 hover:text-text-100 transition-colors"
+          className="hover:bg-surface-300 text-text-300 hover:text-text-100 inline-flex items-center gap-1 rounded px-2 py-0.5 transition-colors"
         >
-          {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+          {copied ? <Check className="text-emerald-500 size-3" /> : <Copy className="size-3" />}
           <span className="text-[11px]">{copied ? "Đã copy" : "Sao chép"}</span>
         </button>
       </div>
-      <pre className="p-4 text-xs font-mono text-text-100 overflow-x-auto leading-relaxed">
+      <pre className="text-xs font-mono text-text-100 overflow-x-auto p-4 leading-relaxed">
         <code>{code}</code>
       </pre>
     </div>
@@ -91,7 +91,7 @@ const CalloutBox: React.FC<{ callout: IDocCallout }> = ({ callout }) => {
 
   return (
     <div
-      className={`my-3.5 flex items-start gap-3 rounded-xl border p-3.5 text-xs leading-relaxed ${
+      className={`text-xs my-3.5 flex items-start gap-3 rounded-xl border p-3.5 leading-relaxed ${
         isWarning
           ? "border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400"
           : isTip
@@ -146,47 +146,48 @@ export const PlaneChangelogTimeline: React.FC<IPlaneChangelogTimelineProps> = ({
   return (
     <div className="relative mx-auto w-full max-w-5xl px-4 py-12 sm:px-8">
       {/* Ambient Radial Background */}
-      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-96 w-full max-w-4xl bg-gradient-to-b from-blue-500/10 via-indigo-500/5 to-transparent blur-3xl" />
+      <div className="from-blue-500/10 via-indigo-500/5 pointer-events-none absolute top-0 left-1/2 h-96 w-full max-w-4xl -translate-x-1/2 bg-gradient-to-b to-transparent blur-3xl" />
 
       {/* Hero Header */}
       <div className="relative mb-12 text-center sm:text-left">
-        <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full border border-border-200/80 bg-surface-100/80 backdrop-blur-md shadow-xs">
-          <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-semibold text-text-200">Cập nhật liên tục theo chuẩn Civix</span>
-          <span className="text-xs font-bold text-blue-500 pl-1 border-l border-border-200/60">
+        <div className="border-border-200/80 bg-surface-100/80 shadow-xs mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 backdrop-blur-md">
+          <span className="bg-emerald-500 flex size-2 animate-pulse rounded-full" />
+          <span className="text-xs text-text-200 font-semibold">Cập nhật liên tục theo chuẩn Civix</span>
+          <span className="text-xs text-blue-500 border-border-200/60 border-l pl-1 font-bold">
             {releases[0]?.version || "v1.5.0"}
           </span>
         </div>
 
-        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-text-100 mb-3">
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-text-100 mb-3 tracking-tight">
           Nhật ký phát hành & Tính năng
         </h1>
         <p className="text-sm sm:text-base text-text-400 max-w-2xl leading-relaxed">
-          Theo dõi toàn bộ các phiên bản nâng cấp tính năng, tối ưu hóa hạ tầng và quy chuẩn kỹ thuật của nền tảng Civix.
+          Theo dõi toàn bộ các phiên bản nâng cấp tính năng, tối ưu hóa hạ tầng và quy chuẩn kỹ thuật của nền tảng
+          Civix.
         </p>
 
         {/* Search & Tag Filter Bar */}
-        <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
           {/* Search Box */}
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-text-400" />
+            <Search className="text-text-400 absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm kiếm tính năng, mã task, phiên bản..."
-              className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm rounded-xl border border-border-200/80 bg-surface-100/70 text-text-100 placeholder:text-text-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 backdrop-blur-sm transition-all"
+              className="text-xs sm:text-sm border-border-200/80 bg-surface-100/70 text-text-100 placeholder:text-text-400 focus:ring-blue-500/20 focus:border-blue-500/50 w-full rounded-xl border py-2 pr-4 pl-10 backdrop-blur-sm transition-all focus:ring-2 focus:outline-none"
             />
           </div>
 
           {/* Quick Version Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <div className="scrollbar-none flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             {versionTags.map((tag) => (
               <button
                 key={tag}
                 type="button"
                 onClick={() => setSelectedTag(tag)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all shrink-0 ${
+                className={`text-xs shrink-0 rounded-lg border px-3 py-1.5 font-semibold transition-all ${
                   selectedTag === tag
                     ? "bg-text-100 text-surface-100 border-text-100 shadow-xs"
                     : "bg-surface-100/60 text-text-300 border-border-200/60 hover:text-text-100 hover:bg-surface-200/60"
@@ -202,31 +203,31 @@ export const PlaneChangelogTimeline: React.FC<IPlaneChangelogTimelineProps> = ({
       {/* Timeline Stream */}
       <div className="relative space-y-16">
         {/* Continuous Timeline Connector Line */}
-        <div className="hidden sm:block absolute left-[150px] top-6 bottom-6 w-px bg-border-200/60" />
+        <div className="bg-border-200/60 absolute top-6 bottom-6 left-[150px] hidden w-px sm:block" />
 
         {filteredReleases.length === 0 ? (
-          <div className="text-center py-16 rounded-2xl border border-border-200/60 bg-surface-100/40 p-8">
-            <Search className="size-8 text-text-400 mx-auto mb-3 opacity-50" />
-            <h3 className="text-sm font-semibold text-text-100">Không tìm thấy bản phát hành phù hợp</h3>
+          <div className="border-border-200/60 bg-surface-100/40 rounded-2xl border p-8 py-16 text-center">
+            <Search className="text-text-400 mx-auto mb-3 size-8 opacity-50" />
+            <h3 className="text-sm text-text-100 font-semibold">Không tìm thấy bản phát hành phù hợp</h3>
             <p className="text-xs text-text-400 mt-1">Hãy thử tìm với từ khóa hoặc phiên bản khác.</p>
           </div>
         ) : (
           filteredReleases.map((release, idx) => (
-            <article key={release.id} className="grid grid-cols-1 sm:grid-cols-12 gap-6 sm:gap-10 relative group">
+            <article key={release.id} className="group relative grid grid-cols-1 gap-6 sm:grid-cols-12 sm:gap-10">
               {/* Left Column: Version Pill, Date, and Pulse Node */}
               <div className="sm:col-span-3 sm:text-right">
-                <div className="sm:sticky sm:top-24 flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2">
+                <div className="flex items-center justify-between gap-2 sm:sticky sm:top-24 sm:flex-col sm:items-end sm:justify-start">
                   {/* Version Pill */}
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold tracking-tight text-text-100 px-2.5 py-1 rounded-lg bg-surface-200 border border-border-200/80">
+                    <span className="text-sm text-text-100 bg-surface-200 border-border-200/80 rounded-lg border px-2.5 py-1 font-bold tracking-tight">
                       {release.version || "v1.0.0"}
                     </span>
                     {/* Node on vertical line */}
-                    <div className="hidden sm:block relative -right-[25px] size-2.5 rounded-full bg-blue-500 ring-4 ring-blue-500/20 ring-offset-2 ring-offset-surface-100 group-hover:scale-125 transition-transform" />
+                    <div className="bg-blue-500 ring-blue-500/20 ring-offset-surface-100 relative -right-[25px] hidden size-2.5 rounded-full ring-4 ring-offset-2 transition-transform group-hover:scale-125 sm:block" />
                   </div>
 
                   {/* Formatted Date */}
-                  <div className="flex items-center gap-1.5 text-xs text-text-400 font-medium mt-1">
+                  <div className="text-xs text-text-400 mt-1 flex items-center gap-1.5 font-medium">
                     <Calendar className="size-3" />
                     <time>{release.updatedAt}</time>
                   </div>
@@ -234,7 +235,7 @@ export const PlaneChangelogTimeline: React.FC<IPlaneChangelogTimelineProps> = ({
                   {/* Badge */}
                   {release.badge && (
                     <span
-                      className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border mt-1.5 ${getBadgeColor(
+                      className={`mt-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${getBadgeColor(
                         release.badge
                       )}`}
                     >
@@ -246,22 +247,22 @@ export const PlaneChangelogTimeline: React.FC<IPlaneChangelogTimelineProps> = ({
 
               {/* Right Column: Release Card & Detailed Sections */}
               <div className="sm:col-span-9">
-                <div className="rounded-2xl border border-border-200/80 bg-surface-100/60 hover:bg-surface-100/90 backdrop-blur-sm p-6 sm:p-8 shadow-xs hover:shadow-md transition-all duration-200 space-y-6">
+                <div className="border-border-200/80 bg-surface-100/60 hover:bg-surface-100/90 shadow-xs hover:shadow-md space-y-6 rounded-2xl border p-6 backdrop-blur-sm transition-all duration-200 sm:p-8">
                   {/* Card Header: Icon + Title */}
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-xl bg-surface-200/80 border border-border-200/60 shadow-xs">
+                        <div className="bg-surface-200/80 border-border-200/60 shadow-xs rounded-xl border p-2">
                           {getIconForDoc(release.iconName)}
                         </div>
-                        <span className="text-xs font-semibold text-text-400 tracking-wide uppercase">
+                        <span className="text-xs text-text-400 font-semibold tracking-wide uppercase">
                           Release Notes • {release.version}
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => onSelectRelease(release.id)}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-600 group-hover:translate-x-0.5 transition-all"
+                        className="text-xs text-blue-500 hover:text-blue-600 inline-flex items-center gap-1 font-semibold transition-all group-hover:translate-x-0.5"
                       >
                         <span>Chi tiết</span>
                         <ArrowRight className="size-3" />
@@ -270,7 +271,7 @@ export const PlaneChangelogTimeline: React.FC<IPlaneChangelogTimelineProps> = ({
 
                     <h2
                       onClick={() => onSelectRelease(release.id)}
-                      className="text-xl sm:text-2xl font-bold tracking-tight text-text-100 hover:text-blue-500 cursor-pointer transition-colors leading-snug"
+                      className="text-xl sm:text-2xl text-text-100 hover:text-blue-500 cursor-pointer leading-snug font-bold tracking-tight transition-colors"
                     >
                       {release.title}
                     </h2>
@@ -279,19 +280,19 @@ export const PlaneChangelogTimeline: React.FC<IPlaneChangelogTimelineProps> = ({
                   </div>
 
                   {/* Render Feature Breakdown Headings from civix-docs.json */}
-                  <div className="border-t border-border-200/60 pt-5 space-y-6">
+                  <div className="border-border-200/60 space-y-6 border-t pt-5">
                     {release.content.map((block, bIdx) => (
                       <div key={bIdx} className="space-y-3">
-                        <h3 className="text-sm sm:text-base font-bold text-text-100 tracking-tight flex items-center gap-2">
-                          <span className="flex size-1.5 rounded-full bg-blue-500" />
+                        <h3 className="text-sm sm:text-base text-text-100 flex items-center gap-2 font-bold tracking-tight">
+                          <span className="bg-blue-500 flex size-1.5 rounded-full" />
                           <span>{block.heading}</span>
                         </h3>
 
                         {block.subheadings?.map((sub, sIdx) => (
-                          <div key={sIdx} className="pl-3.5 border-l border-border-200/80 space-y-2">
-                            <h4 className="text-xs sm:text-sm font-semibold text-text-200">{sub.title}</h4>
+                          <div key={sIdx} className="border-border-200/80 space-y-2 border-l pl-3.5">
+                            <h4 className="text-xs sm:text-sm text-text-200 font-semibold">{sub.title}</h4>
 
-                            <div className="space-y-1.5 text-xs text-text-400 leading-relaxed">
+                            <div className="text-xs text-text-400 space-y-1.5 leading-relaxed">
                               {sub.body.map((p, pIdx) => (
                                 <p key={pIdx}>{p}</p>
                               ))}
@@ -309,8 +310,8 @@ export const PlaneChangelogTimeline: React.FC<IPlaneChangelogTimelineProps> = ({
                   </div>
 
                   {/* Card Footer: Action Links */}
-                  <div className="border-t border-border-200/60 pt-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs text-text-400">
+                  <div className="border-border-200/60 flex items-center justify-between border-t pt-4">
+                    <div className="text-xs text-text-400 flex items-center gap-2">
                       <Tag className="size-3.5" />
                       <span>Civix Core Engine</span>
                     </div>
@@ -318,7 +319,7 @@ export const PlaneChangelogTimeline: React.FC<IPlaneChangelogTimelineProps> = ({
                     <button
                       type="button"
                       onClick={() => onSelectRelease(release.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-surface-200 hover:bg-surface-300 text-text-100 transition-colors"
+                      className="text-xs bg-surface-200 hover:bg-surface-300 text-text-100 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-colors"
                     >
                       <span>Xem toàn bộ tài liệu &rarr;</span>
                     </button>

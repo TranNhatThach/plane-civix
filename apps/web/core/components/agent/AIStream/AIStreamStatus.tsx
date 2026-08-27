@@ -9,7 +9,6 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@plane/utils";
 import type { AIStreamState } from "./types";
 
-
 interface AIStreamStatusProps {
   state: AIStreamState;
   className?: string;
@@ -25,31 +24,31 @@ export const AIStreamStatus: React.FC<AIStreamStatusProps> = ({ state, className
       <div className="relative flex items-center justify-center">
         <Sparkles
           className={cn(
-            "size-4 text-violet-400 transition-transform duration-500",
-            isThinking ? "animate-spin text-indigo-300" : isStreaming ? "scale-110 text-pink-400" : "hover:rotate-12"
+            "text-violet-400 size-4 transition-transform duration-500",
+            isThinking ? "text-indigo-300 animate-spin" : isStreaming ? "text-pink-400 scale-110" : "hover:rotate-12"
           )}
         />
         {(isThinking || isStreaming) && (
-          <span className="absolute inset-0 rounded-full bg-violet-500/30 blur-sm animate-ping" />
+          <span className="bg-violet-500/30 absolute inset-0 animate-ping rounded-full blur-sm" />
         )}
       </div>
 
       {/* Status Label or Dot */}
       {isThinking ? (
-        <div className="flex items-center gap-1 text-xs font-medium text-indigo-200">
+        <div className="text-xs text-indigo-200 flex items-center gap-1 font-medium">
           <span>Thinking</span>
           <span className="flex gap-0.5">
-            <span className="size-1 rounded-full bg-indigo-300 animate-bounce" style={{ animationDelay: "0ms" }} />
-            <span className="size-1 rounded-full bg-indigo-300 animate-bounce" style={{ animationDelay: "150ms" }} />
-            <span className="size-1 rounded-full bg-indigo-300 animate-bounce" style={{ animationDelay: "300ms" }} />
+            <span className="bg-indigo-300 size-1 animate-bounce rounded-full" style={{ animationDelay: "0ms" }} />
+            <span className="bg-indigo-300 size-1 animate-bounce rounded-full" style={{ animationDelay: "150ms" }} />
+            <span className="bg-indigo-300 size-1 animate-bounce rounded-full" style={{ animationDelay: "300ms" }} />
           </span>
         </div>
       ) : isStreaming ? (
-        <span className="text-xs font-medium text-pink-300 animate-pulse">Generating...</span>
+        <span className="text-xs text-pink-300 animate-pulse font-medium">Generating...</span>
       ) : (
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-neutral-200 tracking-wide">AI Stream</span>
-          <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
+          <span className="text-xs text-neutral-200 font-medium tracking-wide">AI Stream</span>
+          <span className="bg-emerald-400 size-1.5 animate-pulse rounded-full shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
         </div>
       )}
     </div>

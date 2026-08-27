@@ -118,11 +118,7 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
       <div className="flex items-start gap-4">
         <div className="h-10 w-10 flex-shrink-0">
           {details.logo ? (
-            <img
-              src={details.logo}
-              className="h-full w-full object-cover"
-              alt={`${integration.title} Logo`}
-            />
+            <img src={details.logo} className="h-full w-full object-cover" alt={`${integration.title} Logo`} />
           ) : (
             <div className="grid h-full w-full place-items-center rounded bg-layer-2 text-12 font-semibold text-secondary">
               {integration.title?.charAt(0)}
@@ -137,11 +133,7 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
               : null}
           </h3>
           <p className="text-body-xs-regular text-secondary">
-            {workspaceIntegrations
-              ? isInstalled
-                ? details.installed
-                : details.notInstalled
-              : "Loading..."}
+            {workspaceIntegrations ? (isInstalled ? details.installed : details.notInstalled) : "Loading..."}
           </p>
         </div>
       </div>

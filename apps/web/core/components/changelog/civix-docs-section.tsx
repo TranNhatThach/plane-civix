@@ -51,7 +51,7 @@ export function CivixDocsSection() {
       {/* Docs Milestones Navigation Pills */}
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4">
         {CIVIX_DOCS_SECTIONS.map((sec) => {
-          const Icon = ICON_MAP[sec.iconName] || FileText;
+          const Icon = (sec.iconName && ICON_MAP[sec.iconName]) || FileText;
           const isActive = activeSectionId === sec.id;
 
           return (
@@ -97,7 +97,7 @@ export function CivixDocsSection() {
       {/* Selected Section Details */}
       {CIVIX_DOCS_SECTIONS.map((sec) => {
         if (sec.id !== activeSectionId) return null;
-        const Icon = ICON_MAP[sec.iconName] || FileText;
+        const Icon = (sec.iconName && ICON_MAP[sec.iconName]) || FileText;
 
         return (
           <article

@@ -58,7 +58,7 @@ export function CivixChangelogTimeline() {
     };
 
     CIVIX_CHANGELOG_RELEASES.forEach((rel) => {
-      rel.items.forEach((item) => {
+      rel.items?.forEach((item) => {
         if (counts[item.type] !== undefined) {
           counts[item.type]++;
         }
@@ -70,7 +70,7 @@ export function CivixChangelogTimeline() {
 
   const filteredReleases = useMemo(() => {
     return CIVIX_CHANGELOG_RELEASES.map((release) => {
-      let matchedItems = release.items;
+      let matchedItems = release.items || [];
 
       // Filter by tag
       if (selectedTag !== "all") {
@@ -96,7 +96,9 @@ export function CivixChangelogTimeline() {
       return Object.assign({}, release, {
         items: matchedItems,
       });
-    }).filter((release) => release.items.length > 0 || (selectedTag === "all" && !searchQuery.trim()));
+    }).filter(
+      (release) => (release.items && release.items.length > 0) || (selectedTag === "all" && !searchQuery.trim())
+    );
   }, [selectedTag, searchQuery]);
 
   return (

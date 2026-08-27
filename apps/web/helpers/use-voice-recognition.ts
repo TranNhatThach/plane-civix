@@ -20,8 +20,7 @@ export function useVoiceRecognition(options: VoiceRecognitionOptions = {}) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
@@ -94,6 +93,7 @@ export function useVoiceRecognition(options: VoiceRecognitionOptions = {}) {
     startListening,
     stopListening,
     toggleListening,
-    hasSupport: typeof window !== "undefined" && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition),
+    hasSupport:
+      typeof window !== "undefined" && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition),
   };
 }
