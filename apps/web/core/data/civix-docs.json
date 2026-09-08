@@ -1,10 +1,71 @@
 [
   {
+    "id": "sliding-session-auth-resilience",
+    "version": "v1.5.1",
+    "updatedAt": "08/09/2026",
+    "title": "Cơ Chế Phiên Đăng Nhập Trượt (Sliding Session) & Khắc Phục Tự Động Logout Cho Thành Viên",
+    "badge": "Bản Mới Nhất",
+    "iconName": "shield-check",
+    "description": "Kích hoạt cơ chế gia hạn phiên đăng nhập trượt (Sliding Session) tự động cho người dùng thông thường kéo dài 30 ngày, loại bỏ triệt để sự cố tự động bị văng (unexpected logout) sau 7 ngày, đồng thời bảo lưu tuyệt đối thời hạn an toàn 1 giờ đối với chế độ Quản trị viên (God Mode).",
+    "content": [
+      {
+        "heading": "1. Khắc Phục Lỗi Tự Động Đăng Xuất Đột Ngột (Sliding Session 30 Ngày)",
+        "subheadings": [
+          {
+            "title": "Tự động gia hạn hạn phiên làm việc trên từng thao tác",
+            "body": [
+              "Trước đây hệ thống thiết lập SESSION_SAVE_EVERY_REQUEST=False và thời hạn session cố định 7 ngày (604,800 giây). Do các thao tác xem và cập nhật task thông thường không làm biến đổi cấu trúc session dictionary trong Django, hạn sử dụng trong cơ sở dữ liệu và Cookie trình duyệt không được gia hạn.",
+              "Hệ quả là sau đúng 7 ngày kể từ lúc đăng nhập, phiên làm việc sẽ bị hết hạn chính xác từng giây dù thành viên đang tích cực làm việc, dẫn đến mã lỗi 401 và trình duyệt tự động chuyển hướng về trang đăng nhập.",
+              "Phiên bản v1.5.1 kích hoạt SESSION_SAVE_EVERY_REQUEST=True mặc định và mở rộng SESSION_COOKIE_AGE lên 30 ngày (2,592,000 giây). Bất kỳ tương tác nào của người dùng cũng sẽ tự động trượt gia hạn thêm 30 ngày nữa, giúp trải nghiệm làm việc liền mạch không gián đoạn."
+            ],
+            "callout": {
+              "type": "tip",
+              "text": "Thành viên sử dụng hàng ngày sẽ không bao giờ bị văng ra giữa chừng. Phiên đăng nhập chỉ hết hạn khi không phát sinh bất kỳ hoạt động nào trong suốt 30 ngày liên tục."
+            }
+          }
+        ]
+      },
+      {
+        "heading": "2. Bảo Toàn Chính Sách An Toàn Cho Chế Độ Quản Trị Viên (Admin / God Mode)",
+        "subheadings": [
+          {
+            "title": "Bảo lưu thời hạn nghiêm ngặt 1 giờ (3600s) cho cổng Quản trị",
+            "body": [
+              "Chế độ quản trị hệ thống (/god-mode và các API /instances/) được bảo lưu nguyên vẹn thời hạn nghiêm ngặt ADMIN_SESSION_COOKIE_AGE = 3600 giây (1 giờ).",
+              "SessionMiddleware được tối ưu để các yêu cầu đọc trong khu vực quản trị không áp dụng cơ chế gia hạn trượt, đảm bảo phiên làm việc quản trị cấp cao tự động đóng sau 1 giờ không đổi theo đúng tiêu chuẩn an toàn thông tin."
+            ],
+            "callout": {
+              "type": "info",
+              "text": "Sự phân lập giữa phiên người dùng (30 ngày trượt) và phiên quản trị viên (1 giờ cố định) giúp cân bằng hoàn hảo giữa tính tiện dụng và tiêu chuẩn an toàn doanh nghiệp."
+            }
+          }
+        ]
+      },
+      {
+        "heading": "3. Tối Ưu Hóa Tự Động Sao Lưu Cơ Sở Dữ Liệu (Chu Kỳ 60 Phút & Lưu Trữ 30 Ngày)",
+        "subheadings": [
+          {
+            "title": "Chính sách lưu trữ 30 ngày và công cụ tải nhanh bản mới nhất",
+            "body": [
+              "Điều chỉnh chu kỳ sao lưu PostgreSQL tự động sang 60 phút/lần (setup_cron.sh 60) nhằm tối ưu hiệu năng I/O cho VPS, cân bằng hoàn hảo giữa độ an toàn dữ liệu và dung lượng lưu trữ (khoảng 720 bản sao lưu/30 ngày).",
+              "Thiết lập chính sách tự động dọn dẹp các bản backup cũ hơn 30 ngày (RETENTION_DAYS=30) trong deployments/backup/backup.sh để bảo vệ đĩa cứng VPS không bao giờ bị đầy.",
+              "Bổ sung công cụ dòng lệnh chuyên dụng deployments/backup/download_latest.ps1 và download_latest.sh hỗ trợ tải ngay lập tức bản sao lưu mới nhất từ VPS về máy tính cá nhân chỉ với một lệnh."
+            ],
+            "callout": {
+              "type": "tip",
+              "text": "Trên máy tính cá nhân, chỉ cần chạy 'powershell deployments/backup/download_latest.ps1 <IP_VPS>' là hệ thống tự động tìm và kéo đúng bản backup mới nhất về thư mục D:\\Backup\\."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "user-notifications-email-preferences",
     "version": "v1.5.0",
     "updatedAt": "26/08/2026",
     "title": "Hệ Thống Thông Báo & Cài Đặt Email Tùy Chỉnh Cá Nhân Hóa (Notification & Email Preferences)",
-    "badge": "Bản Mới Nhất",
+    "badge": "Tính Năng Mới",
     "iconName": "zap",
     "description": "Nâng cấp toàn diện cơ chế thông báo thời gian thực khi được nhắc tên (@mention) hoặc giao việc mới (assigned), kèm giao diện tùy chỉnh cài đặt email cho từng thành viên theo chuẩn Civix.",
     "content": [

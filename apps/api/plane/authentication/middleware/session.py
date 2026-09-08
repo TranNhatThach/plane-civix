@@ -54,7 +54,9 @@ class SessionMiddleware(MiddlewareMixin):
         else:
             if accessed:
                 patch_vary_headers(response, ("Cookie",))
-            if (modified or settings.SESSION_SAVE_EVERY_REQUEST) and not empty:
+            # Admin sessions retain their fixed 1-hour expiration; normal app sessions use sliding expiration
+            should_save = modified or (settings.SESSION_SAVE_EVERY_REQUEST and not is_admin_path)
+            if should_save and not empty:
                 if request.session.get_expire_at_browser_close():
                     max_age = None
                     expires = None

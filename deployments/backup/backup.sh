@@ -10,6 +10,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="${BACKUP_DIR:-$HOME/plane-backups/data}"
 mkdir -p "$BACKUP_DIR"
 
+SHARE_LINK=false
+for arg in "$@"; do
+    case $arg in
+        --link|-l|--share|-s)
+            SHARE_LINK=true
+            ;;
+    esac
+done
+
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_FILE="$BACKUP_DIR/plane_backup_${TIMESTAMP}.sql.gz"
 
@@ -17,6 +26,7 @@ CONTAINER_NAME="plane-db"
 DB_USER="${POSTGRES_USER:-plane}"
 DB_PASS="${POSTGRES_PASSWORD:-plane}"
 DB_NAME="${POSTGRES_DB:-plane}"
+RETENTION_DAYS="${RETENTION_DAYS:-30}"
 
 # 1. Verify container is running
 if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
@@ -35,5 +45,11 @@ else
     exit 1
 fi
 
-# 3. Retention Policy: Remove backups older than 3 days to protect VPS disk space
-find "$BACKUP_DIR" -type f -name "plane_backup_*.sql.gz" -mtime +3 -delete
+# 3. Retention Policy: Remove backups older than RETENTION_DAYS to protect VPS disk space
+echo "[$(date)] Pruning backups older than ${RETENTION_DAYS} days..."
+find "$BACKUP_DIR" -type f -name "plane_backup_*.sql.gz" -mtime +"$RETENTION_DAYS" -delete
+
+if [ "$SHARE_LINK" = true ]; then
+    echo ""
+    bash "$SCRIPT_DIR/get_download_link.sh"
+fi
