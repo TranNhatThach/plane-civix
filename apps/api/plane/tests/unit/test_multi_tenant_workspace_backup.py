@@ -20,7 +20,7 @@ from plane.db.models import (
     User,
     Profile,
 )
-from plane.authentication.adapter.base import CredentialAdapter
+from plane.authentication.adapter.base import Adapter
 from plane.authentication.adapter.error import AuthenticationException
 from plane.bgtasks.deletion_task import restore_workspace_objects
 from plane.civix.workspace_backup import (
@@ -36,7 +36,7 @@ class TestInviteOnlySignupPolicy:
     """Tests that signup is invite-only for any domain (not just @civix.com.vn)."""
 
     def test_signup_blocked_without_invite_when_signup_disabled(self):
-        class DummyAdapter(CredentialAdapter):
+        class DummyAdapter(Adapter):
             provider = "email"
             def authenticate(self):
                 return None
@@ -46,11 +46,11 @@ class TestInviteOnlySignupPolicy:
         # Non-invited gmail account should be rejected
         with patch("plane.authentication.adapter.base.get_configuration_value", return_value=("0",)):
             with pytest.raises(AuthenticationException) as exc_info:
-                adapter._CredentialAdapter__check_signup("external.client@gmail.com")
+                adapter._Adapter__check_signup("external.client@gmail.com")
             assert exc_info.value.error_code == 5015
 
     def test_signup_allowed_with_invite(self):
-        class DummyAdapter(CredentialAdapter):
+        class DummyAdapter(Adapter):
             provider = "email"
             def authenticate(self):
                 return None
@@ -68,7 +68,7 @@ class TestInviteOnlySignupPolicy:
 
         with patch("plane.authentication.adapter.base.get_configuration_value", return_value=("0",)):
             # Should not raise exception
-            assert adapter._CredentialAdapter__check_signup(invite_email) is True
+            assert adapter._Adapter__check_signup(invite_email) is True
 
 
 @pytest.mark.django_db
