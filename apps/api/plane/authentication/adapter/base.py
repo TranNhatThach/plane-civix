@@ -101,26 +101,14 @@ class Adapter:
 
     def __check_signup(self, email):
         """Check if sign up is enabled or not and raise exception if not enabled"""
-
-        # Restrict signup strictly to emails with domain "@civix.com.vn" (case-insensitive)
-        if not email.lower().endswith("@civix.com.vn"):
-            self.logger.warning(
-                "Sign up rejected - email domain is not '@civix.com.vn': %s", email
-            )
-            raise AuthenticationException(
-                error_code=AUTHENTICATION_ERROR_CODES["SIGNUP_DISABLED"],
-                error_message="SIGNUP_DISABLED",
-                payload={"email": email},
-            )
-
-        # Get configuration value
+        # Get configuration value (default to '0' - invite only)
         (ENABLE_SIGNUP,) = get_configuration_value([
-            {"key": "ENABLE_SIGNUP", "default": os.environ.get("ENABLE_SIGNUP", "1")}
+            {"key": "ENABLE_SIGNUP", "default": os.environ.get("ENABLE_SIGNUP", "0")}
         ])
 
         # Check if sign up is disabled and invite is present or not
         if ENABLE_SIGNUP == "0" and not WorkspaceMemberInvite.objects.filter(email=email).exists():
-            self.logger.warning("Sign up is disabled and invite is not present")
+            self.logger.warning("Sign up is disabled and invite is not present for email: %s", email)
             # Raise exception
             raise AuthenticationException(
                 error_code=AUTHENTICATION_ERROR_CODES["SIGNUP_DISABLED"],

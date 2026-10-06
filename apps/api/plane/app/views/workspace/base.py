@@ -185,6 +185,14 @@ class WorkSpaceViewSet(BaseViewSet):
         # Get the workspace
         workspace = self.get_object()
         self.remove_last_workspace_ids_from_user_settings(workspace.id)
+
+        # Trigger pre-delete safety backup before soft delete
+        try:
+            from plane.civix.workspace_backup import export_workspace
+            export_workspace(str(workspace.id), backup_type="pre-delete")
+        except Exception as e:
+            logger.warning("Could not generate pre-delete backup for %s: %s", workspace.slug, str(e))
+
         track_event.delay(
             user_id=request.user.id,
             event_name=WORKSPACE_DELETED,

@@ -105,6 +105,42 @@ def soft_delete_related_objects(app_label, model_name, instance_pk, using=None):
         instance.save()
 
 
+@shared_task
+def restore_workspace_objects(workspace_id):
+    """
+    Restores a soft-deleted workspace and all its cascaded records
+    that were soft-deleted alongside the workspace.
+    """
+    from plane.db.models import Workspace
+    try:
+        workspace = Workspace.all_objects.filter(pk=workspace_id).first()
+        if not workspace or not workspace.deleted_at:
+            return False
+        deleted_threshold = workspace.deleted_at
+        workspace.deleted_at = None
+        workspace.save()
+
+        for model in apps.get_models():
+            if hasattr(model, "deleted_at") and hasattr(model, "all_objects"):
+                try:
+                    if hasattr(model, "workspace") or any(f.name == "workspace" for f in model._meta.fields):
+                        model.all_objects.filter(
+                            workspace_id=workspace_id,
+                            deleted_at__gte=deleted_threshold
+                        ).update(deleted_at=None)
+                    elif hasattr(model, "project"):
+                        model.all_objects.filter(
+                            project__workspace_id=workspace_id,
+                            deleted_at__gte=deleted_threshold
+                        ).update(deleted_at=None)
+                except Exception:
+                    continue
+        return True
+    except Exception as e:
+        print(f"Error restoring workspace objects: {str(e)}")
+        return False
+
+
 # @shared_task
 def restore_related_objects(app_label, model_name, instance_pk, using=None):
     pass
@@ -134,8 +170,12 @@ def hard_delete():
     )
 
     days = settings.HARD_DELETE_AFTER_DAYS
-    # check delete workspace
-    _ = Workspace.all_objects.filter(deleted_at__lt=timezone.now() - timezone.timedelta(days=days)).delete()
+    workspace_trash_days = getattr(settings, "WORKSPACE_TRASH_RETENTION_DAYS", 15)
+
+    # 15-day trash retention for workspace
+    _ = Workspace.all_objects.filter(
+        deleted_at__lt=timezone.now() - timezone.timedelta(days=workspace_trash_days)
+    ).delete()
 
     # check delete project
     _ = Project.all_objects.filter(deleted_at__lt=timezone.now() - timezone.timedelta(days=days)).delete()

@@ -31,7 +31,9 @@ export function WorkspaceCreateForm() {
   const [defaultValues, setDefaultValues] = useState<Partial<IWorkspace>>({
     name: "",
     slug: "",
-    organization_size: "",
+    admin_email: "",
+    admin_name: "",
+    organization_size: "5-10",
   });
   // store hooks
   const { createWorkspace } = useWorkspace();
@@ -62,16 +64,16 @@ export function WorkspaceCreateForm() {
             .then(async () => {
               setToast({
                 type: TOAST_TYPE.SUCCESS,
-                title: "Success!",
-                message: "Workspace created successfully.",
+                title: "Thành công!",
+                message: "Workspace đã được tạo và email bàn giao đã được gửi tới Quản trị viên khách hàng.",
               });
               router.push(`/workspace`);
             })
             .catch(() => {
               setToast({
                 type: TOAST_TYPE.ERROR,
-                title: "Error!",
-                message: "Workspace could not be created. Please try again.",
+                title: "Lỗi!",
+                message: "Không thể tạo workspace. Vui lòng kiểm tra lại thông tin.",
               });
             });
         } else setSlugError(true);
@@ -160,6 +162,58 @@ export function WorkspaceCreateForm() {
             <p className="text-13 text-danger-primary">{`URLs can contain only ( - ), ( _ ) and alphanumeric characters.`}</p>
           )}
           {errors.slug && <span className="text-11 text-danger-primary">{errors.slug.message}</span>}
+        </div>
+        <div className="flex flex-col gap-1">
+          <h4 className="text-13 text-tertiary">Customer Administrator Email (Bắt buộc bàn giao)</h4>
+          <div className="flex flex-col gap-1">
+            <Controller
+              control={control}
+              name="admin_email"
+              rules={{
+                required: "Customer admin email is required for handover.",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Địa chỉ email không hợp lệ.",
+                },
+              }}
+              render={({ field: { value, ref, onChange } }) => (
+                <Input
+                  id="adminEmail"
+                  type="email"
+                  value={value ?? ""}
+                  onChange={onChange}
+                  ref={ref}
+                  hasError={Boolean(errors.admin_email)}
+                  placeholder="admin@tidtech.vn hoặc tidtech.admin@gmail.com"
+                  className="w-full"
+                />
+              )}
+            />
+            {errors.admin_email && <span className="text-11 text-danger-primary">{errors.admin_email.message}</span>}
+            <span className="text-11 text-tertiary">
+              Thông tin đăng nhập & mật khẩu tạm thời sẽ được tự động gửi qua email này để bàn giao.
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1">
+          <h4 className="text-13 text-tertiary">Customer Administrator Name (Tùy chọn)</h4>
+          <div className="flex flex-col gap-1">
+            <Controller
+              control={control}
+              name="admin_name"
+              render={({ field: { value, ref, onChange } }) => (
+                <Input
+                  id="adminName"
+                  type="text"
+                  value={value ?? ""}
+                  onChange={onChange}
+                  ref={ref}
+                  placeholder="e.g. Quản trị viên TID TECH"
+                  className="w-full"
+                />
+              )}
+            />
+          </div>
         </div>
         <div className="flex flex-col gap-1">
           <h4 className="text-13 text-tertiary">How many people will use this workspace?</h4>

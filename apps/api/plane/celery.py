@@ -52,6 +52,10 @@ app.conf.beat_schedule = {
         "schedule": schedule(run_every=timedelta(minutes=METRICS_PUSH_INTERVAL_MINUTES)),
     },
     # Occurs once every day
+    "daily-auto-backup-all-workspaces": {
+        "task": "plane.civix.workspace_backup.tasks.daily_auto_backup_all_workspaces",
+        "schedule": crontab(hour=19, minute=0),  # UTC 19:00 = 02:00 AM VN (UTC+7)
+    },
     "check-every-day-to-delete-hard-delete": {
         "task": "plane.bgtasks.deletion_task.hard_delete",
         "schedule": crontab(hour=0, minute=0),  # UTC 00:00

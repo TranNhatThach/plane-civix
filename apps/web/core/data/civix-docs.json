@@ -1,10 +1,96 @@
 [
   {
+    "id": "multi-tenant-workspace-backup-isolation",
+    "version": "v1.6.0",
+    "updatedAt": "06/10/2026",
+    "title": "Mô Hình Multi-Tenant Workspace, Bàn Giao Quản Trị & Sao Lưu Phân Lập Độc Lập",
+    "badge": "Bản Mới Nhất",
+    "iconName": "server",
+    "description": "Hoàn thiện mô hình Multi-tenant Plane-Civix: Chuyển sang cơ chế Invite-only bảo mật cho mọi domain (Gmail, Outlook...); God-mode tạo workspace bàn giao trực tiếp cho Quản trị viên khách hàng kèm mật khẩu tạm 16 ký tự và bắt buộc đổi mật khẩu; Thùng rác 15 ngày; Hệ thống sao lưu dữ liệu phân lập riêng cho từng Workspace (chạy lúc 02:00 hằng ngày, lưu tối đa 45 bản, khôi phục độc lập không tác động dữ liệu CIVIX).",
+    "content": [
+      {
+        "heading": "1. Cơ Chế Đăng Ký Invite-Only & Phân Lập Đa Khách Hàng (Multi-Tenant Boundary)",
+        "subheadings": [
+          {
+            "title": "Gỡ bỏ hạn chế hardcode domain @civix.com.vn và kích hoạt Invite-Only",
+            "body": [
+              "Trước đây hệ thống hardcode bắt buộc email phải có đuôi @civix.com.vn mới được đăng ký tài khoản, gây tắc nghẽn khi các đối tác và khách hàng (như TID TECH) sử dụng tài khoản Gmail, Outlook hoặc tên miền riêng.",
+              "Phiên bản v1.6.0 đã loại bỏ hoàn toàn hạn chế hardcode này, đồng thời thiết lập cờ ENABLE_SIGNUP mặc định là Invite-Only (0). Mọi người dùng mới (dù là khách hàng hay nhân viên Civix mới) chỉ có thể tạo tài khoản khi nhận được thư mời (invitation) hợp lệ vào một Workspace cụ thể.",
+              "Tại God-Mode, cờ 'Prevent anyone from creating a workspace' ngăn chặn người dùng tự do tạo workspace trái phép trên hạ tầng chung."
+            ],
+            "callout": {
+              "type": "tip",
+              "text": "Ranh giới bảo mật nằm ở Lời mời (Invitation) và Quyền thành viên Workspace, không phụ thuộc vào đuôi email."
+            }
+          }
+        ]
+      },
+      {
+        "heading": "2. Khởi Tạo Workspace & Bàn Giao Cho Customer Admin Từ God-Mode",
+        "subheadings": [
+          {
+            "title": "Tự động sinh mật khẩu tạm thời ngẫu nhiên 16 ký tự và gửi email bàn giao",
+            "body": [
+              "Khi quản trị viên CIVIX tạo Workspace khách hàng từ God-Mode, hệ thống bắt buộc nhập Email quản trị viên khách hàng (admin_email) và tên người nhận.",
+              "Nếu email chưa có tài khoản, hệ thống tự động khởi tạo User và Profile, sinh mật khẩu tạm thời an toàn 16 ký tự (bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt) có thời hạn 7 ngày, đồng thời đặt cờ must_change_password=True.",
+              "Một email bàn giao chuẩn nhận diện thương hiệu Civix được gửi tự động qua Celery với đường link trực tiếp https://plane.civix.com.vn/<slug>, thông tin đăng nhập và hướng dẫn đổi mật khẩu.",
+              "Tài khoản CIVIX God-mode hoàn toàn tách biệt và không tự động bị thêm vào làm thành viên của Workspace khách hàng."
+            ],
+            "callout": {
+              "type": "info",
+              "text": "Nếu đối tác làm mất email hoặc mật khẩu tạm hết hạn, Quản trị viên God-mode có thể bấm 'Gửi lại mật khẩu bàn giao' để cấp lại tức thì."
+            }
+          }
+        ]
+      },
+      {
+        "heading": "3. Thùng Rác Workspace Lưu Trữ Tạm 15 Ngày (Workspace Trash)",
+        "subheadings": [
+          {
+            "title": "Cơ chế bảo vệ xóa an toàn và snapshot pre-delete phòng ngừa",
+            "body": [
+              "Khi một Workspace bị xóa bởi quản trị viên, hệ thống tự động sinh một bản sao lưu an toàn pre-delete vào thư mục lưu trữ.",
+              "Workspace được đưa vào Thùng rác tạm thời trong vòng 15 ngày (thay vì 60 ngày như trước). Trong 15 ngày này, God-mode có thể khôi phục lại nguyên trạng toàn bộ task, cycle, page và cấu hình.",
+              "Sau 15 ngày, tiến trình hard_delete định kỳ vào 00:00 UTC sẽ tự động dọn dẹp vĩnh viễn khỏi cơ sở dữ liệu."
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "4. Kiến Trúc Sao Lưu Phân Lập Độc Lập Theo Từng Workspace (Tầng 2)",
+        "subheadings": [
+          {
+            "title": "Sao lưu database riêng biệt, lưu tối đa 45 bản và khôi phục không ảnh hưởng CIVIX",
+            "body": [
+              "Phát triển module plane.civix.workspace_backup đóng gói toàn bộ bảng nghiệp vụ của riêng từng Workspace thành file nén .jsonl.gz kèm manifest.json và sha256 checksum.",
+              "Tiến trình Celery Beat tự động quét và sao lưu tuần tự tất cả Workspace hoạt động vào lúc 02:00 sáng hàng ngày (giờ VN), tự động dọn dẹp các bản cũ khi vượt quá hạn mức 45 bản mới nhất.",
+              "Khi khôi phục dữ liệu cho 1 workspace khách hàng, toàn bộ thao tác diễn ra trong 1 transaction an toàn, chỉ tác động đến dữ liệu của workspace đó, bảo đảm tuyệt đối dữ liệu của CIVIX và các khách hàng khác không bị thụt lùi hay ảnh hưởng.",
+              "Tích hợp giao diện quản trị trực quan tại God-Mode (/workspace/backups/) và công cụ dòng lệnh: python manage.py civix_workspace_backup --slug <slug>."
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "5. Chuẩn Hóa & Vá Lỗi Hệ Thống Sao Lưu Toàn Cục (Tầng 1)",
+        "subheadings": [
+          {
+            "title": "Ghi đè bản sao lưu an toàn, khắc phục lỗi restore im lặng và nạp cấu hình cron",
+            "body": [
+              "Script backup.sh được trang bị cơ chế nạp tự động file .env, khóa flock chống chạy trùng lặp và xác minh tính toàn vẹn gzip -t trước khi lưu file chính thức.",
+              "Script restore.sh tự động sinh bản sao lưu an toàn trước khi khôi phục, dọn sạch schema public để tránh xung đột khóa chính, và hiển thị chi tiết log lỗi thật thay vì che giấu bằng /dev/null.",
+              "Script setup_cron.sh chuyển tiếp toàn bộ log sao lưu định kỳ vào ~/plane-backups/backup.log để đội ngũ vận hành dễ dàng giám sát."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "sliding-session-auth-resilience",
     "version": "v1.5.1",
     "updatedAt": "08/09/2026",
     "title": "Cơ Chế Phiên Đăng Nhập Trượt (Sliding Session) & Khắc Phục Tự Động Logout Cho Thành Viên",
-    "badge": "Bản Mới Nhất",
+    "badge": "Vá Lỗi & Tối Ưu",
     "iconName": "shield-check",
     "description": "Kích hoạt cơ chế gia hạn phiên đăng nhập trượt (Sliding Session) tự động cho người dùng thông thường kéo dài 30 ngày, loại bỏ triệt để sự cố tự động bị văng (unexpected logout) sau 7 ngày, đồng thời bảo lưu tuyệt đối thời hạn an toàn 1 giờ đối với chế độ Quản trị viên (God Mode).",
     "content": [

@@ -25,7 +25,7 @@ else
     CRON_SCHEDULE="*/${INTERVAL_MINUTES} * * * *"
 fi
 
-CRON_CMD="${CRON_SCHEDULE} /bin/bash ${BACKUP_SCRIPT} > /dev/null 2>&1"
+CRON_CMD="${CRON_SCHEDULE} /bin/bash ${BACKUP_SCRIPT} >> \$HOME/plane-backups/backup.log 2>&1"
 CRON_COMMENT="# Plane Database Automated Hourly/Periodic Backup (30-Day Retention)"
 
 # Remove existing Plane backup cron jobs if any

@@ -92,6 +92,13 @@ class ChangePasswordEndpoint(APIView):
         user.set_password(new_password)
         user.is_password_autoset = False
         user.save()
+
+        # Clear Civix temporary password handover flags
+        if hasattr(user, "profile") and user.profile:
+            user.profile.must_change_password = False
+            user.profile.temp_password_expires_at = None
+            user.profile.save(update_fields=["must_change_password", "temp_password_expires_at"])
+
         user_login(user=user, request=request, is_app=True)
         return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
 

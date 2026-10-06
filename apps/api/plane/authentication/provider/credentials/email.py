@@ -83,6 +83,17 @@ class EmailProvider(CredentialAdapter):
                     payload={"email": self.key},
                 )
 
+            # Check if temporary password has expired
+            if hasattr(user, "profile") and user.profile and user.profile.temp_password_expires_at:
+                from django.utils import timezone
+                if timezone.now() > user.profile.temp_password_expires_at:
+                    self.logger.warning("Authentication failed - temporary password expired: %s", self.key)
+                    raise AuthenticationException(
+                        error_message="TEMP_PASSWORD_EXPIRED",
+                        error_code=AUTHENTICATION_ERROR_CODES["TEMP_PASSWORD_EXPIRED"],
+                        payload={"email": self.key},
+                    )
+
             super().set_user_data({
                 "email": self.key,
                 "user": {

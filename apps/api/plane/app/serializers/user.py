@@ -61,6 +61,8 @@ class UserSerializer(BaseSerializer):
 
 
 class UserMeSerializer(BaseSerializer):
+    must_change_password = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
@@ -83,8 +85,13 @@ class UserMeSerializer(BaseSerializer):
             "is_email_verified",
             "last_login_medium",
             "last_login_time",
+            "must_change_password",
         ]
         read_only_fields = fields
+
+    def get_must_change_password(self, obj):
+        profile = getattr(obj, "profile", None)
+        return bool(profile and profile.must_change_password)
 
 
 class UserMeSettingsSerializer(BaseSerializer):

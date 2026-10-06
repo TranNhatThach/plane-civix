@@ -68,4 +68,92 @@ export class InstanceWorkspaceService extends APIService {
         throw error?.response?.data;
       });
   }
+
+  /**
+   * Lists workspaces currently held in 15-day trash
+   */
+  async listTrash(): Promise<any[]> {
+    return this.get("/api/instances/workspaces/trash/")
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Restores a workspace from trash
+   */
+  async restoreWorkspace(workspaceId: string): Promise<any> {
+    return this.post(`/api/instances/workspaces/${workspaceId}/restore/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Permanently purges a workspace from trash
+   */
+  async purgeWorkspace(workspaceId: string): Promise<any> {
+    return this.delete(`/api/instances/workspaces/${workspaceId}/purge/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Resends onboarding credentials and temporary password email to customer admin
+   */
+  async resendHandover(workspaceId: string): Promise<any> {
+    return this.post(`/api/instances/workspaces/${workspaceId}/resend-handover/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Lists all available backups for a given workspace
+   */
+  async listBackups(workspaceId: string): Promise<any[]> {
+    return this.get(`/api/instances/workspaces/${workspaceId}/backups/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Creates an immediate backup for a workspace
+   */
+  async createBackup(workspaceId: string): Promise<any> {
+    return this.post(`/api/instances/workspaces/${workspaceId}/backups/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Restores a workspace from a specific backup
+   */
+  async restoreBackup(workspaceId: string, backupId: string): Promise<any> {
+    return this.post(`/api/instances/workspaces/${workspaceId}/backups/${backupId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Deletes a specific workspace backup
+   */
+  async deleteBackup(workspaceId: string, backupId: string): Promise<any> {
+    return this.delete(`/api/instances/workspaces/${workspaceId}/backups/${backupId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
 }
