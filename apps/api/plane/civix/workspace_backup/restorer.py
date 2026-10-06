@@ -32,6 +32,10 @@ def restore_workspace(workspace_id: str, backup_id: str) -> Dict[str, Any]:
     """
     from plane.db.models import Workspace, User, Profile
 
+    import re
+    if not bool(re.match(r"^ws_[a-zA-Z0-9_\-]+$", backup_id)):
+        raise ValueError(f"Invalid backup ID format: {backup_id}")
+
     target_dir = get_workspace_backup_dir(workspace_id)
     manifest_path = target_dir / f"{backup_id}.manifest.json"
     archive_path = target_dir / f"{backup_id}.jsonl.gz"
@@ -47,8 +51,13 @@ def restore_workspace(workspace_id: str, backup_id: str) -> Dict[str, Any]:
     with open(archive_path, "rb") as f:
         while chunk := f.read(65536):
             hasher.update(chunk)
-    # Note: Manifest may store uncompressed or compressed hash; check archive hash
-    logger.info("Verifying archive for workspace %s restore...", manifest.get("workspace_slug"))
+    calculated_hash = hasher.hexdigest()
+    expected_hash = manifest.get("sha256")
+    if expected_hash and calculated_hash != expected_hash:
+        raise ValueError(
+            f"Checksum mismatch for backup '{backup_id}': expected {expected_hash}, calculated {calculated_hash}."
+        )
+    logger.info("Archive checksum verified successfully for workspace %s restore.", manifest.get("workspace_slug"))
 
     # 2. Safety pre-restore snapshot of current state (if workspace currently exists)
     current_ws = Workspace.all_objects.filter(pk=workspace_id).first()
@@ -84,10 +93,14 @@ def restore_workspace(workspace_id: str, backup_id: str) -> Dict[str, Any]:
             uid = u.get("id")
             email = u.get("email")
             if not User.objects.filter(pk=uid).exists() and not User.objects.filter(email=email).exists():
+                uname = u.get("username") or uid
+                if User.objects.filter(username=uname).exists():
+                    import uuid
+                    uname = f"{uname[:100]}_{uuid.uuid4().hex[:8]}"
                 user = User.objects.create(
                     id=uid,
                     email=email,
-                    username=u.get("username") or uid,
+                    username=uname,
                     first_name=u.get("first_name", ""),
                     last_name=u.get("last_name", ""),
                     is_password_autoset=True,

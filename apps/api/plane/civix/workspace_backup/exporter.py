@@ -150,13 +150,11 @@ def export_workspace(workspace_id: str, backup_type: str = "manual") -> Dict[str
 
     tables_summary = {"users_metadata": len(users_data)}
     total_records = len(users_data)
-    hasher = hashlib.sha256()
 
     with gzip.open(archive_path, "wt", encoding="utf-8") as gz_file:
         # Header: write user metadata line
         user_meta_line = json.dumps({"_type": "USER_SHELL_METADATA", "records": users_data}) + "\n"
         gz_file.write(user_meta_line)
-        hasher.update(user_meta_line.encode("utf-8"))
 
         # Iterate over models
         for app_label, model_name in WORKSPACE_EXPORT_MODELS:
@@ -196,9 +194,12 @@ def export_workspace(workspace_id: str, backup_type: str = "manual") -> Dict[str
                 # Custom JSON encoder for datetime/UUID
                 record_line = json.dumps(record, default=str) + "\n"
                 gz_file.write(record_line)
-                hasher.update(record_line.encode("utf-8"))
 
     file_size = archive_path.stat().st_size
+    hasher = hashlib.sha256()
+    with open(archive_path, "rb") as f:
+        while chunk := f.read(65536):
+            hasher.update(chunk)
     file_hash = hasher.hexdigest()
 
     manifest = {

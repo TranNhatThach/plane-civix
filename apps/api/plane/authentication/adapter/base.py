@@ -107,7 +107,8 @@ class Adapter:
         ])
 
         # Check if sign up is disabled and invite is present or not
-        if ENABLE_SIGNUP == "0" and not WorkspaceMemberInvite.objects.filter(email=email).exists():
+        email_clean = email.strip().lower() if email else ""
+        if ENABLE_SIGNUP == "0" and not WorkspaceMemberInvite.objects.filter(email__iexact=email_clean).exists():
             self.logger.warning("Sign up is disabled and invite is not present for email: %s", email)
             # Raise exception
             raise AuthenticationException(

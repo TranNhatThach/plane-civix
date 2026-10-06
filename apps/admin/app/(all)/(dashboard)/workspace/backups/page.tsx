@@ -8,19 +8,7 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import useSWR, { mutate } from "swr";
-import {
-  Download,
-  RotateCcw,
-  Trash2,
-  Database,
-  Archive,
-  RefreshCw,
-  Send,
-  AlertTriangle,
-  Clock,
-  ShieldCheck,
-  CheckCircle2,
-} from "lucide-react";
+import { Download, RotateCcw, Trash2, Database, Archive, Send, AlertTriangle, Clock, ShieldCheck } from "lucide-react";
 
 // propel imports
 import { Button, getButtonStyling } from "@plane/propel/button";

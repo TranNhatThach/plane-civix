@@ -34,10 +34,19 @@ def list_workspace_backups(workspace_id: str) -> List[Dict[str, Any]]:
     return backups
 
 
+import re
+
+def is_valid_backup_id(backup_id: str) -> bool:
+    """Validates that the backup_id contains only safe identifier characters (no path traversal)."""
+    return bool(re.match(r"^ws_[a-zA-Z0-9_\-]+$", backup_id))
+
+
 def get_backup_manifest(workspace_id: str, backup_id: str) -> Optional[Dict[str, Any]]:
     """
     Retrieves the manifest of a specific backup.
     """
+    if not is_valid_backup_id(backup_id):
+        return None
     target_dir = get_workspace_backup_dir(workspace_id)
     manifest_path = target_dir / f"{backup_id}.manifest.json"
     if not manifest_path.exists():
@@ -50,6 +59,8 @@ def get_backup_archive_path(workspace_id: str, backup_id: str) -> Optional[Path]
     """
     Returns the file path of the compressed archive for downloading.
     """
+    if not is_valid_backup_id(backup_id):
+        return None
     target_dir = get_workspace_backup_dir(workspace_id)
     archive_path = target_dir / f"{backup_id}.jsonl.gz"
     return archive_path if archive_path.exists() else None
@@ -59,6 +70,8 @@ def delete_workspace_backup(workspace_id: str, backup_id: str) -> bool:
     """
     Deletes both the manifest and the archive file for a backup.
     """
+    if not is_valid_backup_id(backup_id):
+        return False
     target_dir = get_workspace_backup_dir(workspace_id)
     manifest_path = target_dir / f"{backup_id}.manifest.json"
     archive_path = target_dir / f"{backup_id}.jsonl.gz"

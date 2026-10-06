@@ -97,7 +97,7 @@ class TestTemporaryPasswordHandoverPolicy:
 
         with patch("plane.authentication.provider.credentials.email.get_configuration_value", return_value=("1",)):
             with pytest.raises(AuthenticationException) as exc_info:
-                provider.set_user_data({"email": user.email})
+                provider.set_user_data()
             assert exc_info.value.error_code == 5195  # TEMP_PASSWORD_EXPIRED
 
     def test_valid_temp_password_allowed(self):
@@ -120,8 +120,37 @@ class TestTemporaryPasswordHandoverPolicy:
         provider = EmailProvider(request=req, key=user.email, code="ValidTempPass123!", is_signup=False)
 
         with patch("plane.authentication.provider.credentials.email.get_configuration_value", return_value=("1",)):
-            provider.set_user_data({"email": user.email})
+            provider.set_user_data()
             assert provider.user_data["email"] == user.email
+
+    def test_middleware_blocks_api_when_password_change_required(self):
+        from plane.authentication.middleware.password_change import MustChangePasswordMiddleware
+
+        user = User.objects.create(email="user@tidtech.vn", username="tid_must_change")
+        profile, _ = Profile.objects.get_or_create(user=user)
+        profile.must_change_password = True
+        profile.save()
+
+        middleware = MustChangePasswordMiddleware(get_response=lambda r: None)
+
+        # Non-exempt API call should be blocked with 403
+        req_blocked = MagicMock()
+        req_blocked.user = user
+        req_blocked.path = "/api/workspaces/tid-tech/issues/"
+        res = middleware.process_request(req_blocked)
+        assert res is not None
+        assert res.status_code == 403
+
+        # Exempt API calls should pass through
+        req_exempt = MagicMock()
+        req_exempt.user = user
+        req_exempt.path = "/api/users/me/"
+        assert middleware.process_request(req_exempt) is None
+
+        req_change = MagicMock()
+        req_change.user = user
+        req_change.path = "/api/auth/change-password/"
+        assert middleware.process_request(req_change) is None
 
 
 @pytest.mark.django_db
