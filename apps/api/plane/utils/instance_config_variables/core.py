@@ -8,7 +8,7 @@ import os
 authentication_config_variables = [
     {
         "key": "ENABLE_SIGNUP",
-        "value": os.environ.get("ENABLE_SIGNUP", "1"),
+        "value": os.environ.get("ENABLE_SIGNUP", "0"),
         "category": "AUTHENTICATION",
         "is_encrypted": False,
     },

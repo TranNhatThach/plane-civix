@@ -62,15 +62,18 @@ const WorkspaceMembersSettingsPage = observer(function WorkspaceMembersSettingsP
         title: "Success!",
         message: t("workspace_settings.settings.members.invitations_sent_successfully"),
       });
-    } catch (error: unknown) {
-      let message = undefined;
-      if (error instanceof Error) {
-        const err = error as Error & { error?: string };
-        message = err.error;
+    } catch (error: any) {
+      let message = error?.error || error?.message || error?.error_message;
+      if (
+        error?.error_message === "PASSWORD_CHANGE_REQUIRED" ||
+        (typeof message === "string" && message.includes("Password change is required"))
+      ) {
+        message =
+          "Bạn đang sử dụng mật khẩu tạm thời. Vui lòng bấm 'Đổi mật khẩu ngay' trên thanh màu vàng ở đầu trang để đổi mật khẩu trước khi thêm thành viên.";
       }
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error!",
+        title: error?.error_message === "PASSWORD_CHANGE_REQUIRED" ? "Yêu cầu đổi mật khẩu!" : "Error!",
         message: `${message ?? t("something_went_wrong_please_try_again")}`,
       });
 

@@ -44,14 +44,16 @@ class WorkspaceInvitationsViewset(BaseViewSet):
     permission_classes = [WorkSpaceAdminPermission]
 
     def get_queryset(self):
+        slug = (self.kwargs.get("slug") or "").replace(" ", "-").replace("%20", "-")
         return self.filter_queryset(
             super()
             .get_queryset()
-            .filter(workspace__slug=self.kwargs.get("slug"))
+            .filter(workspace__slug=slug)
             .select_related("workspace", "workspace__owner", "created_by")
         )
 
     def create(self, request, slug):
+        slug = (slug or "").replace(" ", "-").replace("%20", "-")
         emails = request.data.get("emails", [])
         # Check if email is provided
         if not emails:

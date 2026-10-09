@@ -261,6 +261,10 @@ class Profile(TimeAuditModel):
     is_subscribed_to_changelog = models.BooleanField(default=False)
     product_tour = models.JSONField(default=get_default_product_tour)
 
+    # Password policy & handover
+    must_change_password = models.BooleanField(default=False)
+    temp_password_expires_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         verbose_name = "Profile"
         verbose_name_plural = "Profiles"

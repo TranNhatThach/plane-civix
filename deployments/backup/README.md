@@ -4,13 +4,27 @@ Tài liệu này hướng dẫn chi tiết quy trình vận hành, tự động 
 
 ---
 
-## 📌 1. TỔNG QUAN HẠ TẦNG LƯU TRỮ
+## 📌 1. TỔNG QUAN KIẾN TRÚC SAO LƯU 2 TẦNG (TWO-TIER ARCHITECTURE)
+
+Hệ thống Plane-Civix triển khai kiến trúc sao lưu 2 tầng bảo vệ dữ liệu toàn diện:
+
+### 🌐 Tầng 1: Sao lưu toàn cục thực thể (Full Database Snapshot)
 
 - **Loại Database:** PostgreSQL 15 (chạy trong Docker container `plane-db`).
-- **Thư mục lưu bản backup trên VPS:** `~/plane-backups/data/`
-- **Định dạng file:** `plane_backup_YYYYMMDD_HHMMSS.sql.gz` (được nén `gzip` siêu nhẹ).
-- **Chu kỳ sao lưu tự động:** Mỗi **60 phút** một lần (`0 * * * *`).
-- **Chính sách lưu trữ (Retention Policy):** Lưu trữ trong vòng **30 ngày** gần nhất (khoảng ~720 bản backup). Các bản cũ hơn 30 ngày sẽ tự động được dọn dẹp để bảo vệ ổ cứng VPS.
+- **Thư mục lưu:** `~/plane-backups/data/`
+- **Định dạng:** `plane_backup_YYYYMMDD_HHMMSS.sql.gz` (nén gzip, có kiểm tra hash & khóa flock).
+- **Chu kỳ:** Mỗi **60 phút** một lần (`0 * * * *`).
+- **Chính sách lưu:** Giữ **30 ngày** gần nhất (~720 bản backup). Phục vụ khôi phục toàn bộ máy chủ VPS khi xảy ra sự cố phần cứng.
+
+### 🏢 Tầng 2: Sao lưu phân lập theo Workspace (Isolated Per-Workspace Backup)
+
+- **Cơ chế:** Quét và đóng gói toàn bộ bảng và dữ liệu nghiệp vụ của riêng từng Workspace thành file nén `.jsonl.gz`.
+- **Thư mục lưu:** `~/plane-backups/workspaces/<workspace_id>/`
+- **Chu kỳ tự động:** Hằng ngày lúc **02:00 sáng (giờ VN)** qua Celery Beat.
+- **Chính sách lưu:** Giữ tối đa **45 bản mới nhất** cho mỗi workspace (tự động xóa bản cũ khi vượt quá).
+- **Đặc tính độc lập:** Khi khôi phục dữ liệu cho 1 khách hàng (ví dụ: TID TECH), dữ liệu của CIVIX và các khách hàng khác **hoàn toàn không bị ảnh hưởng hay thụt lùi**.
+- **Quản trị trực quan:** Xem, tải về, tạo ngay và khôi phục trực tiếp tại giao diện God-Mode: `/workspace/backups/`.
+- **Thùng rác 15 ngày:** Workspace khi bị xóa sẽ được lưu trữ tạm trong 15 ngày, tự động tạo snapshot `pre-delete`, cho phép God-mode khôi phục trước khi xóa hẳn.
 
 ---
 
@@ -18,14 +32,15 @@ Tài liệu này hướng dẫn chi tiết quy trình vận hành, tự động 
 
 Trong thư mục `deployments/backup/` của dự án đã tích hợp sẵn trọn bộ script tự động:
 
-| Tên File Script        | Mục Đích Sử Dụng                                                         |
-| :--------------------- | :----------------------------------------------------------------------- |
-| `setup_cron.sh`        | Cài đặt / Cập nhật tiến trình tự động sao lưu định kỳ (Crontab) trên VPS |
-| `backup.sh`            | Kích hoạt sao lưu thủ công ngay lập tức & tự dọn dẹp file cũ > 30 ngày   |
-| `get_download_link.sh` | Menu chọn bản backup bất kỳ để sinh link tải trực tiếp (tự hủy sau 1h)   |
-| `restore.sh`           | Trình hướng dẫn tương tác 1-Click khôi phục dữ liệu từ bản sao lưu       |
-| `download_latest.ps1`  | Script PowerShell cho máy Windows tải bản backup mới nhất qua SSH/SCP    |
-| `download_latest.sh`   | Script Shell cho máy Linux/Mac tải bản backup mới nhất qua SSH/SCP       |
+| Tên File Script / Lệnh CLI     | Mục Đích Sử Dụng                                                         |
+| :----------------------------- | :----------------------------------------------------------------------- |
+| `setup_cron.sh`                | Cài đặt / Cập nhật tiến trình tự động sao lưu định kỳ (Crontab) trên VPS |
+| `backup.sh`                    | Kích hoạt sao lưu toàn cục ngay lập tức & tự dọn dẹp file cũ > 30 ngày   |
+| `get_download_link.sh`         | Menu chọn bản backup bất kỳ để sinh link tải trực tiếp (tự hủy sau 1h)   |
+| `restore.sh`                   | Trình hướng dẫn an toàn 1-Click khôi phục database toàn cục              |
+| `download_latest.ps1`          | Script PowerShell cho máy Windows tải bản backup mới nhất qua SSH/SCP    |
+| `download_latest.sh`           | Script Shell cho máy Linux/Mac tải bản backup mới nhất qua SSH/SCP       |
+| `civix_workspace_backup` (CLI) | Lệnh Django CLI quản lý sao lưu / khôi phục riêng từng workspace         |
 
 ---
 

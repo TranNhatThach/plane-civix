@@ -25,4 +25,10 @@ from .admin import (
 from .workspace import (
     InstanceWorkSpaceAvailabilityCheckEndpoint,
     InstanceWorkSpaceEndpoint,
+    InstanceWorkSpaceHandoverResendEndpoint,
+    InstanceWorkSpaceTrashEndpoint,
+    InstanceWorkSpaceRestoreEndpoint,
+    InstanceWorkSpacePurgeEndpoint,
+    InstanceWorkSpaceBackupEndpoint,
+    InstanceWorkSpaceBackupDetailEndpoint,
 )
