@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 ## Module imports
-from plane.db.models import User
+from plane.db.models import User, WorkspaceMemberInvite
 from plane.license.models import Instance
 from plane.authentication.adapter.error import (
     AuthenticationException,
@@ -93,6 +93,26 @@ class EmailCheckEndpoint(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
+
+        # For new users (signup), verify Civix policy:
+        # 1. Internal Civix employees (@civix.com.vn) are always permitted to register.
+        # 2. External users (Gmail, etc.) are allowed ONLY if they have an active WorkspaceMemberInvite.
+        # 3. All other uninvited external signups are blocked (SIGNUP_DISABLED) when ENABLE_SIGNUP == "0".
+        is_civix_domain = email.endswith("@civix.com.vn")
+        has_invite = WorkspaceMemberInvite.objects.filter(email__iexact=email).exists()
+
+        (ENABLE_SIGNUP,) = get_configuration_value([
+            {"key": "ENABLE_SIGNUP", "default": os.environ.get("ENABLE_SIGNUP", "0")}
+        ])
+
+        if not is_civix_domain and not has_invite and ENABLE_SIGNUP != "1":
+            exc = AuthenticationException(
+                error_code=AUTHENTICATION_ERROR_CODES["SIGNUP_DISABLED"],
+                error_message="SIGNUP_DISABLED",
+                payload={"email": email},
+            )
+            return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
+
         # Else return response
         return Response(
             {

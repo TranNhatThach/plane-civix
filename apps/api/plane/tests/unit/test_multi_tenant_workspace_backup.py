@@ -70,6 +70,18 @@ class TestInviteOnlySignupPolicy:
             # Should not raise exception
             assert adapter._Adapter__check_signup(invite_email) is True
 
+    def test_signup_allowed_for_civix_domain_without_invite(self):
+        class DummyAdapter(Adapter):
+            provider = "email"
+            def authenticate(self):
+                return None
+
+        adapter = DummyAdapter(request=MagicMock(), provider="email")
+
+        # Internal Civix employees should be allowed without any invite even when signup is invite-only
+        with patch("plane.authentication.adapter.base.get_configuration_value", return_value=("0",)):
+            assert adapter._Adapter__check_signup("engineer@civix.com.vn") is True
+
 
 @pytest.mark.django_db
 class TestTemporaryPasswordHandoverPolicy:

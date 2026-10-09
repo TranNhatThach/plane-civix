@@ -100,24 +100,41 @@ class Adapter:
         return
 
     def __check_signup(self, email):
-        """Check if sign up is enabled or not and raise exception if not enabled"""
-        # Get configuration value (default to '0' - invite only)
-        (ENABLE_SIGNUP,) = get_configuration_value([
-            {"key": "ENABLE_SIGNUP", "default": os.environ.get("ENABLE_SIGNUP", "0")}
-        ])
-
-        # Check if sign up is disabled and invite is present or not
+        """
+        Check if sign up is permitted for this email:
+        1. Internal Civix employees (@civix.com.vn) can register freely.
+        2. External users (Gmail, partner domains, etc.) are allowed ONLY if they have a valid WorkspaceMemberInvite.
+        3. All other uninvited external signups are blocked (SIGNUP_DISABLED) when ENABLE_SIGNUP == "0".
+        """
         email_clean = email.strip().lower() if email else ""
-        if ENABLE_SIGNUP == "0" and not WorkspaceMemberInvite.objects.filter(email__iexact=email_clean).exists():
-            self.logger.warning("Sign up is disabled and invite is not present for email: %s", email)
-            # Raise exception
+        if not email_clean:
             raise AuthenticationException(
-                error_code=AUTHENTICATION_ERROR_CODES["SIGNUP_DISABLED"],
-                error_message="SIGNUP_DISABLED",
+                error_code=AUTHENTICATION_ERROR_CODES["INVALID_EMAIL"],
+                error_message="INVALID_EMAIL",
                 payload={"email": email},
             )
 
-        return True
+        # Allow internal Civix employees unconditionally
+        if email_clean.endswith("@civix.com.vn"):
+            return True
+
+        # Allow external users if they have an active workspace invitation
+        if WorkspaceMemberInvite.objects.filter(email__iexact=email_clean).exists():
+            return True
+
+        # Check instance configuration (default to '0' - invite only / civix only)
+        (ENABLE_SIGNUP,) = get_configuration_value([
+            {"key": "ENABLE_SIGNUP", "default": os.environ.get("ENABLE_SIGNUP", "0")}
+        ])
+        if ENABLE_SIGNUP == "1":
+            return True
+
+        self.logger.warning("Sign up is disabled for uninvited external email: %s", email)
+        raise AuthenticationException(
+            error_code=AUTHENTICATION_ERROR_CODES["SIGNUP_DISABLED"],
+            error_message="SIGNUP_DISABLED",
+            payload={"email": email},
+        )
 
     def get_avatar_download_headers(self):
         return {}

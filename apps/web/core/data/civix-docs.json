@@ -12,15 +12,16 @@
         "heading": "1. Cơ Chế Đăng Ký Invite-Only & Phân Lập Đa Khách Hàng (Multi-Tenant Boundary)",
         "subheadings": [
           {
-            "title": "Gỡ bỏ hạn chế hardcode domain @civix.com.vn và kích hoạt Invite-Only",
+            "title": "Chính sách Đăng ký Hỗn hợp (Hybrid Signup Policy): Ưu tiên Nội bộ Civix & Khách hàng Invite-Only",
             "body": [
-              "Trước đây hệ thống hardcode bắt buộc email phải có đuôi @civix.com.vn mới được đăng ký tài khoản, gây tắc nghẽn khi các đối tác và khách hàng (như TID TECH) sử dụng tài khoản Gmail, Outlook hoặc tên miền riêng.",
-              "Phiên bản v1.6.0 đã loại bỏ hoàn toàn hạn chế hardcode này, đồng thời thiết lập cờ ENABLE_SIGNUP mặc định là Invite-Only (0). Mọi người dùng mới (dù là khách hàng hay nhân viên Civix mới) chỉ có thể tạo tài khoản khi nhận được thư mời (invitation) hợp lệ vào một Workspace cụ thể.",
-              "Tại God-Mode, cờ 'Prevent anyone from creating a workspace' ngăn chặn người dùng tự do tạo workspace trái phép trên hạ tầng chung."
+              "Hệ thống áp dụng chính sách đăng ký phân quyền nghiêm ngặt nhằm bảo đảm an toàn dữ liệu doanh nghiệp:",
+              "1. Người dùng nội bộ (@civix.com.vn): Được quyền tự do đăng ký tài khoản bất kỳ lúc nào mà không cần thư mời.",
+              "2. Đối tác và Khách hàng bên ngoài (Gmail, Outlook, domain riêng...): BẮT BUỘC phải nhận được Thư mời hợp lệ (WorkspaceMemberInvite) từ Chủ Workspace hoặc Admin mới được phép đăng ký tài khoản.",
+              "3. Email bên ngoài không có thư mời: Sẽ bị hệ thống từ chối đăng ký ngay từ bước kiểm tra (lỗi 5015: SIGNUP_DISABLED), ngăn chặn hoàn toàn việc người lạ hoặc bot tự ý tạo tài khoản rác trên hạ tầng Civix."
             ],
             "callout": {
               "type": "tip",
-              "text": "Ranh giới bảo mật nằm ở Lời mời (Invitation) và Quyền thành viên Workspace, không phụ thuộc vào đuôi email."
+              "text": "Email nội bộ @civix.com.vn đăng ký tự do; mọi email ngoài (Gmail/Outlook...) bắt buộc phải có Lời mời hợp lệ."
             }
           }
         ]
@@ -33,8 +34,17 @@
             "body": [
               "Khi quản trị viên CIVIX tạo Workspace khách hàng từ God-Mode, hệ thống bắt buộc nhập Email quản trị viên khách hàng (admin_email) và tên người nhận.",
               "Nếu email chưa có tài khoản, hệ thống tự động khởi tạo User và Profile, sinh mật khẩu tạm thời an toàn 16 ký tự (bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt) có thời hạn 7 ngày, đồng thời đặt cờ must_change_password=True.",
-              "Một email bàn giao chuẩn nhận diện thương hiệu Civix được gửi tự động qua Celery với đường link trực tiếp https://plane.civix.com.vn/<slug>, thông tin đăng nhập và hướng dẫn đổi mật khẩu.",
-              "Tài khoản CIVIX God-mode hoàn toàn tách biệt và không tự động bị thêm vào làm thành viên của Workspace khách hàng."
+              "Tự động gửi email bàn giao theo chuẩn Civix Enterprise với đường link truy cập chính xác (dựa trên cấu hình WEB_URL hoặc FQDN công khai, loại bỏ triệt để việc gắn nhầm cổng API :8000 dẫn đến lỗi 404).",
+              "Giao diện Email được thiết kế theo tiêu chuẩn Civix Enterprise hiện đại: thanh điều hướng nhận diện thương hiệu dark-theme (#0f172a), bảng chi tiết thông tin Workspace, ô hiển thị mật khẩu mono-spaced rõ ràng, nút CTA 'Truy Cập Workspace' nổi bật và 3 bước kích hoạt tinh gọn, loại bỏ hoàn toàn câu chữ khuôn mẫu máy móc (AI boilerplate).",
+              "Khắc phục lỗi 'Not Authorized': Miễn trừ chặn trung gian (middleware exemption) đối với endpoint định danh thành viên (/workspace-members/me/) và thông tin siêu dữ liệu workspace, giúp khách hàng đăng nhập lần đầu bằng mật khẩu tạm thời truy cập ngay vào giao diện workspace thay vì bị hiểu nhầm là chưa có quyền.",
+              "Tích hợp thanh thông báo an toàn MustChangePasswordBanner trực tiếp trên đầu Workspace: Nhắc nhở người dùng đổi mật khẩu tạm thời sang mật khẩu riêng tư kèm nút thao tác 1 chạm dẫn thẳng đến modal bảo mật.",
+              "Tài khoản CIVIX God-mode hoàn toàn tách biệt và không tự động bị thêm vào làm thành viên của Workspace khách hàng.",
+              "Tạm thời vô hiệu hóa hiển thị Floating AI Stream widget trên giao diện Workspace để chuẩn bị tái cấu trúc và phát triển phiên bản trợ lý AI hoàn toàn mới.",
+              "Tự động chuẩn hóa Slug Workspace (Auto-normalize Slugs): Tự động khử ký tự khoảng trắng hoặc %20 thành dấu gạch nối '-' ở cả tầng API Backend và Frontend Routing, ngăn ngừa lỗi 404/500 khi người dùng nhập nhầm URL chứa khoảng trắng trong quá trình gửi lời mời thành viên (Member Invitations).",
+              "Nâng cấp Trang Chấp nhận Lời mời (/workspace-invitations): Tự động phát hiện trường hợp xung đột tài khoản (khi mở link mời trên trình duyệt đang đăng nhập tài khoản khác), hiển thị cảnh báo trực quan và nút chuyển đổi tài khoản 1 chạm (Đăng xuất & Đăng nhập bằng email được mời); bổ sung trạng thái Loading và Toast thông báo lỗi/thành công chi tiết, loại bỏ hoàn toàn hiện tượng nút 'Accept/Ignore' bị đơ không phản hồi.",
+              "Khắc phục lỗi Giao diện 'Pending Invites' (/settings/members): Gỡ bỏ thẻ Disclosure.Panel thừa bên trong component Collapsible, khắc phục triệt để sự cố bấm vào thanh danh sách lời mời đang chờ (Pending Invites) mà không xổ xuống hiển thị thành viên.",
+              "Nâng cấp Email Mời Thành Viên Theo Chuẩn Civix Enterprise: Thiết kế lại toàn bộ template email workspace_invitation đồng bộ với email Bàn giao Workspace (Header Dark Navy #0f172a, loại bỏ link ảnh ngoài bị hỏng, nội dung tiếng Việt trang trọng, bảng thông tin chi tiết và nút CTA 'Tham Gia Không Gian Làm Việc' nổi bật).",
+              "Chuẩn Hóa Icon Tích Hợp Trello Board Importer: Thay thế ký tự emoji clipboard cũ bằng vector icon Trello chính thức (Lucide Trello) cùng tông màu nhận diện thương hiệu Trello (#0079BF), đồng bộ phong cách tối giản, chuyên nghiệp với thẻ tích hợp Slack Webhook."
             ],
             "callout": {
               "type": "info",
@@ -65,7 +75,7 @@
               "Phát triển module plane.civix.workspace_backup đóng gói toàn bộ bảng nghiệp vụ của riêng từng Workspace thành file nén .jsonl.gz kèm manifest.json và sha256 checksum.",
               "Tiến trình Celery Beat tự động quét và sao lưu tuần tự tất cả Workspace hoạt động vào lúc 02:00 sáng hàng ngày (giờ VN), tự động dọn dẹp các bản cũ khi vượt quá hạn mức 45 bản mới nhất.",
               "Khi khôi phục dữ liệu cho 1 workspace khách hàng, toàn bộ thao tác diễn ra trong 1 transaction an toàn, chỉ tác động đến dữ liệu của workspace đó, bảo đảm tuyệt đối dữ liệu của CIVIX và các khách hàng khác không bị thụt lùi hay ảnh hưởng.",
-              "Tích hợp giao diện quản trị trực quan tại God-Mode (/workspace/backups/) và công cụ dòng lệnh: python manage.py civix_workspace_backup --slug <slug>."
+              "Tích hợp giao diện quản trị trực quan tại God-Mode (/workspace/backups/) được khai báo định tuyến chính thức trong React Router v7 (routes.ts) và công cụ dòng lệnh: python manage.py civix_workspace_backup --slug <slug>."
             ]
           }
         ]
@@ -80,6 +90,23 @@
               "Script restore.sh tự động sinh bản sao lưu an toàn trước khi khôi phục, dọn sạch schema public để tránh xung đột khóa chính, và hiển thị chi tiết log lỗi thật thay vì che giấu bằng /dev/null.",
               "Script setup_cron.sh chuyển tiếp toàn bộ log sao lưu định kỳ vào ~/plane-backups/backup.log để đội ngũ vận hành dễ dàng giám sát."
             ]
+          }
+        ]
+      },
+      {
+        "heading": "6. Khắc Phục Lỗi HTTP 429 Trên Trang Onboarding & Tải Static SPA Assets",
+        "subheadings": [
+          {
+            "title": "Loại bỏ giới hạn static rate limit cục bộ trong cấu hình Caddy nội bộ",
+            "body": [
+              "Cấu hình Caddyfile nội bộ trong container web và admin trước đây áp dụng rate limit tĩnh 300 req/phút đối với client_ip. Do toàn bộ yêu cầu từ trình duyệt đi qua reverse proxy plane-app-proxy-1 đều mang chung địa chỉ IP gateway nội bộ (172.19.0.1), khi ứng dụng SPA tải hàng trăm file bundle JS/CSS hoặc người dùng tải lại trang trong quá trình onboarding, giới hạn này bị vượt quá nhanh chóng dẫn đến mã lỗi HTTP 429 Too Many Requests.",
+              "Caddyfile của container web và admin đã được tối ưu lại: gỡ bỏ bộ đếm static rate limit không cần thiết ở tầng container ứng dụng nội bộ, ủy quyền việc kiểm soát lưu lượng cho tầng reverse proxy ngoài và Django API throttle.",
+              "Trang Onboarding (/onboarding/) và các trang tải dự án hoạt động mượt mà, tải tài nguyên tức thì mà không còn bị chặn mã lỗi 429."
+            ],
+            "callout": {
+              "type": "tip",
+              "text": "Tất cả các tài nguyên frontend tĩnh (JS chunks, icons, webfonts) hiện được tải với tốc độ tối đa không bị nghẽn ở tầng proxy nội bộ."
+            }
           }
         ]
       }

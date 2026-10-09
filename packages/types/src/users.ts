@@ -43,6 +43,7 @@ export interface IUser extends IUserLite {
   is_active: boolean;
   is_email_verified: boolean;
   is_password_autoset: boolean;
+  must_change_password?: boolean;
   is_tour_completed: boolean;
   mobile_number: string | null;
   last_workspace_id: string;

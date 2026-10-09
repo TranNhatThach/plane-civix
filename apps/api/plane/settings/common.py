@@ -184,6 +184,20 @@ cors_origins_raw = os.environ.get("CORS_ALLOWED_ORIGINS", "")
 # filter out empty strings
 cors_allowed_origins = [origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()]
 if cors_allowed_origins:
+    expanded_origins = set(cors_allowed_origins)
+    for origin in list(cors_allowed_origins):
+        if "localhost" in origin:
+            expanded_origins.add(origin.replace("localhost", "127.0.0.1"))
+        elif "127.0.0.1" in origin:
+            expanded_origins.add(origin.replace("127.0.0.1", "localhost"))
+    # Always allow root localhost and 127.0.0.1 (ports 80 / 443 / reverse proxy)
+    expanded_origins.update([
+        "http://localhost",
+        "http://127.0.0.1",
+        "https://localhost",
+        "https://127.0.0.1",
+    ])
+    cors_allowed_origins = list(expanded_origins)
     CORS_ALLOWED_ORIGINS = cors_allowed_origins
     secure_origins = False if [origin for origin in cors_allowed_origins if "http:" in origin] else True
 else:

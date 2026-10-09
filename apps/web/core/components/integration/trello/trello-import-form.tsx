@@ -17,6 +17,7 @@ import {
   CheckSquare,
   ArrowRight,
   RefreshCw,
+  Trello,
 } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -173,8 +174,8 @@ export const TrelloImportForm = observer(function TrelloImportForm({ workspaceSl
       {/* Header */}
       <div className="border-border-subtle flex items-center justify-between border-b pb-4">
         <div className="flex items-center space-x-3">
-          <div className="bg-sky-500/10 text-sky-500 flex h-10 w-10 items-center justify-center rounded-lg text-20 font-bold">
-            📋
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0079BF]/10 text-[#0079BF] dark:bg-[#0079BF]/20 dark:text-[#5ba4cf]">
+            <Trello className="h-5 w-5" />
           </div>
           <div>
             <h3 className="text-16 font-semibold text-primary">Trello Board Importer</h3>
@@ -233,7 +234,7 @@ export const TrelloImportForm = observer(function TrelloImportForm({ workspaceSl
               onChange={(e) => setTargetProjectId(e.target.value)}
               className="border-border-subtle bg-bg-surface-1 focus:border-custom-primary-500 w-full rounded-md border px-3 py-2 text-13 text-primary focus:outline-none"
             >
-              <option value="new">➕ Tự động tạo Dự án mới theo tên Board Trello</option>
+              <option value="new">+ Tự động tạo Dự án mới theo tên Board Trello</option>
               {workspaceProjectIds && workspaceProjectIds.length > 0 && (
                 <optgroup label="Hoặc gộp vào dự án có sẵn:">
                   {workspaceProjectIds.map((pId) => {
@@ -301,7 +302,7 @@ export const TrelloImportForm = observer(function TrelloImportForm({ workspaceSl
                       <span className="text-custom-primary-500 underline">chọn từ máy tính</span>
                     </p>
                     <p className="mt-0.5 text-11 text-tertiary">
-                      💡 Vào Trello ➔ Menu ➔ More ➔ Print and Export ➔ Export as JSON để lấy file.
+                      Hướng dẫn: Vào Trello ➔ Menu ➔ More ➔ Print and Export ➔ Export as JSON để lấy file.
                     </p>
                   </div>
                 </div>

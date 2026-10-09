@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import os
 import uuid
 import secrets
 import string
 import logging
 
 # Third party imports
+from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import IntegrityError, transaction
@@ -188,14 +190,19 @@ class InstanceWorkSpaceEndpoint(BaseAPIView):
             workspace_seed.delay(workspace.id)
 
             # Enqueue onboarding handover email
-            base_url = request.build_absolute_uri("/").rstrip("/")
+            web_url = (
+                getattr(settings, "WEB_URL", None)
+                or getattr(settings, "APP_BASE_URL", None)
+                or os.environ.get("WEB_URL")
+                or "http://localhost"
+            ).rstrip("/")
             send_workspace_handover_email.delay(
                 email=admin_email,
                 workspace_name=name,
                 workspace_slug=slug,
                 admin_name=admin_name,
                 temp_password=temp_password,
-                base_url=base_url,
+                base_url=web_url,
             )
 
             response_data = dict(serializer.data)
@@ -239,14 +246,19 @@ class InstanceWorkSpaceHandoverResendEndpoint(BaseAPIView):
         profile.temp_password_expires_at = timezone.now() + timezone.timedelta(days=7)
         profile.save()
 
-        base_url = request.build_absolute_uri("/").rstrip("/")
+        web_url = (
+            getattr(settings, "WEB_URL", None)
+            or getattr(settings, "APP_BASE_URL", None)
+            or os.environ.get("WEB_URL")
+            or "http://localhost"
+        ).rstrip("/")
         send_workspace_handover_email.delay(
             email=owner.email,
             workspace_name=workspace.name,
             workspace_slug=workspace.slug,
             admin_name=owner.first_name,
             temp_password=temp_password,
-            base_url=base_url,
+            base_url=web_url,
         )
 
         return Response({

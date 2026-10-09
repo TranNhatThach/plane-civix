@@ -226,6 +226,11 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
                   <Button variant="primary">Create new workspace</Button>
                 </span>
               </Link>
+              <Link href="/settings/profile/general/">
+                <span>
+                  <Button variant="secondary">Tài khoản & Đổi mật khẩu</Button>
+                </span>
+              </Link>
             </div>
           </div>
         </div>

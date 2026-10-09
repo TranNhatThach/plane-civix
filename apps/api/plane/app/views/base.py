@@ -124,7 +124,10 @@ class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePagi
 
     @property
     def workspace_slug(self):
-        return self.kwargs.get("slug", None)
+        slug = self.kwargs.get("slug", None)
+        if slug and isinstance(slug, str):
+            return slug.replace(" ", "-").replace("%20", "-")
+        return slug
 
     @property
     def project_id(self):
@@ -219,7 +222,10 @@ class BaseAPIView(TimezoneMixin, ReadReplicaControlMixin, APIView, BasePaginator
 
     @property
     def workspace_slug(self):
-        return self.kwargs.get("slug", None)
+        slug = self.kwargs.get("slug", None)
+        if slug and isinstance(slug, str):
+            return slug.replace(" ", "-").replace("%20", "-")
+        return slug
 
     @property
     def project_id(self):
