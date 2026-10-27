@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowUp, Hash, Tag, Check, Copy, ExternalLink } from "lucide-react";
+import { ArrowUp, Hash, Check, Copy } from "lucide-react";
 import type { IDocSection } from "@/data/civix-docs.data";
 
 interface IPlaneChangelogTOCProps {
@@ -11,8 +11,11 @@ export const PlaneChangelogTOC: React.FC<IPlaneChangelogTOCProps> = ({ releases 
   const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
+    const scrollContainer = document.getElementById("changelog-scroll-container");
+    const target = scrollContainer || window;
+
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 120;
+      const scrollPos = scrollContainer ? scrollContainer.scrollTop + 140 : window.scrollY + 140;
 
       for (let i = releases.length - 1; i >= 0; i--) {
         const release = releases[i];
@@ -20,7 +23,7 @@ export const PlaneChangelogTOC: React.FC<IPlaneChangelogTOCProps> = ({ releases 
         const el = document.getElementById(targetId);
         if (el) {
           const top = el.offsetTop;
-          if (scrollPosition >= top) {
+          if (scrollPos >= top) {
             setActiveId(targetId);
             break;
           }
@@ -28,18 +31,16 @@ export const PlaneChangelogTOC: React.FC<IPlaneChangelogTOCProps> = ({ releases 
       }
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    target.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => target.removeEventListener("scroll", handleScroll);
   }, [releases]);
 
   const handleScrollTo = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     const el = document.getElementById(id);
     if (el) {
-      const yOffset = -80;
-      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: "smooth" });
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
       history.pushState(null, "", `#${id}`);
       setActiveId(id);
     }
@@ -52,11 +53,16 @@ export const PlaneChangelogTOC: React.FC<IPlaneChangelogTOCProps> = ({ releases 
   };
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const scrollContainer = document.getElementById("changelog-scroll-container");
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   return (
-    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-64 shrink-0 overflow-y-auto px-4 py-6 xl:block">
+    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 overflow-y-auto px-2 py-6 lg:block">
       <div className="space-y-6">
         <div>
           <h4 className="tracking-wider flex items-center gap-1.5 text-[11px] font-semibold text-tertiary uppercase">

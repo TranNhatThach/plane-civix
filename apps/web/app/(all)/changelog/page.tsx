@@ -20,26 +20,27 @@ export default function ChangelogPage() {
       setTimeout(() => {
         const el = document.getElementById(hash);
         if (el) {
-          const yOffset = -80;
-          const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          window.scrollTo({ top: y, behavior: "smooth" });
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }, 100);
     }
   }, [location.hash, searchParams]);
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col bg-canvas text-primary selection:bg-accent-primary/20 selection:text-accent-primary">
+    <div
+      id="changelog-scroll-container"
+      className="vertical-scrollbar relative flex h-full w-full flex-col overflow-y-auto bg-canvas text-primary selection:bg-accent-primary/20 selection:text-accent-primary"
+    >
       {/* Top Navigation Bar */}
       <PlaneChangelogHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
       {/* 3-Column Technical Docs Container */}
-      <div className="mx-auto flex w-full max-w-7xl flex-1 justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-1 justify-between px-3 sm:px-6 lg:px-8">
         {/* Left Column: Documentation Navigation */}
         <PlaneDocsSidebar />
 
         {/* Center Column: Editorial Changelog Stream */}
-        <main className="min-w-0 flex-1 px-0 py-8 lg:px-10">
+        <main className="min-w-0 flex-1 px-2 py-8 sm:px-6 lg:px-8">
           <PlaneChangelogTimeline releases={CIVIX_DOCS_SECTIONS} searchQuery={searchQuery} />
         </main>
 

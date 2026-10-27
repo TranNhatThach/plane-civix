@@ -123,7 +123,7 @@ const SIDEBAR_SECTIONS: INavSection[] = [
 
 export const PlaneDocsSidebar: React.FC = () => {
   return (
-    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-64 shrink-0 overflow-y-auto border-r border-subtle bg-canvas/40 px-4 py-6 lg:block">
+    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 overflow-y-auto border-r border-subtle bg-canvas/40 px-3 py-6 md:block">
       <div className="space-y-6">
         {SIDEBAR_SECTIONS.map((section, idx) => (
           <div key={idx} className="space-y-1.5">
