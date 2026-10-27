@@ -164,16 +164,16 @@ export function WorkspaceCreateForm() {
           {errors.slug && <span className="text-11 text-danger-primary">{errors.slug.message}</span>}
         </div>
         <div className="flex flex-col gap-1">
-          <h4 className="text-13 text-tertiary">Customer Administrator Email (Bắt buộc bàn giao)</h4>
+          <h4 className="text-13 text-tertiary">Customer Administrator Email</h4>
           <div className="flex flex-col gap-1">
             <Controller
               control={control}
               name="admin_email"
               rules={{
-                required: "Customer admin email is required for handover.",
+                required: "Customer administrator email is required for handover.",
                 pattern: {
                   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: "Địa chỉ email không hợp lệ.",
+                  message: "Please enter a valid email address.",
                 },
               }}
               render={({ field: { value, ref, onChange } }) => (
@@ -184,19 +184,19 @@ export function WorkspaceCreateForm() {
                   onChange={onChange}
                   ref={ref}
                   hasError={Boolean(errors.admin_email)}
-                  placeholder="admin@tidtech.vn hoặc tidtech.admin@gmail.com"
+                  placeholder="admin@company.com"
                   className="w-full"
                 />
               )}
             />
             {errors.admin_email && <span className="text-11 text-danger-primary">{errors.admin_email.message}</span>}
             <span className="text-11 text-tertiary">
-              Thông tin đăng nhập & mật khẩu tạm thời sẽ được tự động gửi qua email này để bàn giao.
+              Login credentials and a temporary password will be automatically emailed to this address for handover.
             </span>
           </div>
         </div>
         <div className="flex flex-col gap-1">
-          <h4 className="text-13 text-tertiary">Customer Administrator Name (Tùy chọn)</h4>
+          <h4 className="text-13 text-tertiary">Customer Administrator Name (Optional)</h4>
           <div className="flex flex-col gap-1">
             <Controller
               control={control}
@@ -208,7 +208,7 @@ export function WorkspaceCreateForm() {
                   value={value ?? ""}
                   onChange={onChange}
                   ref={ref}
-                  placeholder="e.g. Quản trị viên TID TECH"
+                  placeholder="e.g. Workspace Administrator"
                   className="w-full"
                 />
               )}

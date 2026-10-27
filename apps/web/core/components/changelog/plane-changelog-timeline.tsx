@@ -1,121 +1,107 @@
 import React, { useState, useMemo } from "react";
 import {
-  Search,
-  Sparkles,
-  ArrowRight,
-  Zap,
-  Shield,
-  Server,
-  Bot,
-  Code,
-  FileText,
-  Layers,
+  Link as LinkIcon,
   Check,
   Copy,
   Info,
   AlertTriangle,
   Lightbulb,
+  Sparkles,
+  Terminal,
+  Shield,
+  Bot,
+  Server,
+  Code,
   Calendar,
-  Tag,
+  Search,
+  Filter,
 } from "lucide-react";
 import type { IDocSection, IDocCallout } from "@/data/civix-docs.data";
 
 interface IPlaneChangelogTimelineProps {
   releases: IDocSection[];
-  onSelectRelease: (releaseId: string) => void;
+  searchQuery?: string;
+  onSelectRelease?: (releaseId: string) => void;
 }
 
-const getIconForDoc = (iconName?: string) => {
-  switch (iconName) {
-    case "zap":
-      return <Zap className="text-amber-500 size-4" />;
-    case "shield":
-      return <Shield className="text-emerald-500 size-4" />;
-    case "server":
-      return <Server className="text-blue-500 size-4" />;
-    case "bot":
-      return <Bot className="text-purple-500 size-4" />;
-    case "code":
-      return <Code className="text-cyan-500 size-4" />;
-    default:
-      return <Sparkles className="text-blue-500 size-4" />;
-  }
+const getBadgeStyle = (badge?: string) => {
+  if (!badge) return "bg-surface-2 text-secondary border-subtle";
+  if (badge.includes("Mới")) return "bg-success-primary/10 text-success-primary border-success-primary/20";
+  if (badge.includes("Ổn định")) return "bg-accent-primary/10 text-accent-primary border-accent-primary/20";
+  if (badge.includes("Bảo Mật")) return "bg-warning-primary/10 text-warning-primary border-warning-primary/20";
+  return "bg-surface-2 text-secondary border-subtle";
 };
 
-const getBadgeColor = (badge?: string) => {
-  if (!badge) return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-  if (badge.includes("Mới")) return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
-  if (badge.includes("Vá Lỗi") || badge.includes("Tối Ưu")) return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-  if (badge.includes("Bảo Mật")) return "bg-amber-500/10 text-amber-500 border-amber-500/20";
-  return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-};
-
-const CodeSnippet: React.FC<{ code: string }> = ({ code }) => {
+const MinimalCodeBlock: React.FC<{ code: string }> = ({ code }) => {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleCopy = () => {
     navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="border-border-200/80 bg-surface-200/60 relative my-4 overflow-hidden rounded-xl border backdrop-blur-sm">
-      <div className="border-border-200/60 bg-surface-200/90 text-xs text-text-400 font-mono flex items-center justify-between border-b px-4 py-2">
-        <div className="flex items-center gap-1.5">
-          <div className="bg-red-500/80 size-2.5 rounded-full" />
-          <div className="bg-amber-500/80 size-2.5 rounded-full" />
-          <div className="bg-emerald-500/80 size-2.5 rounded-full" />
-          <span className="text-text-400 ml-2 text-[11px]">Terminal / Code</span>
-        </div>
+    <div className="group relative my-3.5 overflow-hidden rounded-lg border border-subtle bg-surface-1">
+      <div className="flex items-center justify-between border-b border-subtle bg-surface-2/60 px-3.5 py-1.5 text-[11px] text-tertiary">
+        <span className="font-mono font-medium text-secondary">terminal</span>
         <button
           type="button"
           onClick={handleCopy}
-          className="hover:bg-surface-300 text-text-300 hover:text-text-100 inline-flex items-center gap-1 rounded px-2 py-0.5 transition-colors"
+          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-tertiary transition-colors hover:bg-surface-2 hover:text-primary"
         >
-          {copied ? <Check className="text-emerald-500 size-3" /> : <Copy className="size-3" />}
-          <span className="text-[11px]">{copied ? "Đã copy" : "Sao chép"}</span>
+          {copied ? <Check className="size-3 text-success-primary" /> : <Copy className="size-3" />}
+          <span>{copied ? "Đã chép" : "Sao chép"}</span>
         </button>
       </div>
-      <pre className="text-xs font-mono text-text-100 overflow-x-auto p-4 leading-relaxed">
+      <pre className="font-mono text-xs overflow-x-auto p-3.5 leading-relaxed text-primary">
         <code>{code}</code>
       </pre>
     </div>
   );
 };
 
-const CalloutBox: React.FC<{ callout: IDocCallout }> = ({ callout }) => {
-  const isTip = callout.type === "tip";
+const AdmonitionCallout: React.FC<{ callout: IDocCallout }> = ({ callout }) => {
   const isWarning = callout.type === "warning";
+  const isTip = callout.type === "tip";
 
   return (
     <div
-      className={`text-xs my-3.5 flex items-start gap-3 rounded-xl border p-3.5 leading-relaxed ${
+      className={`text-xs my-3.5 flex items-start gap-3 rounded-r-lg border-l-2 p-3 leading-relaxed transition-colors ${
         isWarning
-          ? "border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+          ? "border-warning-primary bg-warning-primary/5 text-warning-primary"
           : isTip
-            ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
-            : "border-blue-500/20 bg-blue-500/5 text-blue-600 dark:text-blue-400"
+            ? "border-success-primary bg-success-primary/5 text-success-primary"
+            : "border-accent-primary bg-accent-primary/5 text-accent-primary"
       }`}
     >
-      {isWarning ? (
-        <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-      ) : isTip ? (
-        <Lightbulb className="mt-0.5 size-4 shrink-0" />
-      ) : (
-        <Info className="mt-0.5 size-4 shrink-0" />
-      )}
-      <p className="flex-1 font-medium">{callout.text}</p>
+      <div className="mt-0.5 shrink-0">
+        {isWarning ? (
+          <AlertTriangle className="size-4" />
+        ) : isTip ? (
+          <Lightbulb className="size-4" />
+        ) : (
+          <Info className="size-4" />
+        )}
+      </div>
+      <div className="text-secondary">
+        <p className="font-medium text-primary">{callout.text}</p>
+      </div>
     </div>
   );
 };
 
-export const PlaneChangelogTimeline: React.FC<IPlaneChangelogTimelineProps> = ({ releases, onSelectRelease }) => {
-  const [searchQuery, setSearchQuery] = useState("");
+export const PlaneChangelogTimeline: React.FC<IPlaneChangelogTimelineProps> = ({ releases, searchQuery = "" }) => {
   const [selectedTag, setSelectedTag] = useState<string>("All");
+  const [copiedAnchorId, setCopiedAnchorId] = useState<string | null>(null);
 
-  // Filter releases by search query & tag
+  // Extract unique version numbers
+  const versionTags = useMemo(() => {
+    const tags = Array.from(new Set(releases.map((r) => r.version).filter(Boolean))) as string[];
+    return ["All", ...tags];
+  }, [releases]);
+
+  // Filter releases
   const filteredReleases = useMemo(() => {
     return releases.filter((release) => {
       const matchesTag = selectedTag === "All" || release.version === selectedTag;
@@ -137,197 +123,163 @@ export const PlaneChangelogTimeline: React.FC<IPlaneChangelogTimelineProps> = ({
     });
   }, [releases, searchQuery, selectedTag]);
 
-  // Extract unique version tags
-  const versionTags = useMemo(() => {
-    const tags = Array.from(new Set(releases.map((r) => r.version).filter(Boolean))) as string[];
-    return ["All", ...tags];
-  }, [releases]);
+  const handleCopyAnchor = (id: string) => {
+    const url = `${window.location.origin}${window.location.pathname}#${id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedAnchorId(id);
+    setTimeout(() => setCopiedAnchorId(null), 2000);
+  };
 
   return (
-    <div className="relative mx-auto w-full max-w-5xl px-4 py-12 sm:px-8">
-      {/* Ambient Radial Background */}
-      <div className="from-blue-500/10 via-indigo-500/5 pointer-events-none absolute top-0 left-1/2 h-96 w-full max-w-4xl -translate-x-1/2 bg-gradient-to-b to-transparent blur-3xl" />
+    <div className="w-full max-w-3xl space-y-12 py-2">
+      {/* Editorial Header Section (Mintlify / Claude Code Docs style) */}
+      <div className="border-b border-subtle pb-8">
+        {/* Breadcrumb */}
+        <div className="text-xs mb-3 flex items-center gap-1.5 text-tertiary">
+          <span>Documentation</span>
+          <span>/</span>
+          <span>Getting Started</span>
+          <span>/</span>
+          <span className="font-medium text-primary">Changelog</span>
+        </div>
 
-      {/* Hero Header */}
-      <div className="relative mb-12 text-center sm:text-left">
-        <div className="border-border-200/80 bg-surface-100/80 shadow-xs mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 backdrop-blur-md">
-          <span className="bg-emerald-500 flex size-2 animate-pulse rounded-full" />
-          <span className="text-xs text-text-200 font-semibold">Cập nhật liên tục theo chuẩn Civix</span>
-          <span className="text-xs text-blue-500 border-border-200/60 border-l pl-1 font-bold">
-            {releases[0]?.version || "v1.5.0"}
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-primary">Civix Platform changelog</h1>
+
+        <p className="text-sm sm:text-base mt-3 leading-relaxed text-secondary">
+          Nhật ký phát hành chính thức của Plane-Civix. Cập nhật chi tiết các tính năng mới, nâng cấp kiến trúc vi nhân
+          AI Agent Runtime Harness, mô hình Multi-tenant phân lập và các bản vá lỗi theo từng phiên bản.
+        </p>
+
+        <div className="text-xs mt-4 flex flex-wrap items-center gap-2 text-tertiary">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-subtle bg-surface-1 px-2.5 py-1">
+            <span className="size-2 rounded-full bg-success-primary" />
+            <span className="font-medium text-secondary">Phiên bản hiện tại:</span>
+            <span className="font-mono font-semibold text-primary">{releases[0]?.version || "v1.7.0"}</span>
+          </div>
+          <span>•</span>
+          <span>
+            Đồng bộ tự động từ <code className="font-mono text-secondary">civix-docs.json</code>
           </span>
         </div>
 
-        <h1 className="text-3xl sm:text-5xl font-extrabold text-text-100 mb-3 tracking-tight">
-          Nhật ký phát hành & Tính năng
-        </h1>
-        <p className="text-sm sm:text-base text-text-400 max-w-2xl leading-relaxed">
-          Theo dõi toàn bộ các phiên bản nâng cấp tính năng, tối ưu hóa hạ tầng và quy chuẩn kỹ thuật của nền tảng
-          Civix.
-        </p>
-
-        {/* Search & Tag Filter Bar */}
-        <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-          {/* Search Box */}
-          <div className="relative flex-1">
-            <Search className="text-text-400 absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm tính năng, mã task, phiên bản..."
-              className="text-xs sm:text-sm border-border-200/80 bg-surface-100/70 text-text-100 placeholder:text-text-400 focus:ring-blue-500/20 focus:border-blue-500/50 w-full rounded-xl border py-2 pr-4 pl-10 backdrop-blur-sm transition-all focus:ring-2 focus:outline-none"
-            />
-          </div>
-
-          {/* Quick Version Filter Pills */}
-          <div className="scrollbar-none flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            {versionTags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => setSelectedTag(tag)}
-                className={`text-xs shrink-0 rounded-lg border px-3 py-1.5 font-semibold transition-all ${
-                  selectedTag === tag
-                    ? "bg-text-100 text-surface-100 border-text-100 shadow-xs"
-                    : "bg-surface-100/60 text-text-300 border-border-200/60 hover:text-text-100 hover:bg-surface-200/60"
-                }`}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
+        {/* Quick Version Filter Pills */}
+        <div className="text-xs mt-6 flex items-center gap-1.5 overflow-x-auto pb-1">
+          <span className="mr-1 font-medium text-tertiary">Lọc theo:</span>
+          {versionTags.slice(0, 8).map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => setSelectedTag(tag)}
+              className={`font-mono shrink-0 rounded-md border px-2.5 py-1 transition-colors ${
+                selectedTag === tag
+                  ? "border-accent-primary bg-accent-primary text-white"
+                  : "border-subtle bg-surface-1 text-secondary hover:bg-surface-2 hover:text-primary"
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Timeline Stream */}
-      <div className="relative space-y-16">
-        {/* Continuous Timeline Connector Line */}
-        <div className="bg-border-200/60 absolute top-6 bottom-6 left-[150px] hidden w-px sm:block" />
-
+      {/* Release Stream (Continuous Chronological Layout) */}
+      <div className="space-y-16">
         {filteredReleases.length === 0 ? (
-          <div className="border-border-200/60 bg-surface-100/40 rounded-2xl border p-8 py-16 text-center">
-            <Search className="text-text-400 mx-auto mb-3 size-8 opacity-50" />
-            <h3 className="text-sm text-text-100 font-semibold">Không tìm thấy bản phát hành phù hợp</h3>
-            <p className="text-xs text-text-400 mt-1">Hãy thử tìm với từ khóa hoặc phiên bản khác.</p>
+          <div className="rounded-xl border border-subtle bg-surface-1/50 p-12 text-center">
+            <Search className="mx-auto mb-3 size-6 text-tertiary opacity-60" />
+            <h3 className="text-sm font-semibold text-primary">Không tìm thấy bản phát hành phù hợp</h3>
+            <p className="text-xs mt-1 text-tertiary">Vui lòng thử tìm kiếm với từ khóa hoặc phiên bản khác.</p>
           </div>
         ) : (
-          filteredReleases.map((release, idx) => (
-            <article key={release.id} className="group relative grid grid-cols-1 gap-6 sm:grid-cols-12 sm:gap-10">
-              {/* Left Column: Version Pill, Date, and Pulse Node */}
-              <div className="sm:col-span-3 sm:text-right">
-                <div className="flex items-center justify-between gap-2 sm:sticky sm:top-24 sm:flex-col sm:items-end sm:justify-start">
-                  {/* Version Pill */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-text-100 bg-surface-200 border-border-200/80 rounded-lg border px-2.5 py-1 font-bold tracking-tight">
-                      {release.version || "v1.0.0"}
-                    </span>
-                    {/* Node on vertical line */}
-                    <div className="bg-blue-500 ring-blue-500/20 ring-offset-surface-100 relative -right-[25px] hidden size-2.5 rounded-full ring-4 ring-offset-2 transition-transform group-hover:scale-125 sm:block" />
-                  </div>
+          filteredReleases.map((release, idx) => {
+            const anchorId = release.version || release.id;
+            const isCopied = copiedAnchorId === anchorId;
 
-                  {/* Formatted Date */}
-                  <div className="text-xs text-text-400 mt-1 flex items-center gap-1.5 font-medium">
-                    <Calendar className="size-3" />
-                    <time>{release.updatedAt}</time>
-                  </div>
+            return (
+              <article
+                key={release.id}
+                id={anchorId}
+                className="scroll-mt-24 space-y-6 border-b border-subtle pb-14 last:border-b-0"
+              >
+                {/* Version Heading & Metadata */}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <h2 className="group text-2xl flex items-center gap-2 font-bold tracking-tight text-primary">
+                        <span className="font-mono">{release.version || "v1.0.0"}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyAnchor(anchorId)}
+                          title="Sao chép liên kết phiên bản"
+                          className="opacity-0 transition-opacity group-hover:opacity-100 hover:text-accent-primary"
+                        >
+                          {isCopied ? (
+                            <Check className="size-4 text-success-primary" />
+                          ) : (
+                            <LinkIcon className="size-4 text-tertiary" />
+                          )}
+                        </button>
+                      </h2>
 
-                  {/* Badge */}
-                  {release.badge && (
-                    <span
-                      className={`mt-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${getBadgeColor(
-                        release.badge
-                      )}`}
-                    >
-                      {release.badge}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Column: Release Card & Detailed Sections */}
-              <div className="sm:col-span-9">
-                <div className="border-border-200/80 bg-surface-100/60 hover:bg-surface-100/90 shadow-xs hover:shadow-md space-y-6 rounded-2xl border p-6 backdrop-blur-sm transition-all duration-200 sm:p-8">
-                  {/* Card Header: Icon + Title */}
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="bg-surface-200/80 border-border-200/60 shadow-xs rounded-xl border p-2">
-                          {getIconForDoc(release.iconName)}
-                        </div>
-                        <span className="text-xs text-text-400 font-semibold tracking-wide uppercase">
-                          Release Notes • {release.version}
+                      {release.badge && (
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getBadgeStyle(
+                            release.badge
+                          )}`}
+                        >
+                          {release.badge}
                         </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => onSelectRelease(release.id)}
-                        className="text-xs text-blue-500 hover:text-blue-600 inline-flex items-center gap-1 font-semibold transition-all group-hover:translate-x-0.5"
-                      >
-                        <span>Chi tiết</span>
-                        <ArrowRight className="size-3" />
-                      </button>
+                      )}
                     </div>
 
-                    <h2
-                      onClick={() => onSelectRelease(release.id)}
-                      className="text-xl sm:text-2xl text-text-100 hover:text-blue-500 cursor-pointer leading-snug font-bold tracking-tight transition-colors"
-                    >
-                      {release.title}
-                    </h2>
-
-                    <p className="text-xs sm:text-sm text-text-300 leading-relaxed">{release.description}</p>
-                  </div>
-
-                  {/* Render Feature Breakdown Headings from civix-docs.json */}
-                  <div className="border-border-200/60 space-y-6 border-t pt-5">
-                    {release.content.map((block, bIdx) => (
-                      <div key={bIdx} className="space-y-3">
-                        <h3 className="text-sm sm:text-base text-text-100 flex items-center gap-2 font-bold tracking-tight">
-                          <span className="bg-blue-500 flex size-1.5 rounded-full" />
-                          <span>{block.heading}</span>
-                        </h3>
-
-                        {block.subheadings?.map((sub, sIdx) => (
-                          <div key={sIdx} className="border-border-200/80 space-y-2 border-l pl-3.5">
-                            <h4 className="text-xs sm:text-sm text-text-200 font-semibold">{sub.title}</h4>
-
-                            <div className="text-xs text-text-400 space-y-1.5 leading-relaxed">
-                              {sub.body.map((p, pIdx) => (
-                                <p key={pIdx}>{p}</p>
-                              ))}
-                            </div>
-
-                            {/* Callout box */}
-                            {sub.callout && <CalloutBox callout={sub.callout} />}
-
-                            {/* Code snippet */}
-                            {sub.code && <CodeSnippet code={sub.code} />}
-                          </div>
-                        ))}
+                    {/* Release Date */}
+                    {release.updatedAt && (
+                      <div className="text-xs flex items-center gap-1.5 text-tertiary">
+                        <Calendar className="size-3.5" />
+                        <time>{release.updatedAt}</time>
                       </div>
-                    ))}
+                    )}
                   </div>
 
-                  {/* Card Footer: Action Links */}
-                  <div className="border-border-200/60 flex items-center justify-between border-t pt-4">
-                    <div className="text-xs text-text-400 flex items-center gap-2">
-                      <Tag className="size-3.5" />
-                      <span>Civix Core Engine</span>
-                    </div>
+                  {/* Release Milestone Title */}
+                  <h3 className="text-base sm:text-lg leading-snug font-semibold text-primary">{release.title}</h3>
 
-                    <button
-                      type="button"
-                      onClick={() => onSelectRelease(release.id)}
-                      className="text-xs bg-surface-200 hover:bg-surface-300 text-text-100 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-colors"
-                    >
-                      <span>Xem toàn bộ tài liệu &rarr;</span>
-                    </button>
-                  </div>
+                  {/* Summary / Description */}
+                  <p className="text-xs sm:text-sm leading-relaxed text-secondary">{release.description}</p>
                 </div>
-              </div>
-            </article>
-          ))
+
+                {/* Structured Changes & Breakdown */}
+                <div className="space-y-6 pt-2">
+                  {release.content.map((block, bIdx) => (
+                    <div key={bIdx} className="space-y-3">
+                      <h4 className="text-sm flex items-center gap-2 font-semibold tracking-tight text-primary">
+                        <span className="size-1.5 rounded-full bg-accent-primary" />
+                        <span>{block.heading}</span>
+                      </h4>
+
+                      {block.subheadings?.map((sub, sIdx) => (
+                        <div key={sIdx} className="ml-3 space-y-2 border-l border-subtle pl-4">
+                          <h5 className="text-xs sm:text-sm font-semibold text-secondary">{sub.title}</h5>
+
+                          <div className="text-xs space-y-1.5 leading-relaxed text-tertiary">
+                            {sub.body.map((paragraph, pIdx) => (
+                              <p key={pIdx}>{paragraph}</p>
+                            ))}
+                          </div>
+
+                          {/* Admonition Callout */}
+                          {sub.callout && <AdmonitionCallout callout={sub.callout} />}
+
+                          {/* Code Snippet */}
+                          {sub.code && <MinimalCodeBlock code={sub.code} />}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </article>
+            );
+          })
         )}
       </div>
     </div>

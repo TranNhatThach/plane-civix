@@ -1,10 +1,51 @@
 [
   {
+    "id": "claude-style-changelog-redesign-and-admin-localization",
+    "version": "v1.7.1",
+    "updatedAt": "27/10/2026",
+    "title": "Tái Thiết Kế Cổng Changelog & Docs Chuẩn Claude Code (3-Column Layout) & Chuẩn Hóa Admin Workspace Form",
+    "badge": "Bản Mới Nhất",
+    "iconName": "file-text",
+    "description": "Chuyển đổi toàn diện giao diện Cổng Changelog / Docs sang bố cục 3 cột chuẩn mực kỹ thuật tương tự Claude Code và Mintlify (Sidebar điều hướng tài liệu, Dòng chảy thời gian phẳng Flat Stream, Mục lục phiên bản Sticky TOC với ScrollSpy); Chuẩn hóa đồng bộ tiếng Anh chuyên nghiệp cho biểu mẫu tạo Workspace quản trị và khắc phục lỗi tương thích biên dịch members list.",
+    "content": [
+      {
+        "heading": "1. Tái Cấu Trúc Cổng Changelog 3 Cột Chuẩn Mực Kỹ Thuật (Claude Code / Mintlify Architecture)",
+        "subheadings": [
+          {
+            "title": "Bố cục 3 cột: Sidebar Điều Hướng — Dòng Chảy Thời Gian — Mục Lục Thông Minh",
+            "body": [
+              "Xóa bỏ hoàn toàn phong cách đóng khung card lồng card (nested cards) và hiệu ứng radial blob gây nặng nề thị giác; chuyển sang phong cách tối giản phẳng (Flat Continuous Stream) tối ưu cho việc đọc.",
+              "Triển khai PlaneDocsSidebar ở cột trái với cây phân cấp tài liệu: Bắt đầu & Tổng quan, AI Agent & Bots, Quản trị doanh nghiệp, Lịch sử phiên bản và Quy chuẩn dự án.",
+              "Triển khai PlaneChangelogTOC ở cột phải với tính năng ScrollSpy tự động bắt điểm cuộn, cho phép người dùng click nhảy nhanh tới từng phiên bản và sao chép liên kết trực tiếp (direct anchor link #v1.7.1)."
+            ],
+            "callout": {
+              "type": "tip",
+              "text": "Thiết kế kế thừa trọn vẹn ngôn ngữ thiết kế của code.claude.com/docs/en/changelog, sử dụng typography hiện đại, Admonitions phẳng mảnh mai và khối lệnh terminal tối giản không nút giả lập."
+            }
+          }
+        ]
+      },
+      {
+        "heading": "2. Chuẩn Hóa Ngôn Ngữ & Placeholder Biểu Mẫu Tạo Workspace (Admin Panel)",
+        "subheadings": [
+          {
+            "title": "Loại bỏ ngôn ngữ pha tạp Anh - Việt và ví dụ tên công ty cục bộ",
+            "body": [
+              "Chuẩn hóa 100% các nhãn và thông báo trong form tạo Workspace sang tiếng Anh chuẩn mực: Customer Administrator Email, Customer Administrator Name (Optional).",
+              "Thay thế các placeholder ví dụ tên công ty cụ thể bằng ví dụ quốc tế chuyên nghiệp: admin@company.com và e.g. Workspace Administrator.",
+              "Khắc phục triệt để lỗi biên dịch TypeScript Array.prototype.toSorted() bằng lát cắt mảng tương thích ngược an toàn tuyệt đối."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "production-grade-agent-runtime-harness-v3",
     "version": "v1.7.0",
     "updatedAt": "23/10/2026",
     "title": "Kiến Trúc AI Agent Runtime Harness V3 — Event Sourcing, 3-Role Capability Seams & Output Spilling",
-    "badge": "Bản Mới Nhất",
+    "badge": "Ổn định",
     "iconName": "cpu",
     "description": "Nâng cấp toàn diện kiến trúc AI Agent Runtime Harness V3 theo chuẩn công nghiệp: Microkernel Service Container; Mô hình phiên làm việc hướng sự kiện bất biến (Append-Only Event Stream) hỗ trợ Replay $0 API; 3-Role Capability Seams (LLM, Storage, Approval); Vòng lặp tự trị CAR-v3 với chuỗi trạm gác Waterfall Interceptors; Spilling Engine chống tràn Context Window; và Fast-Path Pattern Matcher phản hồi tức thì dưới 50ms, tương thích ngược 100% với Slack Bot và Web UI.",
     "content": [

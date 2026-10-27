@@ -1,1114 +1,1118 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Civix 3D AI Mascot — External GLTF 3D Models</title>
-  <!-- Three.js CDN & Local GLTFLoader -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="GLTFLoader.js"></script>
-  <style>
-    :root {
-      --bg-dark: #070a12;
-      --card-bg: rgba(15, 22, 36, 0.88);
-      --card-border: rgba(255, 255, 255, 0.12);
-      --accent-blue: #3b82f6;
-      --accent-glow: rgba(59, 130, 246, 0.5);
-      --accent-cyan: #06b6d4;
-      --accent-pink: #f43f5e;
-      --accent-purple: #8b5cf6;
-      --accent-green: #10b981;
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    body {
-      background-color: var(--bg-dark);
-      background-image: 
-        radial-gradient(circle at 12% 15%, rgba(6, 182, 212, 0.12) 0%, transparent 40%),
-        radial-gradient(circle at 88% 85%, rgba(244, 63, 94, 0.1) 0%, transparent 40%),
-        radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 60%);
-      color: var(--text-primary);
-      min-height: 100vh;
-      overflow-x: hidden;
-      user-select: none;
-    }
-
-    /* TOP TEST BENCH BAR */
-    .top-controls-bar {
-      position: fixed;
-      top: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--card-border);
-      border-radius: 999px;
-      padding: 7px 18px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
-      z-index: 10000;
-      max-width: 96vw;
-      overflow-x: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-
-    .top-controls-bar::-webkit-scrollbar {
-      display: none;
-    }
-
-    .mascot-badge {
-      background: linear-gradient(135deg, #06b6d4, #3b82f6);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 800;
-      padding: 5px 12px;
-      border-radius: 999px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      box-shadow: 0 0 14px rgba(59, 130, 246, 0.5);
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .ctrl-btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: var(--text-primary);
-      padding: 6px 13px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
-
-    .ctrl-btn:hover {
-      background: rgba(255, 255, 255, 0.16);
-      border-color: rgba(255, 255, 255, 0.3);
-      transform: translateY(-1px);
-    }
-
-    .ctrl-btn.active {
-      background: rgba(59, 130, 246, 0.28);
-      border-color: #3b82f6;
-      color: #93c5fd;
-      box-shadow: 0 0 14px rgba(59, 130, 246, 0.45);
-    }
-
-    .divider {
-      width: 1px;
-      height: 20px;
-      background: rgba(255, 255, 255, 0.15);
-      flex-shrink: 0;
-    }
-
-    .action-btn {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      color: #fff;
-      border: none;
-      padding: 7px 16px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    .action-btn:hover {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
-      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
-      transform: translateY(-1px);
-    }
-
-    /* MOCK KANBAN BOARD */
-    .mock-kanban {
-      padding: 85px 36px 36px;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    .board-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-    }
-
-    .board-header h1 {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    .columns {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-
-    .col {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 16px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      min-height: 580px;
-    }
-
-    .col-title {
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-secondary);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 4px 8px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    }
-
-    .task-card {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 14px;
-      font-size: 13.5px;
-      line-height: 1.4;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .task-card:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.2);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }
-
-    .task-card.task-highlight {
-      border-color: rgba(244, 63, 94, 0.6);
-      background: rgba(244, 63, 94, 0.08);
-      box-shadow: 0 0 25px rgba(244, 63, 94, 0.25);
-      animation: pulse-red 2s infinite ease-in-out;
-    }
-
-    @keyframes pulse-red {
-      0%, 100% { border-color: rgba(244, 63, 94, 0.5); }
-      50% { border-color: rgba(244, 63, 94, 0.9); }
-    }
-
-    .tag-overdue {
-      background: rgba(244, 63, 94, 0.15);
-      border: 1px solid rgba(244, 63, 94, 0.4);
-      color: #fda4af;
-      font-size: 10.5px;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 999px;
-      display: inline-block;
-    }
-
-    /* BOTTOM-RIGHT CIVIX 3D MASCOT STACK */
-    .civix-agent-dock {
-      position: fixed;
-      bottom: 24px;
-      right: 32px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 12px;
-      z-index: 9999;
-      pointer-events: none;
-    }
-
-    .mascot-3d-wrapper {
-      position: relative;
-      width: 220px;
-      height: 235px;
-      pointer-events: auto;
-      cursor: pointer;
-      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    #threejs-canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      outline: none;
-    }
-
-    .mascot-floor-shadow {
-      position: absolute;
-      bottom: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 125px;
-      height: 24px;
-      background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.8) 0%, transparent 75%);
-      border-radius: 50%;
-      pointer-events: none;
-      transition: all 0.2s ease;
-      z-index: -1;
-    }
-
-    /* SMART HUD CARD */
-    .smart-hud {
-      position: absolute;
-      bottom: 250px;
-      right: 0;
-      width: 400px;
-      background: var(--card-bg);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
-      padding: 20px;
-      opacity: 0;
-      transform: translateY(20px) scale(0.94);
-      pointer-events: none;
-      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .smart-hud.visible {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      pointer-events: auto;
-    }
-
-    .hud-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .hud-title {
-      font-size: 13.5px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .hud-close {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      font-size: 16px;
-      cursor: pointer;
-      padding: 4px;
-      line-height: 1;
-    }
-
-    .bento-task-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .bento-task-item {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      border-radius: 12px;
-      padding: 12px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12.5px;
-      transition: all 0.2s;
-    }
-
-    .bento-task-item:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.15);
-    }
-
-    .hud-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    .action-pill {
-      flex: 1;
-      padding: 10px 14px;
-      border-radius: 12px;
-      font-size: 12.5px;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .btn-confirm {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      color: #fff;
-      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-    }
-
-    .btn-confirm:hover {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
-      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
-      transform: translateY(-1px);
-    }
-
-    .btn-cancel {
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text-secondary);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .btn-cancel:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
-    }
-
-    /* CAPSULE INPUT */
-    .capsule-bar {
-      margin-top: 6px;
-      width: 330px;
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--card-border);
-      border-radius: 999px;
-      padding: 8px 16px;
-      display: flex;
-      align-items: center;
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
-      opacity: 0;
-      transform: translateY(10px);
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      pointer-events: none;
-    }
-
-    .capsule-bar.visible {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
-
-    .capsule-input {
-      background: none;
-      border: none;
-      outline: none;
-      color: #fff;
-      font-size: 13px;
-      width: 100%;
-    }
-
-    .capsule-input::placeholder { color: var(--text-secondary); }
-
-    .capsule-kbd {
-      font-size: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--text-secondary);
-      padding: 3px 7px;
-      border-radius: 6px;
-      margin-left: 8px;
-      font-family: monospace;
-    }
-
-    .mascot-tooltip {
-      position: absolute;
-      top: -24px;
-      right: 50%;
-      transform: translateX(50%);
-      background: rgba(15, 23, 42, 0.92);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      padding: 4px 10px;
-      border-radius: 8px;
-      font-size: 11px;
-      color: #cbd5e1;
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      transition: all 0.2s ease;
-    }
-
-    .mascot-tooltip.visible {
-      opacity: 1;
-      transform: translateX(50%) translateY(-5px);
-    }
-
-    .loading-indicator {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 11px;
-      color: var(--accent-cyan);
-      font-weight: 600;
-      display: none;
-      pointer-events: none;
-      background: rgba(15, 23, 42, 0.8);
-      padding: 4px 10px;
-      border-radius: 8px;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Top Controls Bar -->
-  <div class="top-controls-bar">
-    <span class="mascot-badge" id="mascot-badge">🐱 Toon Cat</span>
-
-    <!-- Model Switcher (External GLTF Models) -->
-    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700; margin-left: 4px;">MODEL 3D:</span>
-    <button class="ctrl-btn active model-btn" id="m-cat" onclick="switchModel('cat')">🐱 Toon Cat</button>
-    <button class="ctrl-btn model-btn" id="m-robot" onclick="switchModel('robot')">🤖 Robot Expressive</button>
-    <button class="ctrl-btn model-btn" id="m-fox" onclick="switchModel('fox')">🦊 Cyber Fox</button>
-
-    <div class="divider"></div>
-
-    <!-- Animation Actions -->
-    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">HÀNH ĐỘNG:</span>
-    <button class="ctrl-btn" onclick="triggerAction('Wave')">👋 Vẫy tay</button>
-    <button class="ctrl-btn" onclick="triggerAction('ThumbsUp')">👍 Thumbs Up</button>
-    <button class="ctrl-btn" onclick="triggerAction('Dance')">🕺 Nhảy</button>
-    <button class="ctrl-btn" onclick="triggerAction('Jump')">🦘 Bật nhảy</button>
-
-    <div class="divider"></div>
-
-    <!-- Lighting & Color Palettes -->
-    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">ÁNH SÁNG:</span>
-    <button class="ctrl-btn active theme-btn" id="theme-sky" onclick="setLightingTheme('sky')">⚪ Trắng Sứ</button>
-    <button class="ctrl-btn theme-btn" id="theme-mint" onclick="setLightingTheme('mint')">🌿 Bạc Hà</button>
-    <button class="ctrl-btn theme-btn" id="theme-amber" onclick="setLightingTheme('amber')">🍯 Hổ Phách</button>
-    <button class="ctrl-btn theme-btn" id="theme-violet" onclick="setLightingTheme('violet')">🌌 Tím Khói</button>
-    <button class="ctrl-btn theme-btn" id="theme-titan" onclick="setLightingTheme('titan')">🌑 Titan</button>
-
-    <div class="divider"></div>
-
-    <button class="action-btn" onclick="simulateFullWorkflow()">
-      🚀 Demo: Tìm Task Quá Hạn
-    </button>
-  </div>
-
-  <!-- Mock Kanban Background -->
-  <div class="mock-kanban">
-    <div class="board-header">
-      <div>
-        <h1>📁 Civix Commercial Engine — Sprint 4</h1>
-        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-          Sử dụng <b>Model 3D ngoại vi chuyên nghiệp</b> (.glb / .gltf) tải từ file chuẩn — Hoạt hình xương mượt mà, ánh sáng PBR Studio!
-        </p>
-      </div>
-      <div style="font-size: 13px; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
-        Chạy 100% độc lập không cần backend
-      </div>
-    </div>
-
-    <div class="columns">
-      <div class="col">
-        <div class="col-title">
-          <span>To Do</span>
-          <span style="opacity: 0.6;">4</span>
-        </div>
-        <div class="task-card">CIVIX-120: Nâng cấp SQLite Replay Driver</div>
-        <div class="task-card">CIVIX-121: Chuẩn hóa SSE Event Protocol CAR-v2</div>
-        <div class="task-card">CIVIX-122: Thiết kế Quota Guard Token Ledger</div>
-      </div>
-
-      <div class="col">
-        <div class="col-title">
-          <span>In Progress</span>
-          <span style="opacity: 0.6;">2</span>
-        </div>
-        <div class="task-card task-highlight" id="task-overdue-1">
-          <b>CIVIX-101: Fix lỗi Auth Token chéo tenant</b>
-          <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
-            <span class="tag-overdue">Quá hạn 2 ngày</span>
-            <span style="color: var(--text-secondary);">@Nam</span>
-          </div>
-        </div>
-        <div class="task-card task-highlight" id="task-overdue-2">
-          <b>CIVIX-105: Refactor Dynamic Model Loader</b>
-          <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
-            <span class="tag-overdue">Quá hạn 1 ngày</span>
-            <span style="color: var(--text-secondary);">@Nam</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="col">
-        <div class="col-title">
-          <span>Done</span>
-          <span style="opacity: 0.6;">5</span>
-        </div>
-        <div class="task-card">CIVIX-098: Thiết lập Cordis Microkernel Seams</div>
-        <div class="task-card">CIVIX-099: Hoàn thiện Schema Event Sourcing</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bottom-Right Floating Mascot Dock -->
-  <div class="civix-agent-dock">
-
-    <!-- Smart Bento HUD Card -->
-    <div class="smart-hud" id="smart-hud">
-      <div class="hud-header">
-        <div class="hud-title">
-          <span style="font-size: 16px;">🤖</span>
-          <span id="hud-title-text">Phát Hiện 2 Task Quá Hạn!</span>
-        </div>
-        <button class="hud-close" id="btn-close-hud" onclick="closeHUD()">✕</button>
-      </div>
-
-      <div class="bento-task-list" id="bento-list">
-        <div class="bento-task-item">
-          <div>
-            <b>CIVIX-101</b> Sửa lỗi Auth Token chéo
-            <div style="color: var(--text-secondary); margin-top: 2px;">Phụ trách: @Nam</div>
-          </div>
-          <span class="tag-overdue">Trễ 2 ngày</span>
-        </div>
-        <div class="bento-task-item">
-          <div>
-            <b>CIVIX-105</b> Refactor Dynamic Model Loader
-            <div style="color: var(--text-secondary); margin-top: 2px;">Phụ trách: @Nam</div>
-          </div>
-          <span class="tag-overdue">Trễ 1 ngày</span>
-        </div>
-      </div>
-
-      <div class="hud-actions" id="hud-actions">
-        <button class="action-pill btn-confirm" id="btn-confirm-reassign" onclick="confirmReassign()">
-          <span>⚡</span> Chuyển Cho @Hùng Ngay!
-        </button>
-        <button class="action-pill btn-cancel" onclick="closeHUD()">Bỏ Qua</button>
-      </div>
-    </div>
-
-    <!-- The 3D Three.js Canvas Mascot -->
-    <div class="mascot-3d-wrapper" id="mascot-wrapper" onclick="handleMascotClick()" title="Click để tương tác hoặc gõ Cmd+K">
-      <div class="mascot-tooltip" id="mascot-tooltip">Nhấp để trò chuyện!</div>
-      <div class="loading-indicator" id="loading-spinner">Đang tải model 3D...</div>
-      <canvas id="threejs-canvas"></canvas>
-      <div class="mascot-floor-shadow" id="floor-shadow"></div>
-    </div>
-
-    <!-- Capsule Command Bar (Minimalist Input) -->
-    <div class="capsule-bar" id="capsule-bar">
-      <input type="text" class="capsule-input" id="capsule-input" placeholder="Hỏi AI Agent hoặc gõ 'tìm task quá hạn'..." onkeydown="handleInputKey(event)">
-      <span class="capsule-kbd">Enter ⏎</span>
-    </div>
-
-  </div>
-
-  <script>
-    // =========================================================================
-    // 1. THREE.JS SCENE SETUP & STUDIO LIGHTING
-    // =========================================================================
-    const wrapper = document.getElementById('mascot-wrapper');
-    const canvas = document.getElementById('threejs-canvas');
-    const floorShadow = document.getElementById('floor-shadow');
-    const tooltip = document.getElementById('mascot-tooltip');
-    const spinner = document.getElementById('loading-spinner');
-
-    const width = wrapper.clientWidth;
-    const height = wrapper.clientHeight;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
-    camera.position.set(0, 0.1, 2.7);
-
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvas,
-      alpha: true,
-      antialias: true,
-      powerPreference: 'high-performance',
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.outputEncoding = THREE.sRGBEncoding;
-
-    // High quality lighting for PBR 3D models
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x1e293b, 1.6);
-    hemiLight.position.set(0, 20, 0);
-    scene.add(hemiLight);
-
-    const keyLight = new THREE.DirectionalLight(0x38bdf8, 2.4);
-    keyLight.position.set(3, 4, 3);
-    scene.add(keyLight);
-
-    const rimLight = new THREE.DirectionalLight(0xa855f7, 3.2);
-    rimLight.position.set(-3, 2, -2);
-    scene.add(rimLight);
-
-    const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    fillLight.position.set(0, -2, 2);
-    scene.add(fillLight);
-
-    // =========================================================================
-    // 2. EXTERNAL GLTF MODEL LOADER & MULTI-MODEL MANAGER
-    // =========================================================================
-    const gltfLoader = new THREE.GLTFLoader();
-    const modelGroup = new THREE.Group();
-    scene.add(modelGroup);
-
-    let currentModelKey = 'cat';
-    let mixer = null;
-    let activeAction = null;
-    let previousAction = null;
-    let actions = {};
-    const loadedModelScenes = {};
-    const loadedAnimations = {};
-
-    const modelConfigs = {
-      cat: {
-        file: '/models/toon_cat_free.glb',
-        targetHeight: 1.75,
-        yOffset: 0.05,
-        cameraZ: 3.5,
-        cameraY: 0.1,
-        defaultAnim: 'Scene',
-        waveAnim: 'Scene',
-        happyAnim: 'Scene',
-        danceAnim: 'Scene',
-        jumpAnim: 'Scene',
-        badge: '🐱 Toon Cat'
-      },
-      robot: {
-        file: '/models/RobotExpressive.glb',
-        targetHeight: 1.8,
-        yOffset: 0.0,
-        cameraZ: 3.5,
-        cameraY: 0.15,
-        defaultAnim: 'Idle',
-        waveAnim: 'Wave',
-        happyAnim: 'ThumbsUp',
-        danceAnim: 'Dance',
-        jumpAnim: 'Jump',
-        badge: '🤖 Robot Expressive'
-      },
-      fox: {
-        file: '/models/Fox.glb',
-        targetHeight: 1.75,
-        yOffset: -0.05,
-        cameraZ: 3.6,
-        cameraY: 0.1,
-        defaultAnim: 'Survey',
-        waveAnim: 'Walk',
-        happyAnim: 'Run',
-        danceAnim: 'Run',
-        jumpAnim: 'Walk',
-        badge: '🦊 Cyber Fox'
-      }
-    };
-
-    function loadModel(key, onComplete) {
-      const cfg = modelConfigs[key];
-      if (!cfg) return;
-
-      spinner.style.display = 'block';
-
-      if (loadedModelScenes[key]) {
-        applyModelToScene(key);
-        spinner.style.display = 'none';
-        if (onComplete) onComplete();
-        return;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Civix 3D AI Mascot — External GLTF 3D Models</title>
+    <!-- Three.js CDN & Local GLTFLoader -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="GLTFLoader.js"></script>
+    <style>
+      :root {
+        --bg-dark: #070a12;
+        --card-bg: rgba(15, 22, 36, 0.88);
+        --card-border: rgba(255, 255, 255, 0.12);
+        --accent-blue: #3b82f6;
+        --accent-glow: rgba(59, 130, 246, 0.5);
+        --accent-cyan: #06b6d4;
+        --accent-pink: #f43f5e;
+        --accent-purple: #8b5cf6;
+        --accent-green: #10b981;
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
       }
 
-      gltfLoader.load(
-        cfg.file,
-        function (gltf) {
-          const root = gltf.scene;
-          
-          root.traverse((child) => {
-            if (child.isMesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-              if (child.material) {
-                child.material.side = THREE.DoubleSide;
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      body {
+        background-color: var(--bg-dark);
+        background-image:
+          radial-gradient(circle at 12% 15%, rgba(6, 182, 212, 0.12) 0%, transparent 40%),
+          radial-gradient(circle at 88% 85%, rgba(244, 63, 94, 0.1) 0%, transparent 40%),
+          radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 60%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+        user-select: none;
+      }
+
+      /* TOP TEST BENCH BAR */
+      .top-controls-bar {
+        position: fixed;
+        top: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--card-border);
+        border-radius: 999px;
+        padding: 7px 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        z-index: 10000;
+        max-width: 96vw;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .top-controls-bar::-webkit-scrollbar {
+        display: none;
+      }
+
+      .mascot-badge {
+        background: linear-gradient(135deg, #06b6d4, #3b82f6);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 5px 12px;
+        border-radius: 999px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        box-shadow: 0 0 14px rgba(59, 130, 246, 0.5);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .ctrl-btn {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: var(--text-primary);
+        padding: 6px 13px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+
+      .ctrl-btn:hover {
+        background: rgba(255, 255, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-1px);
+      }
+
+      .ctrl-btn.active {
+        background: rgba(59, 130, 246, 0.28);
+        border-color: #3b82f6;
+        color: #93c5fd;
+        box-shadow: 0 0 14px rgba(59, 130, 246, 0.45);
+      }
+
+      .divider {
+        width: 1px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.15);
+        flex-shrink: 0;
+      }
+
+      .action-btn {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #fff;
+        border: none;
+        padding: 7px 16px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .action-btn:hover {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+        transform: translateY(-1px);
+      }
+
+      /* MOCK KANBAN BOARD */
+      .mock-kanban {
+        padding: 85px 36px 36px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .board-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+      }
+
+      .board-header h1 {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+      }
+
+      .col {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 580px;
+      }
+
+      .col-title {
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-secondary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 4px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .task-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px;
+        font-size: 13.5px;
+        line-height: 1.4;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .task-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      }
+
+      .task-card.task-highlight {
+        border-color: rgba(244, 63, 94, 0.6);
+        background: rgba(244, 63, 94, 0.08);
+        box-shadow: 0 0 25px rgba(244, 63, 94, 0.25);
+        animation: pulse-red 2s infinite ease-in-out;
+      }
+
+      @keyframes pulse-red {
+        0%, 100% { border-color: rgba(244, 63, 94, 0.5); }
+        50% { border-color: rgba(244, 63, 94, 0.9); }
+      }
+
+      .tag-overdue {
+        background: rgba(244, 63, 94, 0.15);
+        border: 1px solid rgba(244, 63, 94, 0.4);
+        color: #fda4af;
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+
+      /* BOTTOM-RIGHT CIVIX 3D MASCOT STACK */
+      .civix-agent-dock {
+        position: fixed;
+        bottom: 24px;
+        right: 32px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 12px;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
+      .mascot-3d-wrapper {
+        position: relative;
+        width: 220px;
+        height: 235px;
+        pointer-events: auto;
+        cursor: pointer;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      #threejs-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        outline: none;
+      }
+
+      .mascot-floor-shadow {
+        position: absolute;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 125px;
+        height: 24px;
+        background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.8) 0%, transparent 75%);
+        border-radius: 50%;
+        pointer-events: none;
+        transition: all 0.2s ease;
+        z-index: -1;
+      }
+
+      /* SMART HUD CARD */
+      .smart-hud {
+        position: absolute;
+        bottom: 250px;
+        right: 0;
+        width: 400px;
+        background: var(--card-bg);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        padding: 20px;
+        opacity: 0;
+        transform: translateY(20px) scale(0.94);
+        pointer-events: none;
+        transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .smart-hud.visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+      }
+
+      .hud-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .hud-title {
+        font-size: 13.5px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .hud-close {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 16px;
+        cursor: pointer;
+        padding: 4px;
+        line-height: 1;
+      }
+
+      .bento-task-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .bento-task-item {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 12px;
+        padding: 12px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12.5px;
+        transition: all 0.2s;
+      }
+
+      .bento-task-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+      }
+
+      .hud-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .action-pill {
+        flex: 1;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 12.5px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .btn-confirm {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+      }
+
+      .btn-confirm:hover {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+        transform: translateY(-1px);
+      }
+
+      .btn-cancel {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-secondary);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+
+      /* CAPSULE INPUT */
+      .capsule-bar {
+        margin-top: 6px;
+        width: 330px;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--card-border);
+        border-radius: 999px;
+        padding: 8px 16px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        pointer-events: none;
+      }
+
+      .capsule-bar.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+
+      .capsule-input {
+        background: none;
+        border: none;
+        outline: none;
+        color: #fff;
+        font-size: 13px;
+        width: 100%;
+      }
+
+      .capsule-input::placeholder { color: var(--text-secondary); }
+
+      .capsule-kbd {
+        font-size: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-secondary);
+        padding: 3px 7px;
+        border-radius: 6px;
+        margin-left: 8px;
+        font-family: monospace;
+      }
+
+      .mascot-tooltip {
+        position: absolute;
+        top: -24px;
+        right: 50%;
+        transform: translateX(50%);
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        color: #cbd5e1;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition: all 0.2s ease;
+      }
+
+      .mascot-tooltip.visible {
+        opacity: 1;
+        transform: translateX(50%) translateY(-5px);
+      }
+
+      .loading-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 11px;
+        color: var(--accent-cyan);
+        font-weight: 600;
+        display: none;
+        pointer-events: none;
+        background: rgba(15, 23, 42, 0.8);
+        padding: 4px 10px;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Top Controls Bar -->
+    <div class="top-controls-bar">
+      <span class="mascot-badge" id="mascot-badge">🐱 Toon Cat</span>
+
+      <!-- Model Switcher (External GLTF Models) -->
+      <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700; margin-left: 4px;">MODEL 3D:</span>
+      <button class="ctrl-btn active model-btn" id="m-cat" onclick="switchModel('cat')">🐱 Toon Cat</button>
+      <button class="ctrl-btn model-btn" id="m-robot" onclick="switchModel('robot')">🤖 Robot Expressive</button>
+      <button class="ctrl-btn model-btn" id="m-fox" onclick="switchModel('fox')">🦊 Cyber Fox</button>
+
+      <div class="divider"></div>
+
+      <!-- Animation Actions -->
+      <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">HÀNH ĐỘNG:</span>
+      <button class="ctrl-btn" onclick="triggerAction('Wave')">👋 Vẫy tay</button>
+      <button class="ctrl-btn" onclick="triggerAction('ThumbsUp')">👍 Thumbs Up</button>
+      <button class="ctrl-btn" onclick="triggerAction('Dance')">🕺 Nhảy</button>
+      <button class="ctrl-btn" onclick="triggerAction('Jump')">🦘 Bật nhảy</button>
+
+      <div class="divider"></div>
+
+      <!-- Lighting & Color Palettes -->
+      <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">ÁNH SÁNG:</span>
+      <button class="ctrl-btn active theme-btn" id="theme-sky" onclick="setLightingTheme('sky')">⚪ Trắng Sứ</button>
+      <button class="ctrl-btn theme-btn" id="theme-mint" onclick="setLightingTheme('mint')">🌿 Bạc Hà</button>
+      <button class="ctrl-btn theme-btn" id="theme-amber" onclick="setLightingTheme('amber')">🍯 Hổ Phách</button>
+      <button class="ctrl-btn theme-btn" id="theme-violet" onclick="setLightingTheme('violet')">🌌 Tím Khói</button>
+      <button class="ctrl-btn theme-btn" id="theme-titan" onclick="setLightingTheme('titan')">🌑 Titan</button>
+
+      <div class="divider"></div>
+
+      <button class="action-btn" onclick="simulateFullWorkflow()">🚀 Demo: Tìm Task Quá Hạn</button>
+    </div>
+
+    <!-- Mock Kanban Background -->
+    <div class="mock-kanban">
+      <div class="board-header">
+        <div>
+          <h1>📁 Civix Commercial Engine — Sprint 4</h1>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+            Sử dụng <b>Model 3D ngoại vi chuyên nghiệp</b> (.glb / .gltf) tải từ file chuẩn — Hoạt hình xương mượt mà,
+            ánh sáng PBR Studio!
+          </p>
+        </div>
+        <div
+          style="font-size: 13px; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);"
+        >
+          Chạy 100% độc lập không cần backend
+        </div>
+      </div>
+
+      <div class="columns">
+        <div class="col">
+          <div class="col-title">
+            <span>To Do</span>
+            <span style="opacity: 0.6;">4</span>
+          </div>
+          <div class="task-card">CIVIX-120: Nâng cấp SQLite Replay Driver</div>
+          <div class="task-card">CIVIX-121: Chuẩn hóa SSE Event Protocol CAR-v2</div>
+          <div class="task-card">CIVIX-122: Thiết kế Quota Guard Token Ledger</div>
+        </div>
+
+        <div class="col">
+          <div class="col-title">
+            <span>In Progress</span>
+            <span style="opacity: 0.6;">2</span>
+          </div>
+          <div class="task-card task-highlight" id="task-overdue-1">
+            <b>CIVIX-101: Fix lỗi Auth Token chéo tenant</b>
+            <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span class="tag-overdue">Quá hạn 2 ngày</span>
+              <span style="color: var(--text-secondary);">@Nam</span>
+            </div>
+          </div>
+          <div class="task-card task-highlight" id="task-overdue-2">
+            <b>CIVIX-105: Refactor Dynamic Model Loader</b>
+            <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span class="tag-overdue">Quá hạn 1 ngày</span>
+              <span style="color: var(--text-secondary);">@Nam</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="col-title">
+            <span>Done</span>
+            <span style="opacity: 0.6;">5</span>
+          </div>
+          <div class="task-card">CIVIX-098: Thiết lập Cordis Microkernel Seams</div>
+          <div class="task-card">CIVIX-099: Hoàn thiện Schema Event Sourcing</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom-Right Floating Mascot Dock -->
+    <div class="civix-agent-dock">
+      <!-- Smart Bento HUD Card -->
+      <div class="smart-hud" id="smart-hud">
+        <div class="hud-header">
+          <div class="hud-title">
+            <span style="font-size: 16px;">🤖</span>
+            <span id="hud-title-text">Phát Hiện 2 Task Quá Hạn!</span>
+          </div>
+          <button class="hud-close" id="btn-close-hud" onclick="closeHUD()">✕</button>
+        </div>
+
+        <div class="bento-task-list" id="bento-list">
+          <div class="bento-task-item">
+            <div>
+              <b>CIVIX-101</b> Sửa lỗi Auth Token chéo
+              <div style="color: var(--text-secondary); margin-top: 2px;">Phụ trách: @Nam</div>
+            </div>
+            <span class="tag-overdue">Trễ 2 ngày</span>
+          </div>
+          <div class="bento-task-item">
+            <div>
+              <b>CIVIX-105</b> Refactor Dynamic Model Loader
+              <div style="color: var(--text-secondary); margin-top: 2px;">Phụ trách: @Nam</div>
+            </div>
+            <span class="tag-overdue">Trễ 1 ngày</span>
+          </div>
+        </div>
+
+        <div class="hud-actions" id="hud-actions">
+          <button class="action-pill btn-confirm" id="btn-confirm-reassign" onclick="confirmReassign()">
+            <span>⚡</span> Chuyển Cho @Hùng Ngay!
+          </button>
+          <button class="action-pill btn-cancel" onclick="closeHUD()">Bỏ Qua</button>
+        </div>
+      </div>
+
+      <!-- The 3D Three.js Canvas Mascot -->
+      <div
+        class="mascot-3d-wrapper"
+        id="mascot-wrapper"
+        onclick="handleMascotClick()"
+        title="Click để tương tác hoặc gõ Cmd+K"
+      >
+        <div class="mascot-tooltip" id="mascot-tooltip">Nhấp để trò chuyện!</div>
+        <div class="loading-indicator" id="loading-spinner">Đang tải model 3D...</div>
+        <canvas id="threejs-canvas"></canvas>
+        <div class="mascot-floor-shadow" id="floor-shadow"></div>
+      </div>
+
+      <!-- Capsule Command Bar (Minimalist Input) -->
+      <div class="capsule-bar" id="capsule-bar">
+        <input
+          type="text"
+          class="capsule-input"
+          id="capsule-input"
+          placeholder="Hỏi AI Agent hoặc gõ 'tìm task quá hạn'..."
+          onkeydown="handleInputKey(event)"
+        />
+        <span class="capsule-kbd">Enter ⏎</span>
+      </div>
+    </div>
+
+    <script>
+      // =========================================================================
+      // 1. THREE.JS SCENE SETUP & STUDIO LIGHTING
+      // =========================================================================
+      const wrapper = document.getElementById("mascot-wrapper");
+      const canvas = document.getElementById("threejs-canvas");
+      const floorShadow = document.getElementById("floor-shadow");
+      const tooltip = document.getElementById("mascot-tooltip");
+      const spinner = document.getElementById("loading-spinner");
+
+      const width = wrapper.clientWidth;
+      const height = wrapper.clientHeight;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+      camera.position.set(0, 0.1, 2.7);
+
+      const renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        alpha: true,
+        antialias: true,
+        powerPreference: "high-performance",
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.outputEncoding = THREE.sRGBEncoding;
+
+      // High quality lighting for PBR 3D models
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x1e293b, 1.6);
+      hemiLight.position.set(0, 20, 0);
+      scene.add(hemiLight);
+
+      const keyLight = new THREE.DirectionalLight(0x38bdf8, 2.4);
+      keyLight.position.set(3, 4, 3);
+      scene.add(keyLight);
+
+      const rimLight = new THREE.DirectionalLight(0xa855f7, 3.2);
+      rimLight.position.set(-3, 2, -2);
+      scene.add(rimLight);
+
+      const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      fillLight.position.set(0, -2, 2);
+      scene.add(fillLight);
+
+      // =========================================================================
+      // 2. EXTERNAL GLTF MODEL LOADER & MULTI-MODEL MANAGER
+      // =========================================================================
+      const gltfLoader = new THREE.GLTFLoader();
+      const modelGroup = new THREE.Group();
+      scene.add(modelGroup);
+
+      let currentModelKey = "cat";
+      let mixer = null;
+      let activeAction = null;
+      let previousAction = null;
+      let actions = {};
+      const loadedModelScenes = {};
+      const loadedAnimations = {};
+
+      const modelConfigs = {
+        cat: {
+          file: "/models/toon_cat_free.glb",
+          targetHeight: 1.75,
+          yOffset: 0.05,
+          cameraZ: 3.5,
+          cameraY: 0.1,
+          defaultAnim: "Scene",
+          waveAnim: "Scene",
+          happyAnim: "Scene",
+          danceAnim: "Scene",
+          jumpAnim: "Scene",
+          badge: "🐱 Toon Cat",
+        },
+        robot: {
+          file: "/models/RobotExpressive.glb",
+          targetHeight: 1.8,
+          yOffset: 0.0,
+          cameraZ: 3.5,
+          cameraY: 0.15,
+          defaultAnim: "Idle",
+          waveAnim: "Wave",
+          happyAnim: "ThumbsUp",
+          danceAnim: "Dance",
+          jumpAnim: "Jump",
+          badge: "🤖 Robot Expressive",
+        },
+        fox: {
+          file: "/models/Fox.glb",
+          targetHeight: 1.75,
+          yOffset: -0.05,
+          cameraZ: 3.6,
+          cameraY: 0.1,
+          defaultAnim: "Survey",
+          waveAnim: "Walk",
+          happyAnim: "Run",
+          danceAnim: "Run",
+          jumpAnim: "Walk",
+          badge: "🦊 Cyber Fox",
+        },
+      };
+
+      function loadModel(key, onComplete) {
+        const cfg = modelConfigs[key];
+        if (!cfg) return;
+
+        spinner.style.display = "block";
+
+        if (loadedModelScenes[key]) {
+          applyModelToScene(key);
+          spinner.style.display = "none";
+          if (onComplete) onComplete();
+          return;
+        }
+
+        gltfLoader.load(
+          cfg.file,
+          function (gltf) {
+            const root = gltf.scene;
+
+            root.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                if (child.material) {
+                  child.material.side = THREE.DoubleSide;
+                }
               }
+            });
+
+            // Auto-center and normalize scale
+            const box = new THREE.Box3().setFromObject(root);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = cfg.targetHeight / (maxDim || 1);
+            root.scale.setScalar(scale);
+
+            // Center bounding box
+            root.position.x = -center.x * scale;
+            root.position.y = -center.y * scale + cfg.yOffset;
+            root.position.z = -center.z * scale;
+
+            loadedModelScenes[key] = root;
+            loadedAnimations[key] = gltf.animations || [];
+
+            applyModelToScene(key);
+            spinner.style.display = "none";
+            if (onComplete) onComplete();
+          },
+          undefined,
+          function (err) {
+            console.error("Error loading 3D model:", err);
+            spinner.style.display = "none";
+          }
+        );
+      }
+
+      function fitModelToView(root, margin = 1.35) {
+        // Compute accurate world-space bounding box
+        const box = new THREE.Box3().setFromObject(root);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+
+        // Center the root object precisely at (0, 0, 0)
+        root.position.x -= center.x;
+        root.position.y -= center.y;
+        root.position.z -= center.z;
+
+        // Calculate camera distance required to fit maxDim
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fovRad = camera.fov * (Math.PI / 180);
+        const cameraZ = (maxDim / (2 * Math.tan(fovRad / 2))) * margin;
+
+        camera.position.set(0, 0, cameraZ);
+        camera.lookAt(0, 0, 0);
+        camera.near = Math.max(0.01, cameraZ / 50);
+        camera.far = cameraZ * 50;
+        camera.updateProjectionMatrix();
+      }
+
+      function applyModelToScene(key) {
+        const root = loadedModelScenes[key];
+        const anims = loadedAnimations[key];
+        const cfg = modelConfigs[key];
+
+        while (modelGroup.children.length > 0) {
+          modelGroup.remove(modelGroup.children[0]);
+        }
+
+        modelGroup.add(root);
+        actions = {};
+
+        // Fit camera precisely to model
+        fitModelToView(root, cfg.margin || 1.35);
+
+        if (anims && anims.length > 0) {
+          mixer = new THREE.AnimationMixer(root);
+          anims.forEach((clip) => {
+            const action = mixer.clipAction(clip);
+            actions[clip.name] = action;
+
+            if (["Wave", "ThumbsUp", "Jump", "Yes", "No", "Punch", "Dance"].includes(clip.name)) {
+              action.clampWhenFinished = true;
+              action.loop = THREE.LoopOnce;
             }
           });
 
-          // Auto-center and normalize scale
-          const box = new THREE.Box3().setFromObject(root);
-          const size = box.getSize(new THREE.Vector3());
-          const center = box.getCenter(new THREE.Vector3());
+          mixer.addEventListener("finished", function () {
+            const defaultClip = cfg.defaultAnim;
+            if (defaultClip && actions[defaultClip] && activeAction !== actions[defaultClip]) {
+              fadeToAction(defaultClip, 0.4);
+            }
+          });
 
-          const maxDim = Math.max(size.x, size.y, size.z);
-          const scale = cfg.targetHeight / (maxDim || 1);
-          root.scale.setScalar(scale);
+          const startClip = cfg.defaultAnim;
+          if (actions[startClip]) {
+            actions[startClip].play();
+            activeAction = actions[startClip];
+          } else if (anims[0]) {
+            const first = actions[anims[0].name];
+            first.play();
+            activeAction = first;
+          }
+        } else {
+          mixer = null;
+          activeAction = null;
+        }
 
-          // Center bounding box
-          root.position.x = -center.x * scale;
-          root.position.y = -center.y * scale + cfg.yOffset;
-          root.position.z = -center.z * scale;
+        document.getElementById("mascot-badge").textContent = cfg.badge;
+        triggerBounce();
+      }
 
-          loadedModelScenes[key] = root;
-          loadedAnimations[key] = gltf.animations || [];
+      function fadeToAction(name, duration = 0.35) {
+        if (!actions[name] || activeAction === actions[name]) return;
 
-          applyModelToScene(key);
-          spinner.style.display = 'none';
-          if (onComplete) onComplete();
+        previousAction = activeAction;
+        activeAction = actions[name];
+
+        if (previousAction) {
+          previousAction.fadeOut(duration);
+        }
+
+        activeAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(duration).play();
+      }
+
+      function triggerAction(actionName) {
+        const cfg = modelConfigs[currentModelKey];
+        let targetAnim = actionName;
+
+        if (currentModelKey === "robot") {
+          targetAnim = actionName;
+        } else if (actionName === "Wave") {
+          targetAnim = cfg.waveAnim;
+        } else if (actionName === "ThumbsUp") {
+          targetAnim = cfg.happyAnim;
+        } else if (actionName === "Dance") {
+          targetAnim = cfg.danceAnim;
+        } else if (actionName === "Jump") {
+          targetAnim = cfg.jumpAnim;
+        }
+
+        if (actions[targetAnim]) {
+          fadeToAction(targetAnim, 0.25);
+        }
+        triggerBounce();
+      }
+
+      function switchModel(key) {
+        if (currentModelKey === key) return;
+        currentModelKey = key;
+
+        document.querySelectorAll(".model-btn").forEach((b) => b.classList.remove("active"));
+        const btn = document.getElementById("m-" + key);
+        if (btn) btn.classList.add("active");
+
+        loadModel(key);
+      }
+
+      // =========================================================================
+      // 3. SPRING PHYSICS & INTERACTIVE MOUSE TRACKING
+      // =========================================================================
+      let mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
+      const spring = {
+        scaleY: 1.0,
+        scaleXZ: 1.0,
+        velY: 0,
+        velXZ: 0,
+        posY: 0,
+        velPosY: 0,
+        k: 0.18,
+        damp: 0.72,
+      };
+
+      function triggerBounce() {
+        spring.scaleY = 0.85;
+        spring.scaleXZ = 1.15;
+        spring.posY = -0.12;
+      }
+
+      window.addEventListener("mousemove", (e) => {
+        const rect = wrapper.getBoundingClientRect();
+        const dotCenterX = rect.left + rect.width / 2;
+        const dotCenterY = rect.top + rect.height / 2;
+
+        mouse.targetX = Math.max(-1, Math.min(1, (e.clientX - dotCenterX) / (window.innerWidth / 2)));
+        mouse.targetY = Math.max(-1, Math.min(1, (e.clientY - dotCenterY) / (window.innerHeight / 2)));
+      });
+
+      // =========================================================================
+      // 4. STUDIO LIGHTING THEMES (HARMONIOUS PALETTES)
+      // =========================================================================
+      const lightingThemes = {
+        sky: {
+          key: 0x38bdf8,
+          rim: 0x60a5fa,
+          hemi: 0xffffff,
+          badge: "linear-gradient(135deg, #0284c7, #3b82f6)",
         },
-        undefined,
-        function (err) {
-          console.error('Error loading 3D model:', err);
-          spinner.style.display = 'none';
+        mint: {
+          key: 0x34d399,
+          rim: 0x10b981,
+          hemi: 0xecfdf5,
+          badge: "linear-gradient(135deg, #059669, #10b981)",
+        },
+        amber: {
+          key: 0xfbbf24,
+          rim: 0xf59e0b,
+          hemi: 0xfffbeb,
+          badge: "linear-gradient(135deg, #d97706, #fbbf24)",
+        },
+        violet: {
+          key: 0xc084fc,
+          rim: 0xa855f7,
+          hemi: 0xf5f3ff,
+          badge: "linear-gradient(135deg, #7c3aed, #c084fc)",
+        },
+        titan: {
+          key: 0x94a3b8,
+          rim: 0x06b6d4,
+          hemi: 0x334155,
+          badge: "linear-gradient(135deg, #334155, #64748b)",
+        },
+      };
+
+      function setLightingTheme(key) {
+        const t = lightingThemes[key];
+        if (!t) return;
+
+        document.querySelectorAll(".theme-btn").forEach((b) => b.classList.remove("active"));
+        const activeBtn = document.getElementById("theme-" + key);
+        if (activeBtn) activeBtn.classList.add("active");
+
+        keyLight.color.set(t.key);
+        rimLight.color.set(t.rim);
+        hemiLight.color.set(t.hemi);
+        document.getElementById("mascot-badge").style.background = t.badge;
+
+        triggerBounce();
+      }
+
+      // =========================================================================
+      // 5. MAIN RENDER LOOP WITH BLENDING & TRACKING
+      // =========================================================================
+      const clock = new THREE.Clock();
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        const delta = clock.getDelta();
+        const elapsedTime = clock.getElapsedTime();
+
+        if (mixer) {
+          mixer.update(delta);
         }
-      );
-    }
 
-    function fitModelToView(root, margin = 1.35) {
-      // Compute accurate world-space bounding box
-      const box = new THREE.Box3().setFromObject(root);
-      const center = box.getCenter(new THREE.Vector3());
-      const size = box.getSize(new THREE.Vector3());
+        // Smooth mouse tracking
+        mouse.x += (mouse.targetX - mouse.x) * 0.08;
+        mouse.y += (mouse.targetY - mouse.y) * 0.08;
 
-      // Center the root object precisely at (0, 0, 0)
-      root.position.x -= center.x;
-      root.position.y -= center.y;
-      root.position.z -= center.z;
+        // Spring physics step
+        const forceY = (1.0 - spring.scaleY) * spring.k;
+        spring.velY = (spring.velY + forceY) * spring.damp;
+        spring.scaleY += spring.velY;
 
-      // Calculate camera distance required to fit maxDim
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const fovRad = camera.fov * (Math.PI / 180);
-      const cameraZ = (maxDim / (2 * Math.tan(fovRad / 2))) * margin;
+        const forceXZ = (1.0 - spring.scaleXZ) * spring.k;
+        spring.velXZ = (spring.velXZ + forceXZ) * spring.damp;
+        spring.scaleXZ += spring.velXZ;
 
-      camera.position.set(0, 0, cameraZ);
-      camera.lookAt(0, 0, 0);
-      camera.near = Math.max(0.01, cameraZ / 50);
-      camera.far = cameraZ * 50;
-      camera.updateProjectionMatrix();
-    }
+        const forcePos = (0.0 - spring.posY) * spring.k;
+        spring.velPosY = (spring.velPosY + forcePos) * spring.damp;
+        spring.posY += spring.velPosY;
 
-    function applyModelToScene(key) {
-      const root = loadedModelScenes[key];
-      const anims = loadedAnimations[key];
-      const cfg = modelConfigs[key];
+        modelGroup.scale.set(spring.scaleXZ, spring.scaleY, spring.scaleXZ);
 
-      while (modelGroup.children.length > 0) {
-        modelGroup.remove(modelGroup.children[0]);
+        // Floor Shadow follow
+        floorShadow.style.transform = `translateX(-50%) scale(${Math.max(0.7, 2.0 - spring.scaleY)})`;
+
+        // Character body breathing & curious orientation towards cursor
+        const floatY = Math.sin(elapsedTime * 2.2) * 0.03 + spring.posY;
+        modelGroup.position.y = floatY;
+
+        modelGroup.rotation.y = mouse.x * 0.55;
+        modelGroup.rotation.x = -mouse.y * 0.15;
+        modelGroup.rotation.z = mouse.x * 0.06;
+
+        renderer.render(scene, camera);
       }
+      animate();
 
-      modelGroup.add(root);
-      actions = {};
+      // Load initial model (Toon Cat by default)
+      loadModel("cat");
 
-      // Fit camera precisely to model
-      fitModelToView(root, cfg.margin || 1.35);
+      // =========================================================================
+      // 6. HUD WORKFLOW & CAPSULE INTERACTIONS
+      // =========================================================================
+      const hud = document.getElementById("smart-hud");
+      const capsule = document.getElementById("capsule-bar");
+      const capsuleInput = document.getElementById("capsule-input");
 
-      if (anims && anims.length > 0) {
-        mixer = new THREE.AnimationMixer(root);
-        anims.forEach((clip) => {
-          const action = mixer.clipAction(clip);
-          actions[clip.name] = action;
-
-          if (['Wave', 'ThumbsUp', 'Jump', 'Yes', 'No', 'Punch', 'Dance'].includes(clip.name)) {
-            action.clampWhenFinished = true;
-            action.loop = THREE.LoopOnce;
-          }
-        });
-
-        mixer.addEventListener('finished', function () {
-          const defaultClip = cfg.defaultAnim;
-          if (defaultClip && actions[defaultClip] && activeAction !== actions[defaultClip]) {
-            fadeToAction(defaultClip, 0.4);
-          }
-        });
-
-        const startClip = cfg.defaultAnim;
-        if (actions[startClip]) {
-          actions[startClip].play();
-          activeAction = actions[startClip];
-        } else if (anims[0]) {
-          const first = actions[anims[0].name];
-          first.play();
-          activeAction = first;
-        }
-      } else {
-        mixer = null;
-        activeAction = null;
-      }
-
-      document.getElementById('mascot-badge').textContent = cfg.badge;
-      triggerBounce();
-    }
-
-    function fadeToAction(name, duration = 0.35) {
-      if (!actions[name] || activeAction === actions[name]) return;
-
-      previousAction = activeAction;
-      activeAction = actions[name];
-
-      if (previousAction) {
-        previousAction.fadeOut(duration);
-      }
-
-      activeAction
-        .reset()
-        .setEffectiveTimeScale(1)
-        .setEffectiveWeight(1)
-        .fadeIn(duration)
-        .play();
-    }
-
-    function triggerAction(actionName) {
-      const cfg = modelConfigs[currentModelKey];
-      let targetAnim = actionName;
-
-      if (currentModelKey === 'robot') {
-        targetAnim = actionName;
-      } else if (actionName === 'Wave') {
-        targetAnim = cfg.waveAnim;
-      } else if (actionName === 'ThumbsUp') {
-        targetAnim = cfg.happyAnim;
-      } else if (actionName === 'Dance') {
-        targetAnim = cfg.danceAnim;
-      } else if (actionName === 'Jump') {
-        targetAnim = cfg.jumpAnim;
-      }
-
-      if (actions[targetAnim]) {
-        fadeToAction(targetAnim, 0.25);
-      }
-      triggerBounce();
-    }
-
-    function switchModel(key) {
-      if (currentModelKey === key) return;
-      currentModelKey = key;
-
-      document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
-      const btn = document.getElementById('m-' + key);
-      if (btn) btn.classList.add('active');
-
-      loadModel(key);
-    }
-
-    // =========================================================================
-    // 3. SPRING PHYSICS & INTERACTIVE MOUSE TRACKING
-    // =========================================================================
-    let mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
-    const spring = {
-      scaleY: 1.0,
-      scaleXZ: 1.0,
-      velY: 0,
-      velXZ: 0,
-      posY: 0,
-      velPosY: 0,
-      k: 0.18,
-      damp: 0.72
-    };
-
-    function triggerBounce() {
-      spring.scaleY = 0.85;
-      spring.scaleXZ = 1.15;
-      spring.posY = -0.12;
-    }
-
-    window.addEventListener('mousemove', (e) => {
-      const rect = wrapper.getBoundingClientRect();
-      const dotCenterX = rect.left + rect.width / 2;
-      const dotCenterY = rect.top + rect.height / 2;
-
-      mouse.targetX = Math.max(-1, Math.min(1, (e.clientX - dotCenterX) / (window.innerWidth / 2)));
-      mouse.targetY = Math.max(-1, Math.min(1, (e.clientY - dotCenterY) / (window.innerHeight / 2)));
-    });
-
-    // =========================================================================
-    // 4. STUDIO LIGHTING THEMES (HARMONIOUS PALETTES)
-    // =========================================================================
-    const lightingThemes = {
-      sky: {
-        key: 0x38bdf8,
-        rim: 0x60a5fa,
-        hemi: 0xffffff,
-        badge: 'linear-gradient(135deg, #0284c7, #3b82f6)'
-      },
-      mint: {
-        key: 0x34d399,
-        rim: 0x10b981,
-        hemi: 0xecfdf5,
-        badge: 'linear-gradient(135deg, #059669, #10b981)'
-      },
-      amber: {
-        key: 0xfbbf24,
-        rim: 0xf59e0b,
-        hemi: 0xfffbeb,
-        badge: 'linear-gradient(135deg, #d97706, #fbbf24)'
-      },
-      violet: {
-        key: 0xc084fc,
-        rim: 0xa855f7,
-        hemi: 0xf5f3ff,
-        badge: 'linear-gradient(135deg, #7c3aed, #c084fc)'
-      },
-      titan: {
-        key: 0x94a3b8,
-        rim: 0x06b6d4,
-        hemi: 0x334155,
-        badge: 'linear-gradient(135deg, #334155, #64748b)'
-      }
-    };
-
-    function setLightingTheme(key) {
-      const t = lightingThemes[key];
-      if (!t) return;
-
-      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-      const activeBtn = document.getElementById('theme-' + key);
-      if (activeBtn) activeBtn.classList.add('active');
-
-      keyLight.color.set(t.key);
-      rimLight.color.set(t.rim);
-      hemiLight.color.set(t.hemi);
-      document.getElementById('mascot-badge').style.background = t.badge;
-
-      triggerBounce();
-    }
-
-    // =========================================================================
-    // 5. MAIN RENDER LOOP WITH BLENDING & TRACKING
-    // =========================================================================
-    const clock = new THREE.Clock();
-
-    function animate() {
-      requestAnimationFrame(animate);
-
-      const delta = clock.getDelta();
-      const elapsedTime = clock.getElapsedTime();
-
-      if (mixer) {
-        mixer.update(delta);
-      }
-
-      // Smooth mouse tracking
-      mouse.x += (mouse.targetX - mouse.x) * 0.08;
-      mouse.y += (mouse.targetY - mouse.y) * 0.08;
-
-      // Spring physics step
-      const forceY = (1.0 - spring.scaleY) * spring.k;
-      spring.velY = (spring.velY + forceY) * spring.damp;
-      spring.scaleY += spring.velY;
-
-      const forceXZ = (1.0 - spring.scaleXZ) * spring.k;
-      spring.velXZ = (spring.velXZ + forceXZ) * spring.damp;
-      spring.scaleXZ += spring.velXZ;
-
-      const forcePos = (0.0 - spring.posY) * spring.k;
-      spring.velPosY = (spring.velPosY + forcePos) * spring.damp;
-      spring.posY += spring.velPosY;
-
-      modelGroup.scale.set(spring.scaleXZ, spring.scaleY, spring.scaleXZ);
-
-      // Floor Shadow follow
-      floorShadow.style.transform = `translateX(-50%) scale(${Math.max(0.7, 2.0 - spring.scaleY)})`;
-
-      // Character body breathing & curious orientation towards cursor
-      const floatY = Math.sin(elapsedTime * 2.2) * 0.03 + spring.posY;
-      modelGroup.position.y = floatY;
-
-      modelGroup.rotation.y = mouse.x * 0.55;
-      modelGroup.rotation.x = -mouse.y * 0.15;
-      modelGroup.rotation.z = mouse.x * 0.06;
-
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // Load initial model (Toon Cat by default)
-    loadModel('cat');
-
-    // =========================================================================
-    // 6. HUD WORKFLOW & CAPSULE INTERACTIONS
-    // =========================================================================
-    const hud = document.getElementById('smart-hud');
-    const capsule = document.getElementById('capsule-bar');
-    const capsuleInput = document.getElementById('capsule-input');
-
-    function handleMascotClick() {
-      triggerAction('Wave');
-      toggleCapsule();
-    }
-
-    function toggleCapsule() {
-      const isVisible = capsule.classList.contains('visible');
-      if (isVisible) {
-        capsule.classList.remove('visible');
-      } else {
-        capsule.classList.add('visible');
-        capsuleInput.focus();
-      }
-    }
-
-    function closeHUD() {
-      hud.classList.remove('visible');
-      const cfg = modelConfigs[currentModelKey];
-      if (actions[cfg.defaultAnim]) {
-        fadeToAction(cfg.defaultAnim, 0.4);
-      }
-    }
-
-    function handleInputKey(e) {
-      if (e.key === 'Enter') {
-        e.target.value = '';
-        capsule.classList.remove('visible');
-        simulateFullWorkflow();
-      } else if (e.key === 'Escape') {
-        capsule.classList.remove('visible');
-        closeHUD();
-      }
-    }
-
-    window.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'j')) {
-        e.preventDefault();
+      function handleMascotClick() {
+        triggerAction("Wave");
         toggleCapsule();
       }
-    });
 
-    function simulateFullWorkflow() {
-      triggerAction('Wave');
-      hud.classList.remove('visible');
+      function toggleCapsule() {
+        const isVisible = capsule.classList.contains("visible");
+        if (isVisible) {
+          capsule.classList.remove("visible");
+        } else {
+          capsule.classList.add("visible");
+          capsuleInput.focus();
+        }
+      }
 
-      setTimeout(() => {
-        triggerAction('ThumbsUp');
-        hud.classList.add('visible');
-        document.getElementById('task-overdue-1').classList.add('task-highlight');
-        document.getElementById('task-overdue-2').classList.add('task-highlight');
-      }, 1200);
-    }
+      function closeHUD() {
+        hud.classList.remove("visible");
+        const cfg = modelConfigs[currentModelKey];
+        if (actions[cfg.defaultAnim]) {
+          fadeToAction(cfg.defaultAnim, 0.4);
+        }
+      }
 
-    function confirmReassign() {
-      triggerAction('Dance');
-      hud.innerHTML = `
+      function handleInputKey(e) {
+        if (e.key === "Enter") {
+          e.target.value = "";
+          capsule.classList.remove("visible");
+          simulateFullWorkflow();
+        } else if (e.key === "Escape") {
+          capsule.classList.remove("visible");
+          closeHUD();
+        }
+      }
+
+      window.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "j")) {
+          e.preventDefault();
+          toggleCapsule();
+        }
+      });
+
+      function simulateFullWorkflow() {
+        triggerAction("Wave");
+        hud.classList.remove("visible");
+
+        setTimeout(() => {
+          triggerAction("ThumbsUp");
+          hud.classList.add("visible");
+          document.getElementById("task-overdue-1").classList.add("task-highlight");
+          document.getElementById("task-overdue-2").classList.add("task-highlight");
+        }, 1200);
+      }
+
+      function confirmReassign() {
+        triggerAction("Dance");
+        hud.innerHTML = `
         <div style="text-align: center; padding: 18px 0;">
           <div style="font-size: 32px; margin-bottom: 8px;">✨</div>
           <div style="font-size: 15px; font-weight: 700; color: #10b981;">Đã Điều Chuyển Thành Công!</div>
@@ -1118,10 +1122,10 @@
         </div>
       `;
 
-      setTimeout(() => {
-        closeHUD();
-      }, 3500);
-    }
-  </script>
-</body>
+        setTimeout(() => {
+          closeHUD();
+        }, 3500);
+      }
+    </script>
+  </body>
 </html>

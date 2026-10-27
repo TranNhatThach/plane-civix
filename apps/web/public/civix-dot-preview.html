@@ -1,693 +1,706 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Civix Dot Mascot & Living HUD Preview</title>
-  <style>
-    :root {
-      --bg-dark: #090d16;
-      --card-bg: rgba(18, 24, 38, 0.85);
-      --card-border: rgba(255, 255, 255, 0.1);
-      --accent-blue: #3b82f6;
-      --accent-glow: rgba(59, 130, 246, 0.4);
-      --accent-purple: #8b5cf6;
-      --accent-green: #10b981;
-      --accent-amber: #f59e0b;
-      --accent-red: #ef4444;
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Civix Dot Mascot & Living HUD Preview</title>
+    <style>
+      :root {
+        --bg-dark: #090d16;
+        --card-bg: rgba(18, 24, 38, 0.85);
+        --card-border: rgba(255, 255, 255, 0.1);
+        --accent-blue: #3b82f6;
+        --accent-glow: rgba(59, 130, 246, 0.4);
+        --accent-purple: #8b5cf6;
+        --accent-green: #10b981;
+        --accent-amber: #f59e0b;
+        --accent-red: #ef4444;
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+      }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
 
-    body {
-      background-color: var(--bg-dark);
-      background-image: 
-        radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
-      color: var(--text-primary);
-      min-height: 100vh;
-      overflow-x: hidden;
-      user-select: none;
-    }
+      body {
+        background-color: var(--bg-dark);
+        background-image:
+          radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+          radial-gradient(circle at 85% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+        user-select: none;
+      }
 
-    /* Mock Kanban Board Background */
-    .mock-kanban {
-      padding: 32px;
-      max-width: 1300px;
-      margin: 0 auto;
-      opacity: 0.6;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
+      /* Mock Kanban Board Background */
+      .mock-kanban {
+        padding: 32px;
+        max-width: 1300px;
+        margin: 0 auto;
+        opacity: 0.6;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
 
-    .board-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      padding-bottom: 16px;
-    }
+      .board-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding-bottom: 16px;
+      }
 
-    .columns {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+      }
 
-    .col {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      border-radius: 12px;
-      padding: 16px;
-    }
+      .col {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 12px;
+        padding: 16px;
+      }
 
-    .col-title {
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-secondary);
-      margin-bottom: 12px;
-    }
+      .col-title {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+      }
 
-    .task-card {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 10px;
-      font-size: 13px;
-    }
+      .task-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+        font-size: 13px;
+      }
 
-    /* Highlight pulse for overdue task */
-    .task-highlight {
-      border-color: rgba(239, 68, 68, 0.6) !important;
-      box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
-      animation: pulseHighlight 2s infinite ease-in-out;
-    }
+      /* Highlight pulse for overdue task */
+      .task-highlight {
+        border-color: rgba(239, 68, 68, 0.6) !important;
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+        animation: pulseHighlight 2s infinite ease-in-out;
+      }
 
-    @keyframes pulseHighlight {
-      0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
-      50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
-    }
+      @keyframes pulseHighlight {
+        0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+        50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+      }
 
-    /* CONTROL PANEL BAR */
-    .demo-controls {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(18, 24, 38, 0.9);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--card-border);
-      border-radius: 999px;
-      padding: 8px 16px;
-      display: flex;
-      gap: 8px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-      z-index: 9999;
-    }
+      /* CONTROL PANEL BAR */
+      .demo-controls {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(18, 24, 38, 0.9);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--card-border);
+        border-radius: 999px;
+        padding: 8px 16px;
+        display: flex;
+        gap: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+      }
 
-    .demo-btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: var(--text-primary);
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
+      .demo-btn {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
 
-    .demo-btn:hover, .demo-btn.active {
-      background: var(--accent-blue);
-      border-color: var(--accent-blue);
-      box-shadow: 0 0 12px var(--accent-glow);
-    }
+      .demo-btn:hover, .demo-btn.active {
+        background: var(--accent-blue);
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 12px var(--accent-glow);
+      }
 
-    /* CIVIX DOT FLOATING CONTAINER */
-    .civix-agent-widget {
-      position: fixed;
-      bottom: 32px;
-      right: 32px;
-      z-index: 10000;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
+      /* CIVIX DOT FLOATING CONTAINER */
+      .civix-agent-widget {
+        position: fixed;
+        bottom: 32px;
+        right: 32px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
 
-    /* THE LIVING DOT MASCOT */
-    .civix-dot {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      position: relative;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 
-        0 10px 25px rgba(37, 99, 235, 0.4),
-        0 0 0 2px rgba(255, 255, 255, 0.2) inset;
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
-    }
+      /* THE LIVING DOT MASCOT */
+      .civix-dot {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        position: relative;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow:
+          0 10px 25px rgba(37, 99, 235, 0.4),
+          0 0 0 2px rgba(255, 255, 255, 0.2) inset;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+      }
 
-    .civix-dot:hover {
-      transform: scale(1.08);
-      box-shadow: 
-        0 14px 30px rgba(37, 99, 235, 0.6),
-        0 0 25px rgba(59, 130, 246, 0.6);
-    }
+      .civix-dot:hover {
+        transform: scale(1.08);
+        box-shadow:
+          0 14px 30px rgba(37, 99, 235, 0.6),
+          0 0 25px rgba(59, 130, 246, 0.6);
+      }
 
-    .civix-dot:active {
-      transform: scale(0.95);
-    }
+      .civix-dot:active {
+        transform: scale(0.95);
+      }
 
-    /* AMBIENT AURA GLOW */
-    .aura-glow {
-      position: absolute;
-      inset: -6px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, transparent 70%);
-      opacity: 0.6;
-      animation: pulseAura 3s infinite ease-in-out;
-      pointer-events: none;
-    }
+      /* AMBIENT AURA GLOW */
+      .aura-glow {
+        position: absolute;
+        inset: -6px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, transparent 70%);
+        opacity: 0.6;
+        animation: pulseAura 3s infinite ease-in-out;
+        pointer-events: none;
+      }
 
-    @keyframes pulseAura {
-      0%, 100% { transform: scale(1); opacity: 0.4; }
-      50% { transform: scale(1.2); opacity: 0.8; }
-    }
+      @keyframes pulseAura {
+        0%, 100% { transform: scale(1); opacity: 0.4; }
+        50% { transform: scale(1.2); opacity: 0.8; }
+      }
 
-    /* EYES CONTAINER */
-    .eyes-wrap {
-      display: flex;
-      gap: 10px;
-      position: relative;
-      z-index: 2;
-    }
+      /* EYES CONTAINER */
+      .eyes-wrap {
+        display: flex;
+        gap: 10px;
+        position: relative;
+        z-index: 2;
+      }
 
-    .eye {
-      width: 10px;
-      height: 16px;
-      background: #ffffff;
-      border-radius: 6px;
-      position: relative;
-      overflow: hidden;
-      transition: height 0.15s ease, border-radius 0.2s ease, transform 0.2s ease;
-    }
+      .eye {
+        width: 10px;
+        height: 16px;
+        background: #ffffff;
+        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+        transition: height 0.15s ease, border-radius 0.2s ease, transform 0.2s ease;
+      }
 
-    .pupil {
-      width: 6px;
-      height: 8px;
-      background: #0f172a;
-      border-radius: 4px;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      transition: transform 0.05s ease-out;
-    }
+      .pupil {
+        width: 6px;
+        height: 8px;
+        background: #0f172a;
+        border-radius: 4px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        transition: transform 0.05s ease-out;
+      }
 
-    /* EYE STATES */
-    /* 1. Blink */
-    .eye.blink {
-      height: 2px !important;
-      border-radius: 2px !important;
-    }
+      /* EYE STATES */
+      /* 1. Blink */
+      .eye.blink {
+        height: 2px !important;
+        border-radius: 2px !important;
+      }
 
-    /* 2. Thinking (Squint & Aura) */
-    .civix-dot.mood-thinking {
-      background: linear-gradient(135deg, #7c3aed, #6d28d9);
-      box-shadow: 0 10px 25px rgba(124, 58, 237, 0.5);
-    }
-    .civix-dot.mood-thinking .aura-glow {
-      background: radial-gradient(circle, rgba(168, 85, 247, 0.6) 0%, transparent 70%);
-      animation: fastPulse 1s infinite ease-in-out;
-    }
-    .civix-dot.mood-thinking .eye {
-      height: 6px;
-      border-radius: 3px;
-    }
+      /* 2. Thinking (Squint & Aura) */
+      .civix-dot.mood-thinking {
+        background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        box-shadow: 0 10px 25px rgba(124, 58, 237, 0.5);
+      }
+      .civix-dot.mood-thinking .aura-glow {
+        background: radial-gradient(circle, rgba(168, 85, 247, 0.6) 0%, transparent 70%);
+        animation: fastPulse 1s infinite ease-in-out;
+      }
+      .civix-dot.mood-thinking .eye {
+        height: 6px;
+        border-radius: 3px;
+      }
 
-    /* 3. Scanning */
-    .civix-dot.mood-scanning {
-      background: linear-gradient(135deg, #0284c7, #0369a1);
-    }
-    .civix-dot.mood-scanning .pupil {
-      animation: scanSweep 1s infinite alternate ease-in-out;
-    }
-    @keyframes scanSweep {
-      0% { transform: translate(-80%, -50%); }
-      100% { transform: translate(0%, -50%); }
-    }
+      /* 3. Scanning */
+      .civix-dot.mood-scanning {
+        background: linear-gradient(135deg, #0284c7, #0369a1);
+      }
+      .civix-dot.mood-scanning .pupil {
+        animation: scanSweep 1s infinite alternate ease-in-out;
+      }
+      @keyframes scanSweep {
+        0% { transform: translate(-80%, -50%); }
+        100% { transform: translate(0%, -50%); }
+      }
 
-    /* 4. Happy / Success */
-    .civix-dot.mood-happy {
-      background: linear-gradient(135deg, #059669, #047857);
-      animation: happyBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .civix-dot.mood-happy .eye {
-      height: 6px;
-      border-radius: 8px 8px 0 0;
-      border-top: 3px solid #ffffff;
-      background: transparent;
-    }
-    .civix-dot.mood-happy .pupil { display: none; }
+      /* 4. Happy / Success */
+      .civix-dot.mood-happy {
+        background: linear-gradient(135deg, #059669, #047857);
+        animation: happyBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .civix-dot.mood-happy .eye {
+        height: 6px;
+        border-radius: 8px 8px 0 0;
+        border-top: 3px solid #ffffff;
+        background: transparent;
+      }
+      .civix-dot.mood-happy .pupil { display: none; }
 
-    @keyframes happyBounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-12px); }
-    }
+      @keyframes happyBounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-12px); }
+      }
 
-    /* 5. Confused */
-    .civix-dot.mood-confused .eye:first-child {
-      height: 18px;
-    }
-    .civix-dot.mood-confused .eye:last-child {
-      height: 6px;
-    }
-    .civix-dot.mood-confused {
-      transform: rotate(10deg);
-    }
+      /* 5. Confused */
+      .civix-dot.mood-confused .eye:first-child {
+        height: 18px;
+      }
+      .civix-dot.mood-confused .eye:last-child {
+        height: 6px;
+      }
+      .civix-dot.mood-confused {
+        transform: rotate(10deg);
+      }
 
-    @keyframes fastPulse {
-      0%, 100% { transform: scale(1.05); opacity: 0.5; }
-      50% { transform: scale(1.3); opacity: 0.9; }
-    }
+      @keyframes fastPulse {
+        0%, 100% { transform: scale(1.05); opacity: 0.5; }
+        50% { transform: scale(1.3); opacity: 0.9; }
+      }
 
-    /* FLOATING SMART HUD / BENTO CARD */
-    .smart-hud {
-      position: absolute;
-      bottom: 80px;
-      right: 0;
-      width: 380px;
-      background: var(--card-bg);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
-      padding: 18px;
-      opacity: 0;
-      transform: translateY(20px) scale(0.95);
-      pointer-events: none;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+      /* FLOATING SMART HUD / BENTO CARD */
+      .smart-hud {
+        position: absolute;
+        bottom: 80px;
+        right: 0;
+        width: 380px;
+        background: var(--card-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+        padding: 18px;
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+        pointer-events: none;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
 
-    .smart-hud.visible {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      pointer-events: auto;
-    }
+      .smart-hud.visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+      }
 
-    .hud-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
+      .hud-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
 
-    .hud-title {
-      font-size: 13px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+      .hud-title {
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
 
-    .hud-close {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      font-size: 16px;
-      cursor: pointer;
-      padding: 4px;
-    }
+      .hud-close {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 16px;
+        cursor: pointer;
+        padding: 4px;
+      }
 
-    .hud-close:hover { color: #fff; }
+      .hud-close:hover { color: #fff; }
 
-    /* Bento Item List */
-    .bento-task-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
+      /* Bento Item List */
+      .bento-task-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
 
-    .bento-task-item {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 10px;
-      padding: 10px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      transition: background 0.2s;
-    }
+      .bento-task-item {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        padding: 10px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        transition: background 0.2s;
+      }
 
-    .bento-task-item:hover {
-      background: rgba(255, 255, 255, 0.08);
-    }
+      .bento-task-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
 
-    .tag-overdue {
-      background: rgba(239, 68, 68, 0.15);
-      color: #f87171;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 10px;
-      font-weight: 600;
-    }
+      .tag-overdue {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+      }
 
-    /* ACTION PILLS FOOTER */
-    .hud-actions {
-      display: flex;
-      gap: 8px;
-    }
+      /* ACTION PILLS FOOTER */
+      .hud-actions {
+        display: flex;
+        gap: 8px;
+      }
 
-    .action-pill {
-      flex: 1;
-      padding: 8px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
+      .action-pill {
+        flex: 1;
+        padding: 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
 
-    .btn-confirm {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      color: #fff;
-    }
-    .btn-confirm:hover {
-      box-shadow: 0 0 15px var(--accent-glow);
-    }
+      .btn-confirm {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #fff;
+      }
+      .btn-confirm:hover {
+        box-shadow: 0 0 15px var(--accent-glow);
+      }
 
-    .btn-cancel {
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text-secondary);
-    }
-    .btn-cancel:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
-    }
+      .btn-cancel {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-secondary);
+      }
+      .btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
 
-    /* CAPSULE COMMAND BAR */
-    .capsule-bar {
-      margin-top: 10px;
-      width: 280px;
-      background: rgba(18, 24, 38, 0.95);
-      border: 1px solid var(--card-border);
-      border-radius: 999px;
-      padding: 6px 14px;
-      display: flex;
-      align-items: center;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      opacity: 0;
-      transform: translateY(10px);
-      transition: all 0.25s ease;
-      pointer-events: none;
-    }
+      /* CAPSULE COMMAND BAR */
+      .capsule-bar {
+        margin-top: 10px;
+        width: 280px;
+        background: rgba(18, 24, 38, 0.95);
+        border: 1px solid var(--card-border);
+        border-radius: 999px;
+        padding: 6px 14px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.25s ease;
+        pointer-events: none;
+      }
 
-    .capsule-bar.visible {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
+      .capsule-bar.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
 
-    .capsule-input {
-      background: none;
-      border: none;
-      outline: none;
-      color: #fff;
-      font-size: 12px;
-      width: 100%;
-    }
+      .capsule-input {
+        background: none;
+        border: none;
+        outline: none;
+        color: #fff;
+        font-size: 12px;
+        width: 100%;
+      }
 
-    .capsule-input::placeholder { color: var(--text-secondary); }
+      .capsule-input::placeholder { color: var(--text-secondary); }
 
-    .capsule-kbd {
-      font-size: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--text-secondary);
-      padding: 2px 6px;
-      border-radius: 4px;
-      margin-left: 6px;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Top Simulator Controls -->
-  <div class="demo-controls">
-    <button class="demo-btn active" onclick="setMood('idle')">👀 Idle (Mắt theo chuột)</button>
-    <button class="demo-btn" onclick="setMood('thinking')">🤔 Thinking</button>
-    <button class="demo-btn" onclick="setMood('scanning')">⚡ Scanning Tool</button>
-    <button class="demo-btn" onclick="setMood('happy')">✨ Happy (Xong việc)</button>
-    <button class="demo-btn" onclick="setMood('confused')">❓ Confused</button>
-    <button class="demo-btn" onclick="simulateOverdueQuery()" style="background: rgba(139, 92, 246, 0.3); border-color: rgba(139, 92, 246, 0.5);">🚀 Test Hỏi: Task Quá Hạn?</button>
-  </div>
-
-  <!-- Mock Kanban Background -->
-  <div class="mock-kanban">
-    <div class="board-header">
-      <h2>📁 Civix Commercial Engine — Sprint 4</h2>
-      <span style="font-size: 13px; color: var(--text-secondary);">Nhấn phím <b>Cmd+K</b> hoặc bấm vào <b>Civix Dot</b> góc dưới để gọi Bot</span>
+      .capsule-kbd {
+        font-size: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-secondary);
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Top Simulator Controls -->
+    <div class="demo-controls">
+      <button class="demo-btn active" onclick="setMood('idle')">👀 Idle (Mắt theo chuột)</button>
+      <button class="demo-btn" onclick="setMood('thinking')">🤔 Thinking</button>
+      <button class="demo-btn" onclick="setMood('scanning')">⚡ Scanning Tool</button>
+      <button class="demo-btn" onclick="setMood('happy')">✨ Happy (Xong việc)</button>
+      <button class="demo-btn" onclick="setMood('confused')">❓ Confused</button>
+      <button
+        class="demo-btn"
+        onclick="simulateOverdueQuery()"
+        style="background: rgba(139, 92, 246, 0.3); border-color: rgba(139, 92, 246, 0.5);"
+      >
+        🚀 Test Hỏi: Task Quá Hạn?
+      </button>
     </div>
-    <div class="columns">
-      <div class="col">
-        <div class="col-title">To Do (4)</div>
-        <div class="task-card">CIVIX-120: Nâng cấp SQLite Driver</div>
-        <div class="task-card">CIVIX-121: Chuẩn hóa SSE Event Protocol</div>
-        <div class="task-card">CIVIX-122: Thiết kế Quota Guard Ledger</div>
-      </div>
-      <div class="col">
-        <div class="col-title">In Progress (3)</div>
-        <div class="task-card task-highlight" id="task-overdue-1">
-          <b>CIVIX-101: Fix lỗi Auth Token chéo</b>
-          <div style="margin-top: 6px;"><span class="tag-overdue">Quá hạn 2 ngày</span> • @Nam</div>
-        </div>
-        <div class="task-card task-highlight" id="task-overdue-2">
-          <b>CIVIX-105: Tối ưu hoá câu truy vấn DB</b>
-          <div style="margin-top: 6px;"><span class="tag-overdue">Quá hạn 1 ngày</span> • @Nam</div>
-        </div>
-      </div>
-      <div class="col">
-        <div class="col-title">Done (8)</div>
-        <div class="task-card">CIVIX-090: Backup đa tenant</div>
-        <div class="task-card">CIVIX-095: Trang Changelog Timeline</div>
-      </div>
-    </div>
-  </div>
 
-  <!-- CIVIX AGENT FLOATING MASCOT WIDGET -->
-  <div class="civix-agent-widget">
-    
-    <!-- Smart Bento Floating HUD Card -->
-    <div class="smart-hud" id="smart-hud">
-      <div class="hud-header">
-        <div class="hud-title">
-          <span>📋</span>
-          <span id="hud-title-text">2 Công Việc Quá Hạn Cần Chú Ý</span>
-        </div>
-        <button class="hud-close" onclick="closeHUD()">✕</button>
+    <!-- Mock Kanban Background -->
+    <div class="mock-kanban">
+      <div class="board-header">
+        <h2>📁 Civix Commercial Engine — Sprint 4</h2>
+        <span style="font-size: 13px; color: var(--text-secondary);"
+          >Nhấn phím <b>Cmd+K</b> hoặc bấm vào <b>Civix Dot</b> góc dưới để gọi Bot</span
+        >
       </div>
-
-      <div class="bento-task-list" id="bento-list">
-        <div class="bento-task-item">
-          <div>
-            <b>CIVIX-101</b> Sửa lỗi Auth Token chéo
-            <div style="color: var(--text-secondary); margin-top: 2px;">Phụ trách: @Nam</div>
+      <div class="columns">
+        <div class="col">
+          <div class="col-title">To Do (4)</div>
+          <div class="task-card">CIVIX-120: Nâng cấp SQLite Driver</div>
+          <div class="task-card">CIVIX-121: Chuẩn hóa SSE Event Protocol</div>
+          <div class="task-card">CIVIX-122: Thiết kế Quota Guard Ledger</div>
+        </div>
+        <div class="col">
+          <div class="col-title">In Progress (3)</div>
+          <div class="task-card task-highlight" id="task-overdue-1">
+            <b>CIVIX-101: Fix lỗi Auth Token chéo</b>
+            <div style="margin-top: 6px;"><span class="tag-overdue">Quá hạn 2 ngày</span> • @Nam</div>
           </div>
-          <span class="tag-overdue">Trễ 2 ngày</span>
-        </div>
-        <div class="bento-task-item">
-          <div>
-            <b>CIVIX-105</b> Tối ưu hoá truy vấn DB
-            <div style="color: var(--text-secondary); margin-top: 2px;">Phụ trách: @Nam</div>
+          <div class="task-card task-highlight" id="task-overdue-2">
+            <b>CIVIX-105: Tối ưu hoá câu truy vấn DB</b>
+            <div style="margin-top: 6px;"><span class="tag-overdue">Quá hạn 1 ngày</span> • @Nam</div>
           </div>
-          <span class="tag-overdue">Trễ 1 ngày</span>
+        </div>
+        <div class="col">
+          <div class="col-title">Done (8)</div>
+          <div class="task-card">CIVIX-090: Backup đa tenant</div>
+          <div class="task-card">CIVIX-095: Trang Changelog Timeline</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CIVIX AGENT FLOATING MASCOT WIDGET -->
+    <div class="civix-agent-widget">
+      <!-- Smart Bento Floating HUD Card -->
+      <div class="smart-hud" id="smart-hud">
+        <div class="hud-header">
+          <div class="hud-title">
+            <span>📋</span>
+            <span id="hud-title-text">2 Công Việc Quá Hạn Cần Chú Ý</span>
+          </div>
+          <button class="hud-close" onclick="closeHUD()">✕</button>
+        </div>
+
+        <div class="bento-task-list" id="bento-list">
+          <div class="bento-task-item">
+            <div>
+              <b>CIVIX-101</b> Sửa lỗi Auth Token chéo
+              <div style="color: var(--text-secondary); margin-top: 2px;">Phụ trách: @Nam</div>
+            </div>
+            <span class="tag-overdue">Trễ 2 ngày</span>
+          </div>
+          <div class="bento-task-item">
+            <div>
+              <b>CIVIX-105</b> Tối ưu hoá truy vấn DB
+              <div style="color: var(--text-secondary); margin-top: 2px;">Phụ trách: @Nam</div>
+            </div>
+            <span class="tag-overdue">Trễ 1 ngày</span>
+          </div>
+        </div>
+
+        <div class="hud-actions">
+          <button class="action-pill btn-confirm" onclick="confirmReassign()">
+            <span>⚡</span> Đề Xuất Chuyển Cho @Hùng
+          </button>
+          <button class="action-pill btn-cancel" onclick="closeHUD()">Bỏ Qua</button>
         </div>
       </div>
 
-      <div class="hud-actions">
-        <button class="action-pill btn-confirm" onclick="confirmReassign()">
-          <span>⚡</span> Đề Xuất Chuyển Cho @Hùng
-        </button>
-        <button class="action-pill btn-cancel" onclick="closeHUD()">Bỏ Qua</button>
+      <!-- The Dot Mascot -->
+      <div class="civix-dot" id="civix-dot" onclick="toggleCapsule()">
+        <div class="aura-glow"></div>
+        <div class="eyes-wrap">
+          <div class="eye" id="eye-left"><div class="pupil" id="pupil-left"></div></div>
+          <div class="eye" id="eye-right"><div class="pupil" id="pupil-right"></div></div>
+        </div>
+      </div>
+
+      <!-- Capsule Command Bar (Minimalist Input) -->
+      <div class="capsule-bar" id="capsule-bar">
+        <input
+          type="text"
+          class="capsule-input"
+          id="capsule-input"
+          placeholder="Hỏi Civix hoặc ra lệnh..."
+          onkeydown="handleInputKey(event)"
+        />
+        <span class="capsule-kbd">Enter ⏎</span>
       </div>
     </div>
 
-    <!-- The Dot Mascot -->
-    <div class="civix-dot" id="civix-dot" onclick="toggleCapsule()">
-      <div class="aura-glow"></div>
-      <div class="eyes-wrap">
-        <div class="eye" id="eye-left"><div class="pupil" id="pupil-left"></div></div>
-        <div class="eye" id="eye-right"><div class="pupil" id="pupil-right"></div></div>
-      </div>
-    </div>
+    <script>
+      const dot = document.getElementById("civix-dot");
+      const hud = document.getElementById("smart-hud");
+      const capsule = document.getElementById("capsule-bar");
+      const pupilLeft = document.getElementById("pupil-left");
+      const pupilRight = document.getElementById("pupil-right");
+      const eyeLeft = document.getElementById("eye-left");
+      const eyeRight = document.getElementById("eye-right");
 
-    <!-- Capsule Command Bar (Minimalist Input) -->
-    <div class="capsule-bar" id="capsule-bar">
-      <input type="text" class="capsule-input" id="capsule-input" placeholder="Hỏi Civix hoặc ra lệnh..." onkeydown="handleInputKey(event)">
-      <span class="capsule-kbd">Enter ⏎</span>
-    </div>
+      let currentMood = "idle";
 
-  </div>
+      // 1. Mouse Tracking for Eyes (Eye tracking cursor)
+      window.addEventListener("mousemove", (e) => {
+        if (currentMood !== "idle") return;
 
-  <script>
-    const dot = document.getElementById('civix-dot');
-    const hud = document.getElementById('smart-hud');
-    const capsule = document.getElementById('capsule-bar');
-    const pupilLeft = document.getElementById('pupil-left');
-    const pupilRight = document.getElementById('pupil-right');
-    const eyeLeft = document.getElementById('eye-left');
-    const eyeRight = document.getElementById('eye-right');
+        const dotRect = dot.getBoundingClientRect();
+        const dotCenterX = dotRect.left + dotRect.width / 2;
+        const dotCenterY = dotRect.top + dotRect.height / 2;
 
-    let currentMood = 'idle';
+        const deltaX = e.clientX - dotCenterX;
+        const deltaY = e.clientY - dotCenterY;
+        const angle = Math.atan2(deltaY, deltaX);
+        const distance = Math.min(3.5, Math.hypot(deltaX, deltaY) / 60);
 
-    // 1. Mouse Tracking for Eyes (Eye tracking cursor)
-    window.addEventListener('mousemove', (e) => {
-      if (currentMood !== 'idle') return;
+        const offsetX = Math.cos(angle) * distance;
+        const offsetY = Math.sin(angle) * distance;
 
-      const dotRect = dot.getBoundingClientRect();
-      const dotCenterX = dotRect.left + dotRect.width / 2;
-      const dotCenterY = dotRect.top + dotRect.height / 2;
+        pupilLeft.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+        pupilRight.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+      });
 
-      const deltaX = e.clientX - dotCenterX;
-      const deltaY = e.clientY - dotCenterY;
-      const angle = Math.atan2(deltaY, deltaX);
-      const distance = Math.min(3.5, Math.hypot(deltaX, deltaY) / 60);
+      // 2. Natural Blinking Loop
+      function scheduleBlink() {
+        const delay = Math.random() * 3000 + 2500;
+        setTimeout(() => {
+          if (currentMood === "idle") {
+            eyeLeft.classList.add("blink");
+            eyeRight.classList.add("blink");
+            setTimeout(() => {
+              eyeLeft.classList.remove("blink");
+              eyeRight.classList.remove("blink");
+            }, 150);
+          }
+          scheduleBlink();
+        }, delay);
+      }
+      scheduleBlink();
 
-      const offsetX = Math.cos(angle) * distance;
-      const offsetY = Math.sin(angle) * distance;
+      // 3. Set Mood / Expression
+      function setMood(mood) {
+        currentMood = mood;
+        dot.className = "civix-dot mood-" + mood;
 
-      pupilLeft.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
-      pupilRight.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
-    });
+        // Update active button
+        document.querySelectorAll(".demo-btn").forEach((btn) => btn.classList.remove("active"));
+        const activeBtn = Array.from(document.querySelectorAll(".demo-btn")).find((b) =>
+          b.textContent.toLowerCase().includes(mood)
+        );
+        if (activeBtn) activeBtn.classList.add("active");
 
-    // 2. Natural Blinking Loop
-    function scheduleBlink() {
-      const delay = Math.random() * 3000 + 2500;
-      setTimeout(() => {
-        if (currentMood === 'idle') {
-          eyeLeft.classList.add('blink');
-          eyeRight.classList.add('blink');
-          setTimeout(() => {
-            eyeLeft.classList.remove('blink');
-            eyeRight.classList.remove('blink');
-          }, 150);
+        if (mood === "idle") {
+          pupilLeft.style.display = "block";
+          pupilRight.style.display = "block";
         }
-        scheduleBlink();
-      }, delay);
-    }
-    scheduleBlink();
-
-    // 3. Set Mood / Expression
-    function setMood(mood) {
-      currentMood = mood;
-      dot.className = 'civix-dot mood-' + mood;
-
-      // Update active button
-      document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
-      const activeBtn = Array.from(document.querySelectorAll('.demo-btn')).find(b => b.textContent.toLowerCase().includes(mood));
-      if (activeBtn) activeBtn.classList.add('active');
-
-      if (mood === 'idle') {
-        pupilLeft.style.display = 'block';
-        pupilRight.style.display = 'block';
       }
-    }
 
-    // 4. Toggle Capsule Bar & HUD
-    function toggleCapsule() {
-      const isVisible = capsule.classList.contains('visible');
-      if (isVisible) {
-        capsule.classList.remove('visible');
-      } else {
-        capsule.classList.add('visible');
-        document.getElementById('capsule-input').focus();
-      }
-    }
-
-    function closeHUD() {
-      hud.classList.remove('visible');
-      setMood('idle');
-    }
-
-    function handleInputKey(e) {
-      if (e.key === 'Enter') {
-        const val = e.target.value.trim();
-        if (val) {
-          e.target.value = '';
-          capsule.classList.remove('visible');
-          simulateOverdueQuery();
+      // 4. Toggle Capsule Bar & HUD
+      function toggleCapsule() {
+        const isVisible = capsule.classList.contains("visible");
+        if (isVisible) {
+          capsule.classList.remove("visible");
+        } else {
+          capsule.classList.add("visible");
+          document.getElementById("capsule-input").focus();
         }
-      } else if (e.key === 'Escape') {
-        capsule.classList.remove('visible');
-        closeHUD();
       }
-    }
 
-    // Global Cmd+K / Ctrl+J
-    window.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'j')) {
-        e.preventDefault();
-        toggleCapsule();
+      function closeHUD() {
+        hud.classList.remove("visible");
+        setMood("idle");
       }
-    });
 
-    // 5. Full Simulation of Living Agent
-    function simulateOverdueQuery() {
-      // Step 1: Thinking
-      setMood('thinking');
-      hud.classList.remove('visible');
+      function handleInputKey(e) {
+        if (e.key === "Enter") {
+          const val = e.target.value.trim();
+          if (val) {
+            e.target.value = "";
+            capsule.classList.remove("visible");
+            simulateOverdueQuery();
+          }
+        } else if (e.key === "Escape") {
+          capsule.classList.remove("visible");
+          closeHUD();
+        }
+      }
 
-      setTimeout(() => {
-        // Step 2: Scanning tool execution
-        setMood('scanning');
+      // Global Cmd+K / Ctrl+J
+      window.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "j")) {
+          e.preventDefault();
+          toggleCapsule();
+        }
+      });
+
+      // 5. Full Simulation of Living Agent
+      function simulateOverdueQuery() {
+        // Step 1: Thinking
+        setMood("thinking");
+        hud.classList.remove("visible");
 
         setTimeout(() => {
-          // Step 3: Success & display Smart Bento Card
-          setMood('happy');
-          hud.classList.add('visible');
+          // Step 2: Scanning tool execution
+          setMood("scanning");
 
-          // Highlight the overdue tasks on the board
-          document.getElementById('task-overdue-1').classList.add('task-highlight');
-          document.getElementById('task-overdue-2').classList.add('task-highlight');
-        }, 1200);
-      }, 1000);
-    }
+          setTimeout(() => {
+            // Step 3: Success & display Smart Bento Card
+            setMood("happy");
+            hud.classList.add("visible");
 
-    function confirmReassign() {
-      hud.innerHTML = `
+            // Highlight the overdue tasks on the board
+            document.getElementById("task-overdue-1").classList.add("task-highlight");
+            document.getElementById("task-overdue-2").classList.add("task-highlight");
+          }, 1200);
+        }, 1000);
+      }
+
+      function confirmReassign() {
+        hud.innerHTML = `
         <div style="text-align: center; padding: 16px 0;">
           <div style="font-size: 28px; margin-bottom: 8px;">✨</div>
           <div style="font-size: 14px; font-weight: 600; color: #10b981;">Đã Điều Chuyển Thành Công!</div>
           <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">2 task đã được gán sang @Hùng, deadline cập nhật.</div>
         </div>
       `;
-      setMood('happy');
-      setTimeout(() => {
-        closeHUD();
-      }, 2500);
-    }
-  </script>
-</body>
+        setMood("happy");
+        setTimeout(() => {
+          closeHUD();
+        }, 2500);
+      }
+    </script>
+  </body>
 </html>

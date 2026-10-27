@@ -1,70 +1,78 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router";
-import { PlaneChangelogHeader, PlaneChangelogTimeline, PlaneChangelogDetail } from "@/components/changelog";
+import { useSearchParams, useLocation } from "react-router";
+import {
+  PlaneChangelogHeader,
+  PlaneDocsSidebar,
+  PlaneChangelogTimeline,
+  PlaneChangelogTOC,
+} from "@/components/changelog";
 import { CIVIX_DOCS_SECTIONS } from "@/data/civix-docs.data";
 
 export default function ChangelogPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const releaseParam = searchParams.get("release");
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(releaseParam || null);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
-  // Sync state with URL parameter
+  // Smooth scroll to target hash on mount / URL change
   useEffect(() => {
-    if (releaseParam) {
-      setSelectedReleaseId(releaseParam);
-    } else {
-      setSelectedReleaseId(null);
+    const hash = location.hash.replace("#", "") || searchParams.get("release");
+    if (hash) {
+      setTimeout(() => {
+        const el = document.getElementById(hash);
+        if (el) {
+          const yOffset = -80;
+          const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: "smooth" });
+        }
+      }, 100);
     }
-  }, [releaseParam]);
-
-  const handleSelectRelease = (releaseId: string) => {
-    setSelectedReleaseId(releaseId);
-    setSearchParams({ release: releaseId });
-    containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleBackToTimeline = () => {
-    setSelectedReleaseId(null);
-    setSearchParams({});
-    containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const currentRelease = CIVIX_DOCS_SECTIONS.find((r) => r.id === selectedReleaseId);
+  }, [location.hash, searchParams]);
 
   return (
-    <div
-      ref={containerRef}
-      className="vertical-scrollbar bg-surface-100/30 text-text-100 selection:bg-blue-500/20 selection:text-blue-500 relative flex h-full w-full flex-col overflow-y-auto"
-    >
-      {/* Official Top Navigation Bar */}
-      <PlaneChangelogHeader />
+    <div className="relative flex min-h-screen w-full flex-col bg-canvas text-primary selection:bg-accent-primary/20 selection:text-accent-primary">
+      {/* Top Navigation Bar */}
+      <PlaneChangelogHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
-      {/* Main Container */}
-      <div className="flex-1">
-        {selectedReleaseId && currentRelease ? (
-          <PlaneChangelogDetail release={currentRelease} onBack={handleBackToTimeline} />
-        ) : (
-          <PlaneChangelogTimeline releases={CIVIX_DOCS_SECTIONS} onSelectRelease={handleSelectRelease} />
-        )}
+      {/* 3-Column Technical Docs Container */}
+      <div className="mx-auto flex w-full max-w-7xl flex-1 justify-between px-4 sm:px-6 lg:px-8">
+        {/* Left Column: Documentation Navigation */}
+        <PlaneDocsSidebar />
+
+        {/* Center Column: Editorial Changelog Stream */}
+        <main className="min-w-0 flex-1 px-0 py-8 lg:px-10">
+          <PlaneChangelogTimeline releases={CIVIX_DOCS_SECTIONS} searchQuery={searchQuery} />
+        </main>
+
+        {/* Right Column: Sticky Version Table of Contents */}
+        <PlaneChangelogTOC releases={CIVIX_DOCS_SECTIONS} />
       </div>
 
-      {/* Minimal Clean Footer */}
-      <footer className="border-border-200/60 bg-surface-100/50 text-xs text-text-400 border-t py-10">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-4 sm:flex-row">
-          <div className="text-text-200 flex items-center gap-2 font-semibold">
-            <div className="from-blue-600 to-indigo-500 shadow-xs flex h-5 w-5 items-center justify-center rounded bg-gradient-to-tr text-white">
-              <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      {/* Minimal Clean Technical Footer */}
+      <footer className="text-xs mt-16 border-t border-subtle bg-surface-1/40 py-8 text-tertiary">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary text-canvas flex size-4 items-center justify-center rounded">
+              <svg className="size-2.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3.5 4.5C3.5 3.94772 3.94772 3.5 4.5 3.5H9.5C10.0523 3.5 10.5 3.94772 10.5 4.5V19.5C10.5 20.0523 10.0523 20.5 9.5 20.5H4.5C3.94772 20.5 3.5 20.0523 3.5 19.5V4.5Z" />
                 <path d="M13.5 4.5C13.5 3.94772 13.9477 3.5 14.5 3.5H19.5C20.0523 3.5 20.5 3.94772 20.5 4.5V13.5C20.5 14.0523 20.0523 14.5 19.5 14.5H14.5C13.9477 14.5 13.5 14.0523 13.5 13.5V4.5Z" />
               </svg>
             </div>
-            <span>Civix Platform Edition</span>
+            <span className="font-semibold text-secondary">Civix Documentation Portal</span>
+            <span>•</span>
+            <span>All rights reserved.</span>
           </div>
-          <p>© 2026 Civix Work Management Platform. Đồng bộ dữ liệu tài liệu tự động.</p>
+
+          <div className="flex items-center gap-4 text-tertiary">
+            <a href="#overview" className="transition-colors hover:text-primary">
+              Kiến trúc Civix
+            </a>
+            <a href="#standards" className="transition-colors hover:text-primary">
+              Cẩm nang phát triển
+            </a>
+            <a href="/changelog" className="transition-colors hover:text-primary">
+              Nhật ký phiên bản
+            </a>
+          </div>
         </div>
       </footer>
     </div>

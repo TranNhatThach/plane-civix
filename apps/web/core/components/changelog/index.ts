@@ -4,3 +4,5 @@ export * from "./civix-docs-section";
 export * from "./plane-changelog-header";
 export * from "./plane-changelog-timeline";
 export * from "./plane-changelog-detail";
+export * from "./plane-docs-sidebar";
+export * from "./plane-changelog-toc";
