@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useLocation } from "react-router";
-import {
-  PlaneChangelogHeader,
-  PlaneDocsSidebar,
-  PlaneChangelogTimeline,
-  PlaneChangelogTOC,
-} from "@/components/changelog";
+import { PlaneChangelogHeader, PlaneChangelogTimeline, PlaneChangelogTOC } from "@/components/changelog";
 import { CIVIX_DOCS_SECTIONS } from "@/data/civix-docs.data";
 
 export default function ChangelogPage() {
@@ -34,17 +29,14 @@ export default function ChangelogPage() {
       {/* Top Navigation Bar */}
       <PlaneChangelogHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
-      {/* 3-Column Technical Docs Container */}
-      <div className="mx-auto flex w-full max-w-7xl flex-1 justify-between px-3 sm:px-6 lg:px-8">
-        {/* Left Column: Documentation Navigation */}
-        <PlaneDocsSidebar />
-
+      {/* Main Changelog Container with Sticky Version History */}
+      <div className="mx-auto flex w-full max-w-6xl flex-1 justify-center gap-10 px-4 py-8 sm:px-6 lg:px-8">
         {/* Center Column: Editorial Changelog Stream */}
-        <main className="min-w-0 flex-1 px-2 py-8 sm:px-6 lg:px-8">
+        <main className="max-w-3xl min-w-0 flex-1">
           <PlaneChangelogTimeline releases={CIVIX_DOCS_SECTIONS} searchQuery={searchQuery} />
         </main>
 
-        {/* Right Column: Sticky Version Table of Contents */}
+        {/* Right Column: Sticky Version History Table of Contents */}
         <PlaneChangelogTOC releases={CIVIX_DOCS_SECTIONS} />
       </div>
 

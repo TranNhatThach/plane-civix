@@ -62,12 +62,12 @@ export const PlaneChangelogTOC: React.FC<IPlaneChangelogTOCProps> = ({ releases 
   };
 
   return (
-    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 overflow-y-auto px-2 py-6 lg:block">
+    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto px-2 py-6 lg:block">
       <div className="space-y-6">
         <div>
           <h4 className="tracking-wider flex items-center gap-1.5 text-[11px] font-semibold text-tertiary uppercase">
             <Hash className="size-3 text-tertiary" />
-            <span>Mục Lục Phiên Bản</span>
+            <span>Lịch Sử Phiên Bản</span>
           </h4>
 
           <nav className="relative mt-3 space-y-1">
@@ -98,11 +98,13 @@ export const PlaneChangelogTOC: React.FC<IPlaneChangelogTOCProps> = ({ releases 
 
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-xs">{release.version}</span>
-                      {idx === 0 && (
+                      <span className="font-mono text-xs font-semibold">{release.version}</span>
+                      {idx === 0 ? (
                         <span className="py-0.2 rounded bg-success-primary/10 px-1 text-[9px] font-semibold text-success-primary">
-                          Latest
+                          Mới nhất
                         </span>
+                      ) : (
+                        release.updatedAt && <span className="text-[10px] text-tertiary">{release.updatedAt}</span>
                       )}
                     </div>
                     <span className="line-clamp-1 text-[11px] text-tertiary group-hover:text-secondary">

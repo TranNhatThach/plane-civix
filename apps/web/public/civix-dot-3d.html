@@ -56,7 +56,9 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        box-shadow:
+          0 10px 40px rgba(0, 0, 0, 0.7),
+          0 0 0 1px rgba(255, 255, 255, 0.08);
         z-index: 10000;
         max-width: 96vw;
         overflow-x: auto;
@@ -219,8 +221,13 @@
       }
 
       @keyframes pulse-red {
-        0%, 100% { border-color: rgba(244, 63, 94, 0.5); }
-        50% { border-color: rgba(244, 63, 94, 0.9); }
+        0%,
+        100% {
+          border-color: rgba(244, 63, 94, 0.5);
+        }
+        50% {
+          border-color: rgba(244, 63, 94, 0.9);
+        }
       }
 
       .tag-overdue {
@@ -288,7 +295,9 @@
         -webkit-backdrop-filter: blur(24px);
         border: 1px solid var(--card-border);
         border-radius: 20px;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        box-shadow:
+          0 25px 60px rgba(0, 0, 0, 0.75),
+          0 0 0 1px rgba(255, 255, 255, 0.08);
         padding: 20px;
         opacity: 0;
         transform: translateY(20px) scale(0.94);
@@ -407,7 +416,9 @@
         padding: 8px 16px;
         display: flex;
         align-items: center;
-        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        box-shadow:
+          0 12px 35px rgba(0, 0, 0, 0.6),
+          0 0 0 1px rgba(255, 255, 255, 0.08);
         opacity: 0;
         transform: translateY(10px);
         transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -429,7 +440,9 @@
         width: 100%;
       }
 
-      .capsule-input::placeholder { color: var(--text-secondary); }
+      .capsule-input::placeholder {
+        color: var(--text-secondary);
+      }
 
       .capsule-kbd {
         font-size: 10px;
@@ -485,7 +498,7 @@
       <span class="mascot-badge" id="mascot-badge">🐱 Toon Cat</span>
 
       <!-- Model Switcher (External GLTF Models) -->
-      <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700; margin-left: 4px;">MODEL 3D:</span>
+      <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700; margin-left: 4px">MODEL 3D:</span>
       <button class="ctrl-btn active model-btn" id="m-cat" onclick="switchModel('cat')">🐱 Toon Cat</button>
       <button class="ctrl-btn model-btn" id="m-robot" onclick="switchModel('robot')">🤖 Robot Expressive</button>
       <button class="ctrl-btn model-btn" id="m-fox" onclick="switchModel('fox')">🦊 Cyber Fox</button>
@@ -493,7 +506,7 @@
       <div class="divider"></div>
 
       <!-- Animation Actions -->
-      <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">HÀNH ĐỘNG:</span>
+      <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700">HÀNH ĐỘNG:</span>
       <button class="ctrl-btn" onclick="triggerAction('Wave')">👋 Vẫy tay</button>
       <button class="ctrl-btn" onclick="triggerAction('ThumbsUp')">👍 Thumbs Up</button>
       <button class="ctrl-btn" onclick="triggerAction('Dance')">🕺 Nhảy</button>
@@ -502,7 +515,7 @@
       <div class="divider"></div>
 
       <!-- Lighting & Color Palettes -->
-      <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">ÁNH SÁNG:</span>
+      <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700">ÁNH SÁNG:</span>
       <button class="ctrl-btn active theme-btn" id="theme-sky" onclick="setLightingTheme('sky')">⚪ Trắng Sứ</button>
       <button class="ctrl-btn theme-btn" id="theme-mint" onclick="setLightingTheme('mint')">🌿 Bạc Hà</button>
       <button class="ctrl-btn theme-btn" id="theme-amber" onclick="setLightingTheme('amber')">🍯 Hổ Phách</button>
@@ -519,13 +532,20 @@
       <div class="board-header">
         <div>
           <h1>📁 Civix Commercial Engine — Sprint 4</h1>
-          <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+          <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px">
             Sử dụng <b>Model 3D ngoại vi chuyên nghiệp</b> (.glb / .gltf) tải từ file chuẩn — Hoạt hình xương mượt mà,
             ánh sáng PBR Studio!
           </p>
         </div>
         <div
-          style="font-size: 13px; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);"
+          style="
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+          "
         >
           Chạy 100% độc lập không cần backend
         </div>
@@ -535,7 +555,7 @@
         <div class="col">
           <div class="col-title">
             <span>To Do</span>
-            <span style="opacity: 0.6;">4</span>
+            <span style="opacity: 0.6">4</span>
           </div>
           <div class="task-card">CIVIX-120: Nâng cấp SQLite Replay Driver</div>
           <div class="task-card">CIVIX-121: Chuẩn hóa SSE Event Protocol CAR-v2</div>
@@ -545,20 +565,20 @@
         <div class="col">
           <div class="col-title">
             <span>In Progress</span>
-            <span style="opacity: 0.6;">2</span>
+            <span style="opacity: 0.6">2</span>
           </div>
           <div class="task-card task-highlight" id="task-overdue-1">
             <b>CIVIX-101: Fix lỗi Auth Token chéo tenant</b>
-            <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center">
               <span class="tag-overdue">Quá hạn 2 ngày</span>
-              <span style="color: var(--text-secondary);">@Nam</span>
+              <span style="color: var(--text-secondary)">@Nam</span>
             </div>
           </div>
           <div class="task-card task-highlight" id="task-overdue-2">
             <b>CIVIX-105: Refactor Dynamic Model Loader</b>
-            <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center">
               <span class="tag-overdue">Quá hạn 1 ngày</span>
-              <span style="color: var(--text-secondary);">@Nam</span>
+              <span style="color: var(--text-secondary)">@Nam</span>
             </div>
           </div>
         </div>
@@ -566,7 +586,7 @@
         <div class="col">
           <div class="col-title">
             <span>Done</span>
-            <span style="opacity: 0.6;">5</span>
+            <span style="opacity: 0.6">5</span>
           </div>
           <div class="task-card">CIVIX-098: Thiết lập Cordis Microkernel Seams</div>
           <div class="task-card">CIVIX-099: Hoàn thiện Schema Event Sourcing</div>
@@ -580,7 +600,7 @@
       <div class="smart-hud" id="smart-hud">
         <div class="hud-header">
           <div class="hud-title">
-            <span style="font-size: 16px;">🤖</span>
+            <span style="font-size: 16px">🤖</span>
             <span id="hud-title-text">Phát Hiện 2 Task Quá Hạn!</span>
           </div>
           <button class="hud-close" id="btn-close-hud" onclick="closeHUD()">✕</button>
@@ -590,14 +610,14 @@
           <div class="bento-task-item">
             <div>
               <b>CIVIX-101</b> Sửa lỗi Auth Token chéo
-              <div style="color: var(--text-secondary); margin-top: 2px;">Phụ trách: @Nam</div>
+              <div style="color: var(--text-secondary); margin-top: 2px">Phụ trách: @Nam</div>
             </div>
             <span class="tag-overdue">Trễ 2 ngày</span>
           </div>
           <div class="bento-task-item">
             <div>
               <b>CIVIX-105</b> Refactor Dynamic Model Loader
-              <div style="color: var(--text-secondary); margin-top: 2px;">Phụ trách: @Nam</div>
+              <div style="color: var(--text-secondary); margin-top: 2px">Phụ trách: @Nam</div>
             </div>
             <span class="tag-overdue">Trễ 1 ngày</span>
           </div>
