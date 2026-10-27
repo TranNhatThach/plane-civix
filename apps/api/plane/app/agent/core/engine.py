@@ -9,6 +9,12 @@ from plane.app.agent.core.llm_client import SystemLLMClient
 from plane.app.agent.core.scope_guard import AgentContext, scope_guard, ScopeViolationError
 from plane.app.agent.core.context_resolver import ContextResolver
 
+from plane.app.agent.loop.fast_path import FastPathMatcher
+from plane.app.agent.kernel.context import KernelContext
+from plane.app.agent.kernel.events import KernelEvents
+from plane.app.agent.session.event_log import InMemoryEventLog
+from plane.app.agent.session.spilling import SpillingEngine
+
 # Ensure all tools are registered into ToolRegistry
 import plane.app.agent.tools  # noqa
 
@@ -30,7 +36,7 @@ def check_user_project_permission(user, project, min_role=15, strict=False) -> b
 
 class PlaneAgentEngine:
     """
-    Modular Decoupled Core Plane AI Agent Engine.
+    Modular Decoupled Core Plane AI Agent Engine (CAR-v3 Harness Powered).
     Executes natural language queries strictly using system-configured LLM provider/model
     with dynamic Tool Registry, Scope Guard Security Boundary, and Fast Path Deterministic Rendering.
     """
@@ -54,6 +60,12 @@ class PlaneAgentEngine:
                 project_id=self.project_id_str,
             )
 
+        # Microkernel Harness components
+        self.kernel_ctx = KernelContext()
+        self.events = KernelEvents()
+        self.event_log = InMemoryEventLog()
+        self.spilling_engine = SpillingEngine()
+
     def process_request(self, user_prompt: str) -> dict:
         """
         Main entrypoint to process user prompt and execute tools via system configured LLM.
@@ -66,40 +78,14 @@ class PlaneAgentEngine:
         )
         is_fast_path_enabled = str(fast_path_cfg or "1").strip().lower() in ["1", "true", "yes"]
 
-        prompt_lower = (user_prompt or "").lower()
         # 1. Fast-Path Pattern Matcher: Instant sub-50ms execution for standard read-only queries
         fast_path_tool = None
         fast_path_args = {}
 
         if is_fast_path_enabled:
-            if any(kw in prompt_lower for kw in ["báo cáo workspace", "tổng quan workspace", "tất cả task workspace", "tiến độ workspace"]):
-                fast_path_tool = "tool_get_workspace_summary"
-            elif any(kw in prompt_lower for kw in ["báo cáo tiến độ", "xem tiến độ", "tiến độ dự án"]):
-                fast_path_tool = "tool_get_progress"
-            elif any(kw in prompt_lower for kw in ["task của tôi", "công việc của tôi", "việc của tôi", "tasks của tôi"]):
-                fast_path_tool = "tool_query_tasks"
-                if self.user:
-                    fast_path_args["assignee_id"] = str(self.user.id)
-                    fast_path_args["assignee_name"] = self.user.email or self.user.display_name or self.user.first_name
-                elif self.context and self.context.plane_user_id:
-                    fast_path_args["assignee_id"] = str(self.context.plane_user_id)
-            elif any(kw in prompt_lower for kw in ["quá hạn", "trễ hạn"]) and not any(kw in prompt_lower for kw in ["phân bổ", "điều chuyển", "rebalance"]):
-                fast_path_tool = "tool_query_tasks"
-                fast_path_args["is_overdue"] = True
-
-            elif any(kw in prompt_lower for kw in ["danh sách task", "xem task", "danh sách công việc"]):
-                has_specific_filters = any(word in prompt_lower for word in ["của ", "trạng thái", "in progress", "done", "completed", "lọc", "ưu tiên"])
-                if not has_specific_filters:
-                    fast_path_tool = "tool_query_tasks"
-
-            elif any(kw in prompt_lower for kw in ["thành viên", "khối lượng công việc", "ai làm gì", "phân bổ công việc"]):
-                fast_path_tool = "tool_get_members_workload"
-            elif any(kw in prompt_lower for kw in ["danh sách dự án", "xem các dự án", "tất cả dự án"]):
-                fast_path_tool = "tool_list_projects"
-            elif any(kw in prompt_lower for kw in ["changelog", "phiên bản", "cập nhật gì", "bản cập nhật", "có gì mới", "bug nào", "lỗi đã sửa"]):
-                fast_path_tool = "tool_get_changelog"
-                if any(w in prompt_lower for w in ["bug", "lỗi", "fix", "sửa"]):
-                    fast_path_args["only_fixes"] = True
+            user_id = str(self.user.id) if self.user else (self.context.plane_user_id if self.context else None)
+            user_name = (self.user.email or self.user.display_name or self.user.first_name) if self.user else None
+            fast_path_tool, fast_path_args = FastPathMatcher.match(user_prompt, user_id=user_id, user_name=user_name)
 
         if fast_path_tool:
             registered_tool = ToolRegistry.get_tool(fast_path_tool)

@@ -1,3 +1,8 @@
+# Copyright (c) 2023-present Plane Software, Inc. and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+# See the LICENSE file for details.
+
+from plane.app.agent.tools.registry import ToolRegistry, agent_tool
 from plane.app.agent.tools.issue_tools import (
     tool_query_tasks,
     tool_create_task_with_subtasks,
@@ -22,6 +27,8 @@ from plane.app.agent.tools.changelog_tools import (
 )
 
 __all__ = [
+    "ToolRegistry",
+    "agent_tool",
     "tool_query_tasks",
     "tool_create_task_with_subtasks",
     "tool_update_task_status",

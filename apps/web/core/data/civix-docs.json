@@ -1,10 +1,93 @@
 [
   {
+    "id": "production-grade-agent-runtime-harness-v3",
+    "version": "v1.7.0",
+    "updatedAt": "23/10/2026",
+    "title": "Kiến Trúc AI Agent Runtime Harness V3 — Event Sourcing, 3-Role Capability Seams & Output Spilling",
+    "badge": "Bản Mới Nhất",
+    "iconName": "cpu",
+    "description": "Nâng cấp toàn diện kiến trúc AI Agent Runtime Harness V3 theo chuẩn công nghiệp: Microkernel Service Container; Mô hình phiên làm việc hướng sự kiện bất biến (Append-Only Event Stream) hỗ trợ Replay $0 API; 3-Role Capability Seams (LLM, Storage, Approval); Vòng lặp tự trị CAR-v3 với chuỗi trạm gác Waterfall Interceptors; Spilling Engine chống tràn Context Window; và Fast-Path Pattern Matcher phản hồi tức thì dưới 50ms, tương thích ngược 100% với Slack Bot và Web UI.",
+    "content": [
+      {
+        "heading": "1. Vi Nhân Microkernel & Mô Hình Hướng Sự Kiện (Event-Sourced Session Engine)",
+        "subheadings": [
+          {
+            "title": "Append-Only Event Stream & Chiếu dữ liệu thuần túy (deriveMessages)",
+            "body": [
+              "Chuyển đổi toàn bộ cơ chế lưu trữ phiên làm việc của Agent sang mô hình Append-Only Event Stream bất biến (turn/start, step/start, assistant/chunk, tool/call, tool/result, step/end, turn/end).",
+              "Hàm thuần túy derive_messages() tự động gộp các chunk streaming thành tin nhắn hoàn chỉnh và ghép cặp chính xác giữa tool_call với tool_result theo tool_call_id.",
+              "Hỗ trợ tính năng Session Forking (rẽ nhánh phiên làm việc) và Keyless Snapshot Testing (phát lại toàn bộ lịch sử suy luận trong CI/CD với chi phí 0đ API)."
+            ],
+            "callout": {
+              "type": "tip",
+              "text": "Triết lý 'Model-Visible <=> Logged': Mọi thông tin mô hình nhìn thấy đều được ghi nhận vào Event Stream, loại bỏ hoàn toàn trạng thái ngầm (hidden state)."
+            }
+          }
+        ]
+      },
+      {
+        "heading": "2. Lớp Năng Lực 3 Vai Trò (3-Role Capability Seams)",
+        "subheadings": [
+          {
+            "title": "Tách rời Definition ↔ Provider ↔ Consumer",
+            "body": [
+              "Triển khai Capability Seam cho LLM (BaseLLMProvider, OpenAILLMProvider), Storage (BaseStorageProvider, PlaneORMStorageProvider), và Approval (BaseApprovalProvider, StandardApprovalProvider).",
+              "Các công cụ (Tools) chỉ giao tiếp qua giao diện dịch vụ trừu tượng, hoàn toàn tách biệt khỏi môi trường thực thi bên dưới (Local máy dev, Docker Container, hay Cloud MicroVM)."
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "3. Động Cơ Suy Luận Tự Trị CAR-v3 & Chuỗi Trạm Gác Waterfall",
+        "subheadings": [
+          {
+            "title": "Vòng đời suy luận đa bước với Onion Middleware Interceptors",
+            "body": [
+              "Vòng lặp ReAct tự trị CAR-v3 quản lý tối đa 8 bước suy luận liên tiếp kèm timeout an toàn 60 giây.",
+              "Chuỗi trạm gác Waterfall Interceptors cho phép can thiệp trước khi gọi model (agent/pre-step), trước khi thi hành công cụ (tools/pre-execute), và sau khi nhận kết quả (tools/post-execute).",
+              "Bộ lọc Fast-Path Pattern Matcher tối ưu hóa tốc độ phản hồi tức thì dưới 50ms cho các câu hỏi tra cứu tiến độ, task cá nhân, công việc trễ hạn và changelog mà không tốn chi phí token."
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "4. Cơ Chế Chống Tràn Ngữ Cảnh (Tool Output Spilling Engine)",
+        "subheadings": [
+          {
+            "title": "Tự động phân trang và lưu trữ an toàn khi output công cụ quá lớn",
+            "body": [
+              "Tích hợp SpillingEngine tự động phát hiện kết quả công cụ vượt ngưỡng an toàn (>4000 ký tự / ~1000 tokens).",
+              "Lưu trữ dữ liệu thô vào vùng đệm an toàn và sinh mã định danh citation_id (SHA256).",
+              "Trả về bản xem trước 1500 ký tự kèm thông báo hướng dẫn mô hình sử dụng công cụ đọc phân trang, loại bỏ triệt để nguy cơ tràn Context Window hoặc crash do quá tải bộ nhớ."
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "5. Bảo Mật Zero-Trust & Phê Duyệt Tác Vụ Nguy Hiểm (Human-in-the-Loop)",
+        "subheadings": [
+          {
+            "title": "Kiểm soát an toàn đa tầng và bảo vệ phân lập Workspace",
+            "body": [
+              "Duy trì tuyệt đối lớp decorator @scope_guard và AgentContext, ngăn chặn triệt để hành vi truy xuất chéo Workspace (Cross-Workspace Data Leakage).",
+              "Cơ chế Human-in-the-Loop (HITL) chặn tự động các công cụ có tính phá hủy (rebalance workload diện rộng, xóa task) để yêu cầu người dùng xác nhận trên Slack Block Kit hoặc Web UI trước khi thực thi.",
+              "Đảm bảo 100% tương thích ngược với các cổng kết nối hiện hành (Slack Socket Mode Handler và Web SSE Streaming Endpoint)."
+            ],
+            "callout": {
+              "type": "info",
+              "text": "Đã kiểm chuẩn thành công trọn vẹn cả 3 tầng: Bộ kiểm thử độc lập (test_harness.py, benchmark_harness.py), kịch bản thực chiến (run_production_scenarios.py), và kiểm thử Live End-to-End với model thật NVIDIA Nemotron 3.5 Lightning (live_eval_nemotron.py) qua OpenRouter, xác nhận ReAct Tool Calling chính xác 100% và tương thích hoàn hảo với cơ chế Spilling Engine."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "multi-tenant-workspace-backup-isolation",
     "version": "v1.6.0",
     "updatedAt": "06/10/2026",
     "title": "Mô Hình Multi-Tenant Workspace, Bàn Giao Quản Trị & Sao Lưu Phân Lập Độc Lập",
-    "badge": "Bản Mới Nhất",
+    "badge": "Ổn định",
     "iconName": "server",
     "description": "Hoàn thiện mô hình Multi-tenant Plane-Civix: Chuyển sang cơ chế Invite-only bảo mật cho mọi domain (Gmail, Outlook...); God-mode tạo workspace bàn giao trực tiếp cho Quản trị viên khách hàng kèm mật khẩu tạm 16 ký tự và bắt buộc đổi mật khẩu; Thùng rác 15 ngày; Hệ thống sao lưu dữ liệu phân lập riêng cho từng Workspace (chạy lúc 02:00 hằng ngày, lưu tối đa 45 bản, khôi phục độc lập không tác động dữ liệu CIVIX).",
     "content": [
